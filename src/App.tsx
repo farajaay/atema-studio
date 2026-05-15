@@ -8,6 +8,7 @@ import BookingSummary from './components/BookingSummary';
 import BookingForm from './components/BookingForm';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import PackagesManager from './pages/PackagesManager';
 import { useBreakpoint } from './hooks/useBreakpoint';
 import { Clock, Timer, Zap, Mic2, BookOpen, Film, Phone, Mail, MapPin } from 'lucide-react';
 
@@ -104,6 +105,7 @@ export default function App() {
       <Route path="/"              element={<BookingPage />} />
       <Route path="/admin"         element={<AdminLogin />} />
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      <Route path="/admin/packages"  element={<PackagesManager />} />
       <Route path="*"              element={<Navigate to="/" replace />} />
     </Routes>
   );

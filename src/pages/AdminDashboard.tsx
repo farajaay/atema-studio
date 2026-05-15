@@ -10,7 +10,7 @@ import {
   LayoutDashboard, CalendarDays, Package, LogOut, RefreshCw,
   Search, Eye, Trash2, CheckCircle2,
   Clock, XCircle, CircleDollarSign, Users, AlertCircle,
-  Loader2, X, Phone, Mail, MapPin, StickyNote, Save, TrendingUp
+  Loader2, X, Phone, Mail, MapPin, StickyNote, Save, TrendingUp, Layers
 } from 'lucide-react';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
@@ -274,6 +274,12 @@ export default function AdminDashboard() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px' }}>
           {!isMobile && <span style={{ fontSize: '13px', color: '#888' }}>{user?.email}</span>}
+          <button onClick={() => navigate('/admin/packages')}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#f5f5f5',
+              border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
+              fontSize: '13px', fontFamily: 'inherit', color: '#555', fontWeight: 600 }}>
+            <Layers size={14} />{!isMobile && 'الباقات'}
+          </button>
           <button onClick={fetchBookings} style={{ background: 'none', border: 'none', cursor: 'pointer',
             color: '#aaa', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px' }}>
             <RefreshCw size={15} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
