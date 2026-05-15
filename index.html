@@ -12,13 +12,13 @@
     <style>
       *, *::before, *::after { box-sizing: border-box; }
       html { scroll-behavior: smooth; }
-      body { margin: 0; background: #FCFAF6; overflow-x: hidden; }
+      body { margin: 0; background: #F5EDE4; overflow-x: hidden; }
       #root { min-height: 100vh; }
 
       /* ── Scrollbar ── */
       ::-webkit-scrollbar { width: 4px; }
-      ::-webkit-scrollbar-track { background: #F5EDE2; }
-      ::-webkit-scrollbar-thumb { background: #C9B393; border-radius: 2px; }
+      ::-webkit-scrollbar-track { background: #EDE4D8; }
+      ::-webkit-scrollbar-thumb { background: #D6BFA3; border-radius: 2px; }
 
       /* ── Wordmark shimmer ── */
       @keyframes shimmer {
@@ -30,7 +30,7 @@
         font-weight: 300;
         letter-spacing: 0.38em;
         text-transform: uppercase;
-        background: linear-gradient(90deg, #3D2E1F 20%, #8C7659 45%, #3D2E1F 70%);
+        background: linear-gradient(90deg, #1A1A1A 20%, #8C6B4F 45%, #1A1A1A 70%);
         background-size: 200%;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -44,7 +44,7 @@
         letter-spacing: 0.55em;
         text-transform: uppercase;
         font-size: 0.6rem;
-        color: rgba(61,46,31,0.45);
+        color: rgba(26,26,26,0.4);
       }
 
       /* ── Animations ── */
@@ -79,17 +79,17 @@
 
       /* ── Glass ── */
       .glass {
-        background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(252,250,246,0.9));
+        background: linear-gradient(145deg, rgba(255,255,255,0.96), rgba(245,237,228,0.92));
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(201,179,147,0.22);
-        box-shadow: 0 8px 40px rgba(61,46,31,0.07), inset 0 1px 0 rgba(255,255,255,0.95);
+        border: 1px solid rgba(214,191,163,0.28);
+        box-shadow: 0 8px 40px rgba(26,26,26,0.06), inset 0 1px 0 rgba(255,255,255,0.95);
       }
 
       /* ── Toggle ── */
       .atema-toggle {
         width: 44px; height: 24px; border-radius: 12px;
-        background: #E8DCC9; position: relative; cursor: pointer;
+        background: #D6BFA3; position: relative; cursor: pointer;
         transition: background 0.25s; flex-shrink: 0; border: none;
       }
       .atema-toggle::after {
@@ -99,7 +99,7 @@
         background: white; box-shadow: 0 1px 4px rgba(0,0,0,0.18);
         transition: transform 0.25s;
       }
-      .atema-toggle.on { background: #A88B5F; }
+      .atema-toggle.on { background: #8C6B4F; }
       .atema-toggle.on::after { transform: translateX(-20px); }
 
       /* ── Ornament ── */
@@ -109,66 +109,66 @@
       }
       .ornament::before, .ornament::after {
         content: ''; flex: 1; height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(201,179,147,0.45), transparent);
+        background: linear-gradient(90deg, transparent, rgba(140,107,79,0.4), transparent);
       }
       .ornament span {
         font-family: 'Cormorant Garamond', serif;
         font-weight: 300; font-size: 0.9rem; letter-spacing: 0.28em;
-        color: #8C7659; white-space: nowrap; text-transform: uppercase;
+        color: #8C6B4F; white-space: nowrap; text-transform: uppercase;
       }
 
       /* ── Form inputs ── */
       .atema-input {
-        width: 100%; background: rgba(255,255,255,0.92);
-        border: 1.5px solid rgba(201,179,147,0.3);
+        width: 100%; background: rgba(255,255,255,0.95);
+        border: 1.5px solid rgba(214,191,163,0.5);
         border-radius: 10px; padding: 11px 15px;
         font-family: 'Tajawal', sans-serif; font-size: 0.9rem;
-        color: #3D2E1F; outline: none;
+        color: #1A1A1A; outline: none;
         transition: border-color 0.2s, box-shadow 0.2s;
       }
       .atema-input:focus {
-        border-color: #A88B5F;
-        box-shadow: 0 0 0 3px rgba(168,139,95,0.1);
+        border-color: #8C6B4F;
+        box-shadow: 0 0 0 3px rgba(140,107,79,0.1);
       }
       .atema-input-ltr { font-family: 'Inter', sans-serif; direction: ltr; }
 
       /* ── Primary button ── */
       .btn-primary {
-        background: linear-gradient(135deg, #241910 0%, #3D2E1F 60%, #6B5740 100%);
-        color: #E8D4B0; font-family: 'Tajawal', sans-serif;
+        background: linear-gradient(135deg, #1A1A1A 0%, #2C2C2C 60%, #4A3728 100%);
+        color: #E8D9C5; font-family: 'Tajawal', sans-serif;
         font-weight: 500; font-size: 0.95rem; letter-spacing: 0.04em;
         padding: 14px 32px; border-radius: 10px; border: none;
         cursor: pointer; width: 100%; transition: all 0.3s;
-        box-shadow: 0 4px 20px rgba(36,25,16,0.28);
+        box-shadow: 0 4px 20px rgba(26,26,26,0.22);
       }
       .btn-primary:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 28px rgba(36,25,16,0.4);
+        box-shadow: 0 8px 28px rgba(26,26,26,0.32);
       }
       .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
       /* ── Lang toggle ── */
       .lang-toggle {
-        display: flex; border: 1px solid rgba(61,46,31,0.22);
+        display: flex; border: 1px solid rgba(26,26,26,0.18);
         border-radius: 20px; overflow: hidden;
         background: rgba(255,255,255,0.22);
       }
       .lang-btn {
         padding: 4px 14px; font-size: 0.72rem; cursor: pointer;
         transition: all 0.2s; font-family: 'Inter', sans-serif;
-        color: rgba(61,46,31,0.55); border: none; background: transparent;
+        color: rgba(26,26,26,0.5); border: none; background: transparent;
         letter-spacing: 0.08em;
       }
       .lang-btn.active {
-        background: #241910; color: #E8D4B0;
+        background: #1A1A1A; color: #E8D9C5;
         border-radius: 20px; font-weight: 500;
       }
 
       /* ── Sticky bar ── */
       #sticky-bar {
         position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-        background: linear-gradient(135deg, #241910, #2a1a0f);
-        border-top: 1px solid rgba(201,179,147,0.2);
+        background: linear-gradient(135deg, #1A1A1A, #2C2C2C);
+        border-top: 1px solid rgba(214,191,163,0.2);
         transform: translateY(100%);
         transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
       }
@@ -211,7 +211,7 @@
         cursor: pointer; flex-shrink: 0; margin-top: 2px;
       }
     </style>
-    <script type="module" crossorigin src="/atema-studio/assets/index-BMqJxcGX.js"></script>
+    <script type="module" crossorigin src="/atema-studio/assets/index-XlaGvIlj.js"></script>
     <link rel="stylesheet" crossorigin href="/atema-studio/assets/index-DGNrK5qb.css">
   </head>
   <body>
