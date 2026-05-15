@@ -1,0 +1,433 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAdminAuth } from '../hooks/useAdminAuth';
+import { useAdminData } from '../hooks/useAdminData';
+import type { Booking } from '../hooks/useAdminData';
+import { ATEMA_COLORS } from '../config/constants';
+import { useBreakpoint } from '../hooks/useBreakpoint';
+import {
+  LayoutDashboard, CalendarDays, Package, LogOut, RefreshCw,
+  Search, Eye, Trash2, CheckCircle2,
+  Clock, XCircle, CircleDollarSign, Users, AlertCircle,
+  Loader2, X, Phone, Mail, MapPin, StickyNote, Save
+} from 'lucide-react';
+
+// ── Status badge ──────────────────────────────────────────────────────────────
+const STATUS_CONFIG = {
+  pending:   { label: 'قيد الانتظار', bg: '#fef3c7', color: '#d97706', Icon: Clock },
+  confirmed: { label: 'مؤكد',         bg: '#d1fae5', color: '#059669', Icon: CheckCircle2 },
+  completed: { label: 'مكتمل',        bg: '#dbeafe', color: '#2563eb', Icon: CheckCircle2 },
+  cancelled: { label: 'ملغي',         bg: '#fee2e2', color: '#dc2626', Icon: XCircle },
+};
+const PAYMENT_CONFIG = {
+  unpaid:   { label: 'غير مدفوع', bg: '#fef3c7', color: '#d97706' },
+  paid:     { label: 'مدفوع',     bg: '#d1fae5', color: '#059669' },
+  refunded: { label: 'مُسترد',    bg: '#f3e8ff', color: '#7c3aed' },
+};
+
+function StatusBadge({ status }: { status: Booking['status'] }) {
+  const c = STATUS_CONFIG[status];
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px',
+      background: c.bg, color: c.color, padding: '3px 10px', borderRadius: '20px',
+      fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+      <c.Icon size={11} />{c.label}
+    </span>
+  );
+}
+function PayBadge({ status }: { status: Booking['payment_status'] }) {
+  const c = PAYMENT_CONFIG[status];
+  return (
+    <span style={{ display: 'inline-block', background: c.bg, color: c.color,
+      padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>
+      {c.label}
+    </span>
+  );
+}
+
+// ── Stat card ─────────────────────────────────────────────────────────────────
+function StatCard({ icon, label, value, sub, color }: { icon: React.ReactNode; label: string; value: string | number; sub?: string; color: string }) {
+  return (
+    <div style={{ background: 'white', borderRadius: '12px', padding: '20px 22px',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.06)', borderTop: `3px solid ${color}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ fontSize: '12px', color: '#888', marginBottom: '8px', fontWeight: 500 }}>{label}</div>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: ATEMA_COLORS.editorialBlack, lineHeight: 1 }}>{value}</div>
+          {sub && <div style={{ fontSize: '11px', color: '#aaa', marginTop: '6px' }}>{sub}</div>}
+        </div>
+        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: color + '20',
+          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Booking Detail Modal ──────────────────────────────────────────────────────
+function BookingModal({ booking, onClose, onSave }: {
+  booking: Booking; onClose: () => void; onSave: (id: string, updates: Partial<Booking>) => Promise<boolean>;
+}) {
+  const [status, setStatus]   = useState<Booking['status']>(booking.status);
+  const [payment, setPayment] = useState<Booking['payment_status']>(booking.payment_status);
+  const [notes, setNotes]     = useState(booking.special_requests || '');
+  const [saving, setSaving]   = useState(false);
+  const [saved, setSaved]     = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    const ok = await onSave(booking.id, { status, payment_status: payment, special_requests: notes });
+    setSaving(false);
+    if (ok) { setSaved(true); setTimeout(() => { setSaved(false); onClose(); }, 1000); }
+  }
+
+  const row = (icon: React.ReactNode, label: string, value?: string) =>
+    value ? (
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', fontSize: '14px' }}>
+        <span style={{ color: '#bbb', flexShrink: 0, marginTop: '1px' }}>{icon}</span>
+        <div><span style={{ color: '#888', marginLeft: '6px' }}>{label}:</span>
+          <span style={{ fontWeight: 600, color: ATEMA_COLORS.editorialBlack }}> {value}</span></div>
+      </div>
+    ) : null;
+
+  const sel: React.CSSProperties = {
+    padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #e8e0d8',
+    fontSize: '13px', fontFamily: 'inherit', outline: 'none', cursor: 'pointer',
+    background: 'white',
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '16px',
+        maxWidth: '600px', width: '100%', maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.2)', fontFamily: 'Cairo, Tajawal, Inter, sans-serif' }}>
+
+        {/* Header */}
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f0f0',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '16px', color: ATEMA_COLORS.deepBronze }}>
+              تفاصيل الحجز
+            </div>
+            <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>{booking.booking_ref}</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa' }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ padding: '24px' }}>
+          {/* Customer Info */}
+          <div style={{ background: ATEMA_COLORS.softIvory, borderRadius: '10px', padding: '16px 18px', marginBottom: '20px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: ATEMA_COLORS.champagne, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>بيانات العميل</div>
+            {row(<Users size={14} />,    'الاسم',             booking.customer_name)}
+            {row(<Phone size={14} />,    'الجوال',            booking.customer_phone)}
+            {row(<Mail size={14} />,     'البريد',            booking.customer_email)}
+            {row(<MapPin size={14} />,   'الموقع',            booking.location)}
+            {row(<CalendarDays size={14} />, 'التاريخ',       `${booking.event_date} الساعة ${booking.event_time}`)}
+            {row(<Package size={14} />,  'الباقة',            booking.package_name || `باقة رقم ${booking.package_id}`)}
+          </div>
+
+          {/* Financials */}
+          <div style={{ background: '#f8f8f8', borderRadius: '10px', padding: '16px 18px', marginBottom: '20px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: ATEMA_COLORS.champagne, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>المالية</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', textAlign: 'center' }}>
+              {[['الإجمالي', booking.subtotal], ['VAT 15%', booking.vat], ['المجموع', booking.total]].map(([l, v]) => (
+                <div key={l as string}>
+                  <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '4px' }}>{l as string}</div>
+                  <div style={{ fontWeight: 700, color: ATEMA_COLORS.champagne, fontSize: '16px' }}>{(v as number).toLocaleString()} ر.س</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Edit status */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#555', marginBottom: '7px' }}>حالة الحجز</label>
+            <select value={status} onChange={e => setStatus(e.target.value as Booking['status'])} style={sel}>
+              <option value="pending">قيد الانتظار</option>
+              <option value="confirmed">مؤكد</option>
+              <option value="completed">مكتمل</option>
+              <option value="cancelled">ملغي</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#555', marginBottom: '7px' }}>حالة الدفع</label>
+            <select value={payment} onChange={e => setPayment(e.target.value as Booking['payment_status'])} style={sel}>
+              <option value="unpaid">غير مدفوع</option>
+              <option value="paid">مدفوع</option>
+              <option value="refunded">مُسترد</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#555', marginBottom: '7px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><StickyNote size={13} />ملاحظات</span>
+            </label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
+              style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #e8e0d8', borderRadius: '8px',
+                fontSize: '13px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+            <button onClick={onClose} style={{ padding: '10px 22px', border: `1.5px solid ${ATEMA_COLORS.champagne}`,
+              borderRadius: '8px', background: 'white', color: ATEMA_COLORS.champagne,
+              fontWeight: 600, cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}>إلغاء</button>
+            <button onClick={handleSave} disabled={saving || saved} style={{
+              padding: '10px 22px', background: saved ? '#059669' : ATEMA_COLORS.champagne,
+              color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer',
+              fontSize: '13px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {saving ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />حفظ...</>
+               : saved ? <><CheckCircle2 size={14} />تم الحفظ</>
+               : <><Save size={14} />حفظ التغييرات</>}
+            </button>
+          </div>
+        </div>
+      </div>
+      <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+}
+
+// ── Main Dashboard ────────────────────────────────────────────────────────────
+export default function AdminDashboard() {
+  const { user, loading: authLoading, logout } = useAdminAuth();
+  const { bookings, loading, error, stats, fetchBookings, updateBooking, deleteBooking } = useAdminData();
+  const navigate  = useNavigate();
+  const { isMobile } = useBreakpoint();
+
+  const [search,     setSearch]     = useState('');
+  const [statusF,    setStatusF]    = useState<string>('all');
+  const [paymentF,   setPaymentF]   = useState<string>('all');
+  const [selected,   setSelected]   = useState<Booking | null>(null);
+  const [deleteConf, setDeleteConf] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && !user) navigate('/admin', { replace: true });
+  }, [user, authLoading, navigate]);
+
+  const filtered = bookings.filter(b => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || b.booking_ref.toLowerCase().includes(q)
+      || b.customer_name.toLowerCase().includes(q)
+      || b.customer_phone.includes(q);
+    const matchStatus  = statusF  === 'all' || b.status         === statusF;
+    const matchPayment = paymentF === 'all' || b.payment_status === paymentF;
+    return matchSearch && matchStatus && matchPayment;
+  });
+
+  if (authLoading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Loader2 size={36} color={ATEMA_COLORS.champagne} style={{ animation: 'spin 1s linear infinite' }} />
+      <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
+  const selStyle = (active: boolean): React.CSSProperties => ({
+    padding: '7px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer',
+    fontSize: '12px', fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.2s',
+    background: active ? ATEMA_COLORS.champagne : 'white',
+    color: active ? 'white' : '#666',
+    boxShadow: active ? '0 2px 8px rgba(212,181,160,0.4)' : 'none',
+  });
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#f4f6f9', fontFamily: 'Cairo, Tajawal, Inter, sans-serif', direction: 'rtl' }}>
+
+      {/* Top bar */}
+      <div style={{ background: 'white', padding: isMobile ? '12px 16px' : '14px 30px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.07)', position: 'sticky', top: 0, zIndex: 50,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '34px', height: '34px', borderRadius: '8px',
+            background: `linear-gradient(135deg, ${ATEMA_COLORS.champagne}, ${ATEMA_COLORS.warmSand})`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <LayoutDashboard size={17} color="white" />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '15px', color: ATEMA_COLORS.deepBronze }}>ATEMA STUDIO</div>
+            <div style={{ fontSize: '11px', color: '#aaa' }}>لوحة التحكم</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px' }}>
+          {!isMobile && <span style={{ fontSize: '13px', color: '#888' }}>{user?.email}</span>}
+          <button onClick={fetchBookings} style={{ background: 'none', border: 'none', cursor: 'pointer',
+            color: '#aaa', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px' }}>
+            <RefreshCw size={15} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+            {!isMobile && 'تحديث'}
+          </button>
+          <button onClick={async () => { await logout(); navigate('/admin'); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#fff5f5',
+              border: '1px solid #fecaca', color: '#dc2626', borderRadius: '8px',
+              padding: '7px 14px', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit', fontWeight: 600 }}>
+            <LogOut size={14} />{!isMobile && 'خروج'}
+          </button>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '20px 16px' : '28px 30px' }}>
+
+        {/* Stats Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+          gap: isMobile ? '12px' : '16px', marginBottom: '28px' }}>
+          <StatCard icon={<CalendarDays size={20} color={ATEMA_COLORS.champagne} />}
+            label="إجمالي الحجوزات" value={stats.total} color={ATEMA_COLORS.champagne} />
+          <StatCard icon={<Clock size={20} color="#d97706" />}
+            label="قيد الانتظار" value={stats.pending}
+            sub={`${stats.pending_revenue.toLocaleString()} ر.س معلقة`} color="#d97706" />
+          <StatCard icon={<CheckCircle2 size={20} color="#059669" />}
+            label="مؤكد / مكتمل" value={stats.confirmed + stats.completed} color="#059669" />
+          <StatCard icon={<CircleDollarSign size={20} color="#2563eb" />}
+            label="الإيرادات المحصلة" value={`${stats.revenue.toLocaleString()} ر.س`} color="#2563eb" />
+        </div>
+
+        {/* Filters bar */}
+        <div style={{ background: 'white', borderRadius: '12px', padding: '16px 20px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.05)', marginBottom: '20px',
+          display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+
+          {/* Search */}
+          <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
+            <Search size={14} color="#bbb" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="بحث بالاسم أو رقم الحجز أو الجوال..." dir="rtl"
+              style={{ width: '100%', padding: '9px 36px 9px 12px', border: '1.5px solid #e8e0d8',
+                borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+                fontFamily: 'inherit', background: 'white' }} />
+          </div>
+
+          {/* Status filter */}
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {[['all','الكل'],['pending','انتظار'],['confirmed','مؤكد'],['completed','مكتمل'],['cancelled','ملغي']].map(([v,l]) => (
+              <button key={v} onClick={() => setStatusF(v)} style={selStyle(statusF === v)}>{l}</button>
+            ))}
+          </div>
+
+          {/* Payment filter */}
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {[['all','كل الدفعات'],['paid','مدفوع'],['unpaid','غير مدفوع']].map(([v,l]) => (
+              <button key={v} onClick={() => setPaymentF(v)} style={selStyle(paymentF === v)}>{l}</button>
+            ))}
+          </div>
+
+          <span style={{ fontSize: '12px', color: '#aaa', marginRight: 'auto' }}>
+            {filtered.length} / {bookings.length} حجز
+          </span>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff5f5',
+            border: '1px solid #fecaca', borderRadius: '8px', padding: '12px 16px',
+            marginBottom: '16px', fontSize: '13px', color: '#dc2626' }}>
+            <AlertCircle size={15} />{error}
+          </div>
+        )}
+
+        {/* Table */}
+        <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+          {loading ? (
+            <div style={{ padding: '60px', textAlign: 'center' }}>
+              <Loader2 size={32} color={ATEMA_COLORS.champagne} style={{ animation: 'spin 1s linear infinite' }} />
+              <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
+              <p style={{ color: '#aaa', marginTop: '12px', fontSize: '14px' }}>جاري تحميل الحجوزات...</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ padding: '60px', textAlign: 'center' }}>
+              <CalendarDays size={40} color="#ddd" style={{ marginBottom: '12px' }} />
+              <p style={{ color: '#aaa', fontSize: '14px' }}>لا توجد حجوزات مطابقة</p>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#fafafa', borderBottom: '2px solid #f0f0f0' }}>
+                    {['رقم الحجز','العميل','الباقة','التاريخ','المجموع','الحجز','الدفع','إجراء'].map(h => (
+                      <th key={h} style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700,
+                        color: '#666', fontSize: '12px', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((b, i) => (
+                    <tr key={b.id} style={{ borderBottom: '1px solid #f5f5f5',
+                      background: i % 2 === 0 ? 'white' : '#fafafa',
+                      transition: 'background 0.15s' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#fef8f4')}
+                      onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? 'white' : '#fafafa')}>
+                      <td style={{ padding: '12px 14px', fontWeight: 600, color: ATEMA_COLORS.deepBronze, whiteSpace: 'nowrap' }}>{b.booking_ref}</td>
+                      <td style={{ padding: '12px 14px' }}>
+                        <div style={{ fontWeight: 600, color: '#333' }}>{b.customer_name}</div>
+                        <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>{b.customer_phone}</div>
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#555', whiteSpace: 'nowrap' }}>{b.package_name || `#${b.package_id}`}</td>
+                      <td style={{ padding: '12px 14px', color: '#555', whiteSpace: 'nowrap' }}>{b.event_date}</td>
+                      <td style={{ padding: '12px 14px', fontWeight: 700, color: ATEMA_COLORS.champagne, whiteSpace: 'nowrap' }}>{b.total.toLocaleString()} ر.س</td>
+                      <td style={{ padding: '12px 14px' }}><StatusBadge status={b.status} /></td>
+                      <td style={{ padding: '12px 14px' }}><PayBadge status={b.payment_status} /></td>
+                      <td style={{ padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button onClick={() => setSelected(b)} title="عرض / تعديل"
+                            style={{ background: '#f0f4ff', border: 'none', borderRadius: '6px',
+                              padding: '6px 10px', cursor: 'pointer', color: '#2563eb' }}>
+                            <Eye size={14} />
+                          </button>
+                          <button onClick={() => setDeleteConf(b.id)} title="حذف"
+                            style={{ background: '#fff5f5', border: 'none', borderRadius: '6px',
+                              padding: '6px 10px', cursor: 'pointer', color: '#dc2626' }}>
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {!import.meta.env.VITE_SUPABASE_URL && (
+          <div style={{ marginTop: '20px', padding: '12px 16px', background: '#fef3c7', border: '1px solid #fde68a',
+            borderRadius: '8px', fontSize: '12px', color: '#92400e', textAlign: 'center' }}>
+            ⚠️ وضع العرض — البيانات تجريبية. لتفعيل Supabase أضف VITE_SUPABASE_URL في ملف .env
+          </div>
+        )}
+      </div>
+
+      {/* Booking detail modal */}
+      {selected && (
+        <BookingModal booking={selected} onClose={() => setSelected(null)}
+          onSave={async (id, updates) => {
+            const ok = await updateBooking(id, updates);
+            if (ok) setSelected(null);
+            return ok;
+          }} />
+      )}
+
+      {/* Delete confirmation */}
+      {deleteConf && (
+        <div onClick={() => setDeleteConf(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '14px',
+            padding: '28px', maxWidth: '380px', width: '100%', textAlign: 'center',
+            fontFamily: 'Cairo, Tajawal, Inter, sans-serif' }}>
+            <Trash2 size={40} color="#dc2626" style={{ marginBottom: '14px' }} />
+            <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#333', marginBottom: '8px' }}>حذف الحجز؟</h3>
+            <p style={{ fontSize: '13px', color: '#888', marginBottom: '22px' }}>هذا الإجراء لا يمكن التراجع عنه.</p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button onClick={() => setDeleteConf(null)} style={{ padding: '10px 24px', border: '1.5px solid #e0e0e0',
+                borderRadius: '8px', background: 'white', cursor: 'pointer', fontSize: '14px', fontFamily: 'inherit', fontWeight: 600 }}>إلغاء</button>
+              <button onClick={async () => { await deleteBooking(deleteConf!); setDeleteConf(null); }}
+                style={{ padding: '10px 24px', background: '#dc2626', color: 'white', border: 'none',
+                  borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontFamily: 'inherit', fontWeight: 700 }}>نعم، احذف</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+}
