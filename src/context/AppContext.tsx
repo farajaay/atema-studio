@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext } from 'react';
-import { BookingSummary, Package, AddOn } from '../types';
+import type { Package, AddOn } from '../types';
 
 interface AppContextType {
   language: 'ar' | 'en';

@@ -1,205 +1,78 @@
 import React from 'react';
 import { useAppContext } from '../context/AppContext';
 import { ATEMA_COLORS } from '../config/constants';
+import { useBreakpoint } from '../hooks/useBreakpoint';
+import { ClipboardList, Package, PlusCircle, ReceiptText, Percent, CircleDollarSign, ArrowRight } from 'lucide-react';
 
-const BookingSummary: React.FC = () => {
+const Row = ({ icon, label, value, bold }: { icon: React.ReactNode; label: string; value: string; bold?: boolean }) => (
+  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+    padding:'11px 0', borderBottom:'1px solid #f5f0ec', fontSize:'13px' }}>
+    <span style={{ display:'flex', alignItems:'center', gap:'7px', color:'#777' }}>
+      {icon}{label}
+    </span>
+    <span style={{ fontWeight: bold ? 700 : 500, color: bold ? ATEMA_COLORS.editorialBlack : '#555' }}>{value}</span>
+  </div>
+);
+
+const BookingSummary: React.FC<{ onBook?: () => void }> = ({ onBook }) => {
   const { selectedPackage, selectedAddOns, subtotal, vat, total } = useAppContext();
+  const { isMobile } = useBreakpoint();
 
   return (
-    <aside
-      style={{
-        position: 'sticky',
-        top: '100px',
-        background: 'white',
-        padding: '30px',
-        borderRadius: '12px',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.1)',
-        marginTop: '40px',
-        maxWidth: '400px'
-      }}
-    >
-      <h3
-        style={{
-          fontSize: '16px',
-          fontWeight: 700,
-          color: ATEMA_COLORS.deepBronze,
-          marginBottom: '20px',
-          textAlign: 'center'
-        }}
-      >
-        📋 ملخص حجزك
-      </h3>
+    <aside style={{
+      position: isMobile ? 'static' : 'sticky',
+      top: '90px',
+      background: 'white',
+      padding: isMobile ? '22px 18px' : '28px 24px',
+      borderRadius: '14px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.09)',
+      width: isMobile ? '100%' : '340px',
+      boxSizing: 'border-box',
+    }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'20px' }}>
+        <ClipboardList size={18} color={ATEMA_COLORS.deepBronze} />
+        <h3 style={{ fontSize:'15px', fontWeight:700, color:ATEMA_COLORS.deepBronze, margin:0 }}>ملخص حجزك</h3>
+      </div>
 
-      {/* PACKAGE */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '12px 0',
-          borderBottom: '1px solid #f0f0f0',
-          fontSize: '13px'
-        }}
-      >
-        <span style={{ color: '#666' }}>الباقة المختارة:</span>
-        <span style={{ fontWeight: 700, color: ATEMA_COLORS.editorial Black }}>
-          {selectedPackage?.nameAr || 'لم تختر بعد'}
+      <Row icon={<Package size={13} color='#bbb' />} label='الباقة المختارة'
+        value={selectedPackage?.nameAr || 'لم تختر بعد'} bold />
+      <Row icon={<ReceiptText size={13} color='#bbb' />} label='سعر الباقة'
+        value={selectedPackage ? `${selectedPackage.price.toLocaleString()} ر.س` : '0'} bold />
+      <Row icon={<PlusCircle size={13} color='#bbb' />} label='الإضافات'
+        value={selectedAddOns.length > 0 ? `${selectedAddOns.length} خدمة` : 'لا توجد'} />
+      <Row icon={<ReceiptText size={13} color='#bbb' />} label='سعر الإضافات'
+        value={selectedAddOns.length > 0
+          ? `${selectedAddOns.reduce((s, a) => s + a.price, 0).toLocaleString()} ر.س` : '0'} />
+
+      <div style={{ height:'1px', background: ATEMA_COLORS.champagne + '40', margin:'14px 0' }} />
+
+      <Row icon={<ReceiptText size={13} color='#bbb' />} label='الإجمالي قبل VAT'
+        value={`${subtotal.toLocaleString()} ر.س`} />
+      <Row icon={<Percent size={13} color='#bbb' />} label='VAT 15%'
+        value={`${vat.toLocaleString()} ر.س`} />
+
+      <div style={{ height:'1px', background: ATEMA_COLORS.champagne + '40', margin:'14px 0' }} />
+
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+        padding:'12px 0', fontSize:'17px', fontWeight:700, color:ATEMA_COLORS.deepBronze }}>
+        <span style={{ display:'flex', alignItems:'center', gap:'7px' }}>
+          <CircleDollarSign size={17} color={ATEMA_COLORS.champagne} />المجموع النهائي
         </span>
+        <span style={{ color: ATEMA_COLORS.champagne }}>{total.toLocaleString()} ر.س</span>
       </div>
 
-      {/* PACKAGE PRICE */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '12px 0',
-          borderBottom: '1px solid #f0f0f0',
-          fontSize: '13px'
-        }}
-      >
-        <span style={{ color: '#666' }}>سعر الباقة:</span>
-        <span style={{ fontWeight: 700, color: ATEMA_COLORS.editorialBlack }}>
-          {selectedPackage ? `${selectedPackage.price.toLocaleString()} ر.س` : '0'}
-        </span>
-      </div>
-
-      {/* ADD-ONS COUNT */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '12px 0',
-          borderBottom: '1px solid #f0f0f0',
-          fontSize: '13px'
-        }}
-      >
-        <span style={{ color: '#666' }}>الإضافات:</span>
-        <span style={{ fontWeight: 700, color: ATEMA_COLORS.editorialBlack }}>
-          {selectedAddOns.length > 0 ? `${selectedAddOns.length} خدمة` : 'لا توجد'}
-        </span>
-      </div>
-
-      {/* ADD-ONS PRICE */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '12px 0',
-          borderBottom: '1px solid #f0f0f0',
-          fontSize: '13px'
-        }}
-      >
-        <span style={{ color: '#666' }}>سعر الإضافات:</span>
-        <span style={{ fontWeight: 700, color: ATEMA_COLORS.editorialBlack }}>
-          {selectedAddOns.length > 0
-            ? `${selectedAddOns.reduce((sum, a) => sum + a.price, 0).toLocaleString()} ر.س`
-            : '0'}
-        </span>
-      </div>
-
-      {/* DIVIDER */}
-      <div
-        style={{
-          height: '1px',
-          background: ATEMA_COLORS.champagne,
-          margin: '15px 0'
-        }}
-      />
-
-      {/* SUBTOTAL */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '12px 0',
-          borderBottom: '1px solid #f0f0f0',
-          fontSize: '13px'
-        }}
-      >
-        <span style={{ color: '#666' }}>الإجمالي قبل VAT:</span>
-        <span style={{ fontWeight: 700, color: ATEMA_COLORS.editorialBlack }}>
-          {subtotal.toLocaleString()} ر.س
-        </span>
-      </div>
-
-      {/* VAT */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '12px 0',
-          borderBottom: '1px solid #f0f0f0',
-          fontSize: '13px'
-        }}
-      >
-        <span style={{ color: '#666' }}>VAT 15%:</span>
-        <span style={{ fontWeight: 700, color: ATEMA_COLORS.editorialBlack }}>
-          {vat.toLocaleString()} ر.س
-        </span>
-      </div>
-
-      {/* DIVIDER */}
-      <div
-        style={{
-          height: '1px',
-          background: ATEMA_COLORS.champagne,
-          margin: '15px 0'
-        }}
-      />
-
-      {/* TOTAL */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '15px 0',
-          fontSize: '18px',
-          fontWeight: 700,
-          color: ATEMA_COLORS.champagne
-        }}
-      >
-        <span>المجموع النهائي:</span>
-        <span>{total.toLocaleString()} ر.س</span>
-      </div>
-
-      {/* CTA BUTTON */}
       <button
-        style={{
-          width: '100%',
-          background: ATEMA_COLORS.champagne,
-          color: 'white',
-          border: 'none',
-          padding: '14px',
-          borderRadius: '8px',
-          fontSize: '14px',
-          fontWeight: 700,
-          cursor: selectedPackage ? 'pointer' : 'not-allowed',
-          marginTop: '20px',
-          transition: 'all 0.3s ease',
-          opacity: selectedPackage ? 1 : 0.5
-        }}
         disabled={!selectedPackage}
-        onMouseEnter={e => {
-          if (selectedPackage) {
-            (e.target as HTMLButtonElement).style.background = ATEMA_COLORS.deepBronze;
-            (e.target as HTMLButtonElement).style.transform = 'translateY(-2px)';
-          }
-        }}
-        onMouseLeave={e => {
-          (e.target as HTMLButtonElement).style.background = ATEMA_COLORS.champagne;
-          (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
-        }}
-        onClick={() => {
-          alert(`✓ تم تأكيد الحجز!\n\nالباقة: ${selectedPackage?.nameAr}\nالمجموع: ${total.toLocaleString()} ر.س\n\nسيتم تحويلك للدفع...`);
+        onClick={onBook}
+        style={{
+          width:'100%', background: selectedPackage ? ATEMA_COLORS.champagne : '#ccc',
+          color:'white', border:'none', padding:'14px', borderRadius:'8px',
+          fontSize:'14px', fontWeight:700, cursor: selectedPackage ? 'pointer' : 'not-allowed',
+          marginTop:'16px', transition:'all 0.2s',
+          display:'flex', alignItems:'center', justifyContent:'center', gap:'8px'
         }}
       >
-        متابعة الحجز →
+        متابعة الحجز <ArrowRight size={16} />
       </button>
     </aside>
   );

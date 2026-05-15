@@ -1,4 +1,4 @@
-import { Package, AddOn } from '../types';
+import type { Package, AddOn } from '../types';
 
 // ===== PACKAGES DATA =====
 export const PACKAGES: Package[] = [
