@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import { useAdminData } from '../hooks/useAdminData';
 import type { Booking } from '../hooks/useAdminData';
 import { ATEMA_COLORS } from '../config/constants';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { PLTab } from '../components/PLTab';
 import {
   LayoutDashboard, CalendarDays, Package, LogOut, RefreshCw,
   Search, Eye, Trash2, CheckCircle2,
   Clock, XCircle, CircleDollarSign, Users, AlertCircle,
-  Loader2, X, Phone, Mail, MapPin, StickyNote, Save
+  Loader2, X, Phone, Mail, MapPin, StickyNote, Save, TrendingUp
 } from 'lucide-react';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
@@ -67,6 +68,7 @@ function StatCard({ icon, label, value, sub, color }: { icon: React.ReactNode; l
 function BookingModal({ booking, onClose, onSave }: {
   booking: Booking; onClose: () => void; onSave: (id: string, updates: Partial<Booking>) => Promise<boolean>;
 }) {
+  const [tab, setTab]         = useState<'details' | 'pl'>('details');
   const [status, setStatus]   = useState<Booking['status']>(booking.status);
   const [payment, setPayment] = useState<Booking['payment_status']>(booking.payment_status);
   const [notes, setNotes]     = useState(booking.special_requests || '');
@@ -116,7 +118,26 @@ function BookingModal({ booking, onClose, onSave }: {
           </button>
         </div>
 
+        {/* Tab bar */}
+        <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f0', padding: '0 24px' }}>
+          {([
+            { key: 'details', label: 'التفاصيل',       icon: <Package size={14} /> },
+            { key: 'pl',      label: 'الأرباح والخسائر', icon: <TrendingUp size={14} /> },
+          ] as const).map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '12px 16px', border: 'none',
+                background: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, fontFamily: 'inherit',
+                color: tab === t.key ? ATEMA_COLORS.champagne : '#aaa',
+                borderBottom: tab === t.key ? `2px solid ${ATEMA_COLORS.champagne}` : '2px solid transparent',
+                marginBottom: '-1px', transition: 'all 0.2s' }}>
+              {t.icon}{t.label}
+            </button>
+          ))}
+        </div>
+
         <div style={{ padding: '24px' }}>
+          {tab === 'pl' && <PLTab booking={booking} />}
+          {tab === 'details' && <>
           {/* Customer Info */}
           <div style={{ background: ATEMA_COLORS.softIvory, borderRadius: '10px', padding: '16px 18px', marginBottom: '20px' }}>
             <div style={{ fontSize: '12px', fontWeight: 700, color: ATEMA_COLORS.champagne, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>بيانات العميل</div>
@@ -183,6 +204,7 @@ function BookingModal({ booking, onClose, onSave }: {
                : <><Save size={14} />حفظ التغييرات</>}
             </button>
           </div>
+          </>}
         </div>
       </div>
       <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
