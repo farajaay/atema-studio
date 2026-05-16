@@ -1180,9 +1180,9 @@ export default function BookingPage() {
 
                 {/* Base package card */}
                 {basePkg && (
-                  <div style={{ background:'white', borderRadius:'14px', padding:'20px 22px',
-                    border:`1px solid rgba(214,191,163,0.3)`,
-                    boxShadow:'0 2px 14px rgba(26,26,26,0.05)', marginBottom:'24px' }}>
+                  <div style={{ background:'var(--a-surface)', borderRadius:'14px', padding:'20px 22px',
+                    border:'1px solid var(--a-border-strong)',
+                    boxShadow:'0 2px 14px rgba(0,0,0,0.18)', marginBottom:'24px' }}>
                     <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between',
                       gap:'12px', flexWrap:'wrap' }}>
                       <div>
