@@ -236,11 +236,24 @@
       .atema-modal.open .atema-modal-box { transform: scale(1) translateY(0); }
 
       /* ── Editorial display utilities ── */
+      /* Cinzel renders Latin glyphs only — for Arabic / RTL contexts we fall
+         back to Tajawal so the heading visually matches the body copy. */
       .display-serif { font-family: 'Cinzel', 'Cormorant Garamond', serif; font-weight: 300; letter-spacing: 0.05em; }
+      [dir="rtl"] .display-serif,
+      [lang="ar"]  .display-serif {
+        font-family: 'Tajawal', 'Amiri', sans-serif;
+        letter-spacing: 0.02em;
+      }
       .editorial-eyebrow {
         font-family: 'Cinzel', serif; font-weight: 400;
         font-size: 0.66rem; letter-spacing: 0.4em; text-transform: uppercase;
         color: var(--a-gold);
+      }
+      [dir="rtl"] .editorial-eyebrow,
+      [lang="ar"]  .editorial-eyebrow {
+        font-family: 'Tajawal', 'Amiri', sans-serif;
+        letter-spacing: 0.28em;
+        font-weight: 500;
       }
 
       /* ── WhatsApp float ── */
