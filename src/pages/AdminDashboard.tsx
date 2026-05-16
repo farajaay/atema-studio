@@ -7,6 +7,8 @@ import { ATEMA_COLORS } from '../config/constants';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { PLTab } from '../components/PLTab';
 import AdminCalendar from '../components/AdminCalendar';
+import AppSettingsPanel from '../components/AppSettingsPanel';
+import { useAppSettings } from '../hooks/useAppSettings';
 import {
   LayoutDashboard, CalendarDays, Package, LogOut, RefreshCw,
   Search, Eye, Trash2, CheckCircle2,
@@ -66,26 +68,28 @@ function StatCard({ icon, label, value, sub, color }: { icon: React.ReactNode; l
 }
 
 // ── Booking Detail Modal ──────────────────────────────────────────────────────
-function BookingModal({ booking, onClose, onSave }: {
+function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
   booking: Booking; onClose: () => void; onSave: (id: string, updates: Partial<Booking>) => Promise<boolean>;
+  globalVatEnabled: boolean;
 }) {
   const [tab, setTab]         = useState<'details' | 'pl'>('details');
   const [status, setStatus]   = useState<Booking['status']>(booking.status);
   const [payment, setPayment] = useState<Booking['payment_status']>(booking.payment_status);
   const [notes, setNotes]     = useState(booking.special_requests || '');
-  const [vatOn, setVatOn]     = useState<boolean>(booking.vat_enabled !== false);
+  const [vatOn, setVatOn]     = useState<boolean>(globalVatEnabled && booking.vat_enabled !== false);
   const [saving, setSaving]   = useState(false);
   const [saved, setSaved]     = useState(false);
 
-  // Recompute totals when VAT toggle changes
-  const recomputedVat   = vatOn ? Math.round(booking.subtotal * 0.15) : 0;
+  // Effective VAT respects global setting: if VAT is disabled globally, per-booking toggle is ignored.
+  const effectiveVatOn  = globalVatEnabled && vatOn;
+  const recomputedVat   = effectiveVatOn ? Math.round(booking.subtotal * 0.15) : 0;
   const recomputedTotal = booking.subtotal + recomputedVat;
 
   async function handleSave() {
     setSaving(true);
     const ok = await onSave(booking.id, {
       status, payment_status: payment, special_requests: notes,
-      vat_enabled: vatOn, vat: recomputedVat, total: recomputedTotal,
+      vat_enabled: effectiveVatOn, vat: recomputedVat, total: recomputedTotal,
     });
     setSaving(false);
     if (ok) { setSaved(true); setTimeout(() => { setSaved(false); onClose(); }, 1000); }
@@ -165,23 +169,25 @@ function BookingModal({ booking, onClose, onSave }: {
               <div style={{ fontSize: '12px', fontWeight: 700, color: ATEMA_COLORS.champagne,
                 textTransform: 'uppercase', letterSpacing: '1px' }}>المالية</div>
 
-              {/* VAT toggle */}
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
-                fontSize: '12px', color: '#555', fontWeight: 600 }}>
+              {/* VAT toggle — locked off when global VAT is disabled */}
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px',
+                cursor: globalVatEnabled ? 'pointer' : 'not-allowed',
+                fontSize: '12px', color: globalVatEnabled ? '#555' : '#aaa', fontWeight: 600,
+                opacity: globalVatEnabled ? 1 : 0.55 }}>
                 <span>تطبيق ضريبة القيمة المضافة (15%)</span>
                 <span style={{
                   position: 'relative', display: 'inline-block', width: 38, height: 22,
                 }}>
-                  <input type="checkbox" checked={vatOn}
+                  <input type="checkbox" checked={effectiveVatOn} disabled={!globalVatEnabled}
                     onChange={e => setVatOn(e.target.checked)}
                     style={{ opacity: 0, width: 0, height: 0 }} />
                   <span style={{
                     position: 'absolute', inset: 0, borderRadius: 22,
-                    background: vatOn ? ATEMA_COLORS.champagne : '#ccc',
-                    transition: 'background 0.2s', cursor: 'pointer',
+                    background: effectiveVatOn ? ATEMA_COLORS.champagne : '#ccc',
+                    transition: 'background 0.2s', cursor: globalVatEnabled ? 'pointer' : 'not-allowed',
                   }} />
                   <span style={{
-                    position: 'absolute', top: 2, left: vatOn ? 18 : 2,
+                    position: 'absolute', top: 2, left: effectiveVatOn ? 18 : 2,
                     width: 18, height: 18, borderRadius: '50%', background: 'white',
                     transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                   }} />
@@ -191,7 +197,7 @@ function BookingModal({ booking, onClose, onSave }: {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', textAlign: 'center' }}>
               {[
                 ['الإجمالي', booking.subtotal],
-                [vatOn ? 'VAT 15%' : 'VAT (معطّل)', recomputedVat],
+                [effectiveVatOn ? 'VAT 15%' : 'VAT (معطّل)', recomputedVat],
                 ['المجموع',  recomputedTotal],
               ].map(([l, v]) => (
                 <div key={l as string}>
@@ -200,7 +206,13 @@ function BookingModal({ booking, onClose, onSave }: {
                 </div>
               ))}
             </div>
-            {!vatOn && (
+            {!globalVatEnabled && (
+              <div style={{ marginTop: 10, padding: '6px 10px', borderRadius: 6,
+                background: '#fee2e2', color: '#991b1b', fontSize: 11, textAlign: 'center' }}>
+                ⛔ ضريبة القيمة المضافة معطّلة على مستوى النظام بأكمله — يمكن تفعيلها من إعدادات النظام
+              </div>
+            )}
+            {globalVatEnabled && !vatOn && (
               <div style={{ marginTop: 10, padding: '6px 10px', borderRadius: 6,
                 background: '#fef3c7', color: '#92400e', fontSize: 11, textAlign: 'center' }}>
                 ⚠ ضريبة القيمة المضافة معطّلة لهذا الحجز — سيتم حفظ التغيير عند الضغط على حفظ
@@ -264,6 +276,9 @@ export default function AdminDashboard() {
   const { bookings, loading, error, stats, fetchBookings, updateBooking, deleteBooking } = useAdminData();
   const navigate  = useNavigate();
   const { isMobile } = useBreakpoint();
+
+  const { settings, update: updateSettings } = useAppSettings();
+  const globalVatEnabled = settings.vat_enabled;
 
   const [search,     setSearch]     = useState('');
   const [statusF,    setStatusF]    = useState<string>('all');
@@ -355,6 +370,9 @@ export default function AdminDashboard() {
           <StatCard icon={<CircleDollarSign size={20} color="#2563eb" />}
             label="الإيرادات المحصلة" value={`${stats.revenue.toLocaleString()} ر.س`} color="#2563eb" />
         </div>
+
+        {/* Global app settings — VAT toggle, seller identity, etc. */}
+        <AppSettingsPanel settings={settings} onSave={updateSettings} />
 
         {/* Monthly calendar — bookings + blocked dates */}
         <AdminCalendar />
@@ -476,6 +494,7 @@ export default function AdminDashboard() {
       {/* Booking detail modal */}
       {selected && (
         <BookingModal booking={selected} onClose={() => setSelected(null)}
+          globalVatEnabled={globalVatEnabled}
           onSave={async (id, updates) => {
             const ok = await updateBooking(id, updates);
             if (ok) setSelected(null);

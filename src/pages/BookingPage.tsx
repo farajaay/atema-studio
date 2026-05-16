@@ -15,6 +15,8 @@ import MoyasarForm from '../components/MoyasarForm';
 import PaymentMethodChooser from '../components/PaymentMethodChooser';
 import BankTransferPayment from '../components/BankTransferPayment';
 import DatePicker from '../components/DatePicker';
+import { useAppSettings } from '../hooks/useAppSettings';
+import { computeVat } from '../services/settings';
 import { X, Loader2 } from 'lucide-react';
 
 // ── Design tokens — matched to ATEMA brand identity ───────────────────────────
@@ -373,9 +375,10 @@ function AddonRow({ addon, lang, active, qty, onToggle, onQtyChange }: {
 
 // ── Summary Panel ─────────────────────────────────────────────────────────────
 type AddonLine = { id: string; nameAr: string; nameEn: string; price: number };
-function SummaryPanel({ lang, pkg, addonLines, subtotal, vat, total, onBook }: {
+function SummaryPanel({ lang, pkg, addonLines, subtotal, vat, total, vatEnabled, onBook }: {
   lang: Lang; pkg: Package | undefined; addonLines: AddonLine[];
-  subtotal: number; vat: number; total: number; onBook: () => void;
+  subtotal: number; vat: number; total: number; vatEnabled: boolean;
+  onBook: () => void;
 }) {
   return (
     <div className="glass" style={{ borderRadius:'16px', padding:'22px 20px' }}>
@@ -409,20 +412,24 @@ function SummaryPanel({ lang, pkg, addonLines, subtotal, vat, total, onBook }: {
 
           <div style={{ height:'1px', background:'rgba(201,179,147,0.25)', margin:'14px 0' }} />
 
-          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'6px',
-            fontSize:'0.8rem' }}>
-            <span style={{ color: T.taupe, fontFamily:'Tajawal,sans-serif' }}>
-              {tx(lang,'المجموع (بدون VAT)','Subtotal (ex VAT)')}
-            </span>
-            <span style={{ color: T.mocha }}>{subtotal.toLocaleString()}</span>
-          </div>
-          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'12px',
-            fontSize:'0.8rem' }}>
-            <span style={{ color: T.taupe, fontFamily:'Tajawal,sans-serif' }}>
-              {tx(lang,'VAT ١٥٪','VAT 15%')}
-            </span>
-            <span style={{ color: T.taupe }}>{vat.toLocaleString()}</span>
-          </div>
+          {vatEnabled && (
+            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'6px',
+              fontSize:'0.8rem' }}>
+              <span style={{ color: T.taupe, fontFamily:'Tajawal,sans-serif' }}>
+                {tx(lang,'المجموع (بدون VAT)','Subtotal (ex VAT)')}
+              </span>
+              <span style={{ color: T.mocha }}>{subtotal.toLocaleString()}</span>
+            </div>
+          )}
+          {vatEnabled && (
+            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'12px',
+              fontSize:'0.8rem' }}>
+              <span style={{ color: T.taupe, fontFamily:'Tajawal,sans-serif' }}>
+                {tx(lang,'VAT ١٥٪','VAT 15%')}
+              </span>
+              <span style={{ color: T.taupe }}>{vat.toLocaleString()}</span>
+            </div>
+          )}
 
           <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'18px' }}>
             <span style={{ fontSize:'0.9rem', fontWeight:600, color: T.coffee,
@@ -547,11 +554,13 @@ function LegalPopup({ title, htmlContent, onClose }: {
 }
 
 // ── Booking Form Modal ────────────────────────────────────────────────────────
-function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal, onClose }: {
+function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal, vatEnabled, settings, onClose }: {
   lang: Lang; pkg: Package | undefined; total: number;
   activeAddons: Set<string>;
   addonLines: AddonLine[];
   addTotal: number;
+  vatEnabled: boolean;
+  settings: import('../services/settings').AppSettings;
   onClose: () => void;
 }) {
   const [form,      setForm]      = useState({ name:'', phone:'', email:'', date:'', time:'', city:'', venue:'', notes:'' });
@@ -582,7 +591,7 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
 
     const cityFee  = CITIES.find(c => c.value === form.city)?.fee ?? 0;
     const subtotal = (pkg?.price ?? 0) + addTotal + cityFee;
-    const vat      = Math.round(subtotal * 0.15);
+    const vat      = computeVat(subtotal, vatEnabled);
     const fullTotal = subtotal + vat;
     const deposit   = Math.round(fullTotal * 0.5); // 50% deposit
 
@@ -639,6 +648,7 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
         subtotal, vat, total: fullTotal,
         paymentMethod:  'pending',
         depositPaid:    0,
+        settings,
       });
       setInvoiceHTML(iHTML);
       saveInvoice(response.id, response.bookingRef, invNumber, iHTML, fullTotal);
@@ -890,6 +900,8 @@ export default function BookingPage() {
   const { isMobile } = useBreakpoint();
   const { packages, loading: pkgLoading } = usePackagesData();
   const { addons } = useAddonsData();
+  const { settings } = useAppSettings();
+  const vatEnabled = settings.vat_enabled;
   const [lang,           setLang]           = useState<Lang>('ar');
   const [activeTab,      setActiveTab]      = useState<'packages' | 'custom'>('packages');
   const [selectedPkg,    setSelectedPkg]    = useState<number | null>(null);
@@ -916,7 +928,7 @@ export default function BookingPage() {
     return activeAddons.has(a.id) ? s + a.price : s;
   }, 0);
   const subtotal = (pkg?.price ?? 0) + addTotal;
-  const vat      = Math.round(subtotal * 0.15);
+  const vat      = computeVat(subtotal, vatEnabled);
   const total    = subtotal + vat;
 
   const setHourQty  = (id: string, q: number) => setHourQtys(prev => ({ ...prev, [id]: Math.max(0, q) }));
@@ -934,7 +946,7 @@ export default function BookingPage() {
   // ── Custom tab totals ──────────────────────────────────────────────────────
   const basePkg        = [...activePackages].sort((a, b) => a.price - b.price)[0];
   const customSubtotal = (basePkg?.price ?? 0) + addTotal;
-  const customVat      = Math.round(customSubtotal * 0.15);
+  const customVat      = computeVat(customSubtotal, vatEnabled);
   const customTotal    = customSubtotal + customVat;
 
   // Active pkg + totals for the currently visible tab (used by modal & sticky bar)
@@ -1085,7 +1097,9 @@ export default function BookingPage() {
             </h2>
             <p style={{ fontSize:'0.82rem', color: T.taupe, marginTop:'8px',
               fontFamily:"'Tajawal',sans-serif" }}>
-              {tx(lang,'جميع الأسعار بدون ضريبة القيمة المضافة ١٥٪','All prices exclude 15% VAT')}
+              {vatEnabled
+                ? tx(lang,'جميع الأسعار بدون ضريبة القيمة المضافة ١٥٪','All prices exclude 15% VAT')
+                : tx(lang,'جميع الأسعار غير شاملة الضريبة','All prices are tax-free')}
             </p>
           </div>
 
@@ -1119,7 +1133,7 @@ export default function BookingPage() {
             {!isMobile && (
               <div style={{ width:'300px', flexShrink:0, position:'sticky', top:'20px' }}>
                 <SummaryPanel lang={lang} pkg={pkg} addonLines={addonLines}
-                  subtotal={subtotal} vat={vat} total={total}
+                  subtotal={subtotal} vat={vat} total={total} vatEnabled={vatEnabled}
                   onBook={() => setShowForm(true)} />
               </div>
             )}
@@ -1156,7 +1170,9 @@ export default function BookingPage() {
                         </div>
                         <div style={{ fontSize:'0.72rem', color: T.taupe,
                           fontFamily:'Tajawal,sans-serif' }}>
-                          {lang==='ar'?'ر.س بدون VAT':'SAR excl. VAT'}
+                          {vatEnabled
+                            ? (lang==='ar'?'ر.س بدون VAT':'SAR excl. VAT')
+                            : (lang==='ar'?'ر.س':'SAR')}
                         </div>
                       </div>
                     </div>
@@ -1190,7 +1206,9 @@ export default function BookingPage() {
                     </div>
                     <div style={{ fontSize:'0.75rem', color: T.taupe,
                       fontFamily:'Tajawal', marginBottom:'14px' }}>
-                      {tx(lang,'الإجمالي شامل VAT','Total incl. VAT')}
+                      {vatEnabled
+                  ? tx(lang,'الإجمالي شامل VAT','Total incl. VAT')
+                  : tx(lang,'الإجمالي','Total')}
                     </div>
                     <button className="btn-primary" onClick={() => setShowForm(true)}>
                       {tx(lang,'إتمام الحجز ←','Complete Booking →')}
@@ -1203,7 +1221,7 @@ export default function BookingPage() {
               {!isMobile && (
                 <div style={{ width:'300px', flexShrink:0, position:'sticky', top:'20px' }}>
                   <SummaryPanel lang={lang} pkg={basePkg} addonLines={addonLines}
-                    subtotal={customSubtotal} vat={customVat} total={customTotal}
+                    subtotal={customSubtotal} vat={customVat} total={customTotal} vatEnabled={vatEnabled}
                     onBook={() => setShowForm(true)} />
                 </div>
               )}
@@ -1251,7 +1269,9 @@ export default function BookingPage() {
               </div>
               <div style={{ fontSize:'0.75rem', color: T.taupe,
                 fontFamily:'Tajawal', marginBottom:'14px' }}>
-                {tx(lang,'الإجمالي شامل VAT','Total incl. VAT')}
+                {vatEnabled
+                  ? tx(lang,'الإجمالي شامل VAT','Total incl. VAT')
+                  : tx(lang,'الإجمالي','Total')}
               </div>
               <button className="btn-primary" onClick={() => setShowForm(true)}>
                 {tx(lang,'إتمام الحجز ←','Complete Booking →')}
@@ -1302,7 +1322,9 @@ export default function BookingPage() {
             <div>
               <p style={{ fontSize:'0.68rem', color:'rgba(201,179,147,0.5)',
                 fontFamily:'Tajawal', letterSpacing:'0.06em' }}>
-                {tx(lang,'الإجمالي شامل الضريبة','Total incl. VAT')}
+                {vatEnabled
+                  ? tx(lang,'الإجمالي شامل الضريبة','Total incl. VAT')
+                  : tx(lang,'الإجمالي','Total')}
               </p>
               <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'1.4rem',
                 color: T.sandLt, lineHeight:1, marginTop:'2px' }}>
@@ -1343,6 +1365,7 @@ export default function BookingPage() {
         <BookingFormModal lang={lang} pkg={activePkg} total={activeTotal}
           activeAddons={activeAddonSet}
           addonLines={addonLines} addTotal={addTotal}
+          vatEnabled={vatEnabled} settings={settings}
           onClose={() => setShowForm(false)} />
       )}
     </div>

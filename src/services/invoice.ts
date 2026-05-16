@@ -3,6 +3,8 @@
 // — QR contains: seller name, VAT number, timestamp, total with VAT, VAT amount
 
 import { supabase } from './supabase';
+import { DEFAULT_SETTINGS } from './settings';
+import type { AppSettings } from './settings';
 
 export interface InvoiceData {
   invoiceNumber:   string;
@@ -16,17 +18,12 @@ export interface InvoiceData {
   addons:          { name: string; price: number; qty?: number }[];
   subtotal:        number;             // Excl VAT
   vat:             number;
-  total:           number;             // Incl VAT
+  total:           number;             // Incl VAT (when vatEnabled=false this equals subtotal)
   paymentMethod:   'card' | 'transfer' | 'pending';
   depositPaid?:    number;
+  /** Dynamic seller + VAT config — overrides hardcoded defaults */
+  settings?:       AppSettings;
 }
-
-// Seller info — should match VAT cert. Update if VAT number changes.
-const SELLER = {
-  nameAr:   'ATEMA Studio — فاطمة بوحسن',
-  vatNum:   '300000000000003',           // ⚠ Replace with real VAT number when registered
-  crNum:    '0000000000',                // Commercial Registration
-};
 
 // ── TLV encoder (per ZATCA spec) ──────────────────────────────────────────────
 function strToBytes(s: string): Uint8Array {
@@ -86,15 +83,23 @@ function fmtDate(iso: string): string {
 }
 
 export function generateInvoiceHTML(d: InvoiceData): string {
-  const qrBase64 = generateZatcaQR({
-    sellerName: SELLER.nameAr,
-    vatNumber:  SELLER.vatNum,
+  const s = d.settings ?? DEFAULT_SETTINGS;
+  const vatActive = s.vat_enabled && d.vat > 0;
+  const docTitleAr = vatActive ? 'فاتورة ضريبية مبسطة' : 'فاتورة';
+  const docTitleEn = vatActive ? 'SIMPLIFIED TAX INVOICE' : 'INVOICE';
+
+  // QR is ZATCA-required only when VAT is active
+  const qrBase64 = vatActive ? generateZatcaQR({
+    sellerName: s.seller_name_ar,
+    vatNumber:  s.vat_number,
     timestamp:  d.issueDate,
     total:      d.total,
     vat:        d.vat,
-  });
-  // Public QR generator — encodes base64 string into QR image
-  const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrBase64)}`;
+  }) : '';
+  // Public QR generator — encodes base64 string into QR image (empty when no VAT)
+  const qrImgUrl = vatActive
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrBase64)}`
+    : '';
 
   const addonRows = d.addons.length === 0 ? '' : d.addons.map(a => `
     <tr>
@@ -119,7 +124,7 @@ export function generateInvoiceHTML(d: InvoiceData): string {
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>فاتورة ضريبية مبسطة — ${d.invoiceNumber}</title>
+<title>${docTitleAr} — ${d.invoiceNumber}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;400;600;700&family=Inter:wght@400;500;600;700&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
@@ -177,13 +182,13 @@ export function generateInvoiceHTML(d: InvoiceData): string {
       <h1>A T E M A</h1>
       <p>S T U D I O</p>
       <div class="crinfo">
-        ${SELLER.nameAr} · جبيل، السعودية<br/>
-        الرقم الضريبي / VAT: ${SELLER.vatNum}<br/>
-        السجل التجاري / CR: ${SELLER.crNum}
+        ${s.seller_name_ar} · جبيل، السعودية<br/>
+        ${vatActive ? `الرقم الضريبي / VAT: ${s.vat_number}<br/>` : ''}
+        ${s.cr_number ? `السجل التجاري / CR: ${s.cr_number}` : ''}
       </div>
     </div>
     <div class="doc-meta">
-      <div class="doc-title">SIMPLIFIED TAX INVOICE</div>
+      <div class="doc-title">${docTitleEn}</div>
       <div class="doc-num">${d.invoiceNumber}</div>
       <div class="doc-date">${fmtDate(d.issueDate)}</div>
     </div>
@@ -220,12 +225,15 @@ export function generateInvoiceHTML(d: InvoiceData): string {
     </table>
 
     <table class="totals">
-      <tr><td>الإجمالي قبل الضريبة / Subtotal</td><td>${fmt(d.subtotal)} SAR</td></tr>
-      <tr><td>ضريبة القيمة المضافة (15%) / VAT</td><td>${fmt(d.vat)} SAR</td></tr>
-      <tr class="grand"><td>الإجمالي شامل الضريبة / Total Incl. VAT</td><td>${fmt(d.total)} SAR</td></tr>
+      ${vatActive
+        ? `<tr><td>الإجمالي قبل الضريبة / Subtotal</td><td>${fmt(d.subtotal)} SAR</td></tr>
+           <tr><td>ضريبة القيمة المضافة (15%) / VAT</td><td>${fmt(d.vat)} SAR</td></tr>
+           <tr class="grand"><td>الإجمالي شامل الضريبة / Total Incl. VAT</td><td>${fmt(d.total)} SAR</td></tr>`
+        : `<tr class="grand"><td>الإجمالي / Total</td><td>${fmt(d.total)} SAR</td></tr>`}
       ${depositInfo}
     </table>
 
+    ${vatActive ? `
     <div class="qr-section">
       <img src="${qrImgUrl}" alt="ZATCA QR Code"/>
       <div class="qr-info">
@@ -234,6 +242,11 @@ export function generateInvoiceHTML(d: InvoiceData): string {
         <p>هذا الرمز يحتوي على بيانات الفاتورة وفق متطلبات هيئة الزكاة والضريبة والجمارك (ZATCA). يمكن للجهات المختصة مسحه للتحقق.</p>
       </div>
     </div>
+    ` : `
+    <div style="background:#F5EDE4;border-radius:12px;padding:14px 18px;margin-top:18px;text-align:center;font-size:12px;color:#6B5440;border:1px dashed #D6BFA3">
+      هذه الفاتورة لا تخضع لضريبة القيمة المضافة — Non-VAT Invoice
+    </div>
+    `}
   </div>
 
   <div class="footer-bar">
