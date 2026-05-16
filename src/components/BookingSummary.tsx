@@ -30,7 +30,7 @@ const BookingSummary: React.FC<{ onBook?: () => void }> = ({ onBook }) => {
       boxSizing: 'border-box',
     }}>
       <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'20px' }}>
-        <ClipboardList size={18} color={ATEMA_COLORS.deepBronze} />
+        <ClipboardList size={18} color="#BB864B" />
         <h3 style={{ fontSize:'15px', fontWeight:700, color:ATEMA_COLORS.deepBronze, margin:0 }}>ملخص حجزك</h3>
       </div>
 
@@ -56,7 +56,7 @@ const BookingSummary: React.FC<{ onBook?: () => void }> = ({ onBook }) => {
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
         padding:'12px 0', fontSize:'17px', fontWeight:700, color:ATEMA_COLORS.deepBronze }}>
         <span style={{ display:'flex', alignItems:'center', gap:'7px' }}>
-          <CircleDollarSign size={17} color={ATEMA_COLORS.champagne} />المجموع النهائي
+          <CircleDollarSign size={17} color="#D4AF7A" />المجموع النهائي
         </span>
         <span style={{ color: ATEMA_COLORS.champagne }}>{total.toLocaleString()} ر.س</span>
       </div>

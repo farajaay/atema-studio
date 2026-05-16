@@ -1,7 +1,7 @@
 // Read theme from app_settings and apply it as CSS custom properties.
 // Falls back to 'noir' before settings load so the first paint is never wrong.
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { applyTheme } from '../theme/themes';
 import type { ThemeName } from '../theme/themes';
 import { useAppSettings } from './useAppSettings';
@@ -15,12 +15,20 @@ export function getInitialTheme(): ThemeName {
   return cached === 'ivory' ? 'ivory' : 'noir';
 }
 
-/** Reactively keeps the document theme in sync with admin settings. */
-export function useTheme() {
+/**
+ * Reactively keeps the document theme in sync with admin settings.
+ * Returns the currently active theme name so components that compute
+ * inline-style palettes (e.g. BookingPage gradients) can re-render
+ * when the theme changes.
+ */
+export function useTheme(): ThemeName {
   const { settings } = useAppSettings();
+  const [theme, setTheme] = useState<ThemeName>(getInitialTheme);
   useEffect(() => {
     const name: ThemeName = settings.theme === 'ivory' ? 'ivory' : 'noir';
     applyTheme(name);
+    setTheme(name);
     try { window.localStorage.setItem(STORAGE_KEY, name); } catch { /* ignore */ }
   }, [settings.theme]);
+  return theme;
 }

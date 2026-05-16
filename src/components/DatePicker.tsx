@@ -9,10 +9,19 @@ import { fetchBookedDates, fetchBlockedDates, isoDate } from '../services/calend
 type Lang = 'ar' | 'en';
 const tx = (l: Lang, ar: string, en: string) => l === 'ar' ? ar : en;
 
+// Theme-aware tokens — values resolve from the document CSS custom properties.
 const C = {
-  ivory:'#F5EDE4', sand:'#D6BFA3', champagne:'#E8D9C5',
-  bronze:'#8C6B4F', taupe:'#6B5440', mocha:'#4A3728', black:'#1A1A1A',
+  ivory:     'var(--a-surface)',
+  sand:      'var(--a-border-strong)',
+  champagne: 'var(--a-surface-alt)',
+  bronze:    'var(--a-gold)',
+  taupe:     'var(--a-text-soft)',
+  mocha:     'var(--a-text)',
+  black:     'var(--a-heading)',
 };
+// Literal hex for use in Lucide icon SVG `color` attribute (CSS vars don't
+// resolve in SVG presentation attributes).
+const ICON_GOLD = '#D4AF7A';
 
 const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -101,11 +110,11 @@ export default function DatePicker({ lang, value, onChange, minDate, placeholder
         style={{
           width: '100%', textAlign: lang === 'ar' ? 'right' : 'left',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: 'white', cursor: 'pointer', color: value ? C.black : '#999',
+          background: 'var(--a-surface)', cursor: 'pointer', color: value ? C.black : 'var(--a-text-muted)',
           gap: '8px', fontFamily: 'inherit',
         }}>
         <span>{display}</span>
-        <CalendarIcon size={16} color={C.bronze} />
+        <CalendarIcon size={16} color={ICON_GOLD} />
       </button>
 
       {open && (
@@ -120,7 +129,7 @@ export default function DatePicker({ lang, value, onChange, minDate, placeholder
               position: 'absolute', top: 'calc(100% + 6px)',
               left: lang === 'ar' ? 'auto' : 0,
               right: lang === 'ar' ? 0 : 'auto',
-              zIndex: 999, background: 'white',
+              zIndex: 999, background: 'var(--a-surface)',
               borderRadius: '14px', padding: '14px',
               boxShadow: '0 12px 36px rgba(140,107,79,0.22)',
               border: `1px solid ${C.sand}`,
@@ -167,8 +176,8 @@ export default function DatePicker({ lang, value, onChange, minDate, placeholder
                     title={blocked ? blockedMap.get(d) : booked ? tx(lang, 'محجوز', 'Booked') : ''}
                     style={{
                       ...dayBtn,
-                      background: sel ? C.bronze : disabled ? '#FAFAFA' : 'white',
-                      color: sel ? 'white' : past ? '#CCC' : (booked || blocked) ? '#BBB' : C.black,
+                      background: sel ? C.bronze : disabled ? 'var(--a-surface-alt)' : 'var(--a-surface)',
+                      color: sel ? '#0B0B0B' : past ? 'var(--a-text-muted)' : (booked || blocked) ? 'var(--a-text-muted)' : C.black,
                       cursor: disabled ? 'not-allowed' : 'pointer',
                       textDecoration: (booked || blocked) ? 'line-through' : 'none',
                       border: sel
@@ -216,7 +225,7 @@ export default function DatePicker({ lang, value, onChange, minDate, placeholder
 
 const navBtn: React.CSSProperties = {
   width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.sand}`,
-  background: 'white', cursor: 'pointer', display: 'flex',
+  background: 'var(--a-surface)', cursor: 'pointer', display: 'flex',
   alignItems: 'center', justifyContent: 'center', color: C.bronze,
 };
 

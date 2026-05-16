@@ -80,7 +80,7 @@ function FeaturesEditor({ features, onChange }: {
     <div>
       {features.map((f, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '7px' }}>
-          <CheckCircle2 size={13} color={ATEMA_COLORS.champagne} style={{ flexShrink: 0 }} />
+          <CheckCircle2 size={13} color="#D4AF7A" style={{ flexShrink: 0 }} />
           <input value={f} onChange={e => { const a = [...features]; a[i] = e.target.value; onChange(a); }}
             style={{ ...inp, flex: 1, padding: '7px 10px' }} />
           <button onClick={() => onChange(features.filter((_, j) => j !== i))}
@@ -225,7 +225,7 @@ export default function PackagesManager() {
 
   if (authLoading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Loader2 size={36} color={ATEMA_COLORS.champagne} style={{ animation: 'spin 1s linear infinite' }} />
+      <Loader2 size={36} color="#D4AF7A" style={{ animation: 'spin 1s linear infinite' }} />
       <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
     </div>
   );
@@ -282,7 +282,7 @@ export default function PackagesManager() {
       </div>
       {loading ? (
         <div style={{ padding: '30px', textAlign: 'center' }}>
-          <Loader2 size={24} color={ATEMA_COLORS.champagne} style={{ animation: 'spin 1s linear infinite' }} />
+          <Loader2 size={24} color="#D4AF7A" style={{ animation: 'spin 1s linear infinite' }} />
         </div>
       ) : packages.map(pkg => {
         const isActive = selected?.id === pkg.id && !isNew;
@@ -307,8 +307,8 @@ export default function PackagesManager() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                 {!pkg.active && <span style={{ fontSize: '10px', background: '#fee2e2', color: '#dc2626', padding: '2px 7px', borderRadius: '8px', fontWeight: 600 }}>مخفية</span>}
-                {pkg.is_popular && <Star size={12} color={ATEMA_COLORS.champagne} fill={ATEMA_COLORS.champagne} />}
-                {isActive && <ChevronRight size={14} color={ATEMA_COLORS.champagne} />}
+                {pkg.is_popular && <Star size={12} color="#D4AF7A" fill="#D4AF7A" />}
+                {isActive && <ChevronRight size={14} color="#D4AF7A" />}
               </div>
             </div>
           </div>

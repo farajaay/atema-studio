@@ -30,13 +30,13 @@ const PackageCard: React.FC<PackageCardProps> = ({ package: pkg, design }) => {
     <div style={{ marginBottom: '20px' }}>
       {pkg.features.map((f, i) => (
         <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:'8px', marginBottom:'8px', fontSize:'13px', color:'#555' }}>
-          <CheckCircle2 size={14} color={ATEMA_COLORS.champagne} style={{ marginTop:'2px', flexShrink:0 }} />
+          <CheckCircle2 size={14} color="#D4AF7A" style={{ marginTop:'2px', flexShrink:0 }} />
           <span>{f}</span>
         </div>
       ))}
       {pkg.video && (
         <div style={{ display:'flex', alignItems:'center', gap:'8px', fontSize:'13px', color:ATEMA_COLORS.deepBronze, fontWeight:600, marginTop:'4px' }}>
-          <Video size={14} color={ATEMA_COLORS.deepBronze} style={{ flexShrink:0 }} />
+          <Video size={14} color="#BB864B" style={{ flexShrink:0 }} />
           <span>يشمل فيديو سينمائي</span>
         </div>
       )}

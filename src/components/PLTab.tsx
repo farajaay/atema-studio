@@ -46,12 +46,12 @@ function MarginBar({ label, labelEn, value, total, color }: {
   return (
     <div style={{ marginBottom: '14px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
-        <span style={{ color: '#555', fontWeight: 600 }}>{label} <span style={{ color: '#aaa', fontWeight: 400, fontSize: '11px' }}>({labelEn})</span></span>
+        <span style={{ color: 'var(--a-text)', fontWeight: 600 }}>{label} <span style={{ color: 'var(--a-text-muted)', fontWeight: 400, fontSize: '11px' }}>({labelEn})</span></span>
         <span style={{ fontWeight: 700, color: isNeg ? '#dc2626' : color }}>
           {sar(value)} ({pct(value / (total || 1) * 100)})
         </span>
       </div>
-      <div style={{ height: '10px', background: '#f0f0f0', borderRadius: '5px', overflow: 'hidden' }}>
+      <div style={{ height: '10px', background: 'var(--a-surface-alt)', borderRadius: '5px', overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${width}%`, background: isNeg ? '#fecaca' : color, borderRadius: '5px', transition: 'width 0.4s ease' }} />
       </div>
     </div>
@@ -63,7 +63,7 @@ function CostRow({ label, value, indent = false, bold = false, separator = false
   label: string; value: number; indent?: boolean; bold?: boolean; separator?: boolean;
 }) {
   if (separator) return (
-    <tr><td colSpan={2} style={{ borderTop: '1px solid #e8e0d8', padding: '4px 0' }} /></tr>
+    <tr><td colSpan={2} style={{ borderTop: '1px solid var(--a-border)', padding: '4px 0' }} /></tr>
   );
   return (
     <tr>
@@ -79,7 +79,7 @@ function CostRow({ label, value, indent = false, bold = false, separator = false
 // ── Checkbox input ────────────────────────────────────────────────────────────
 function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '13px', cursor: 'pointer', color: '#555' }}>
+    <label style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '13px', cursor: 'pointer', color: 'var(--a-text)' }}>
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)}
         style={{ width: '15px', height: '15px', accentColor: ATEMA_COLORS.champagne, cursor: 'pointer' }} />
       {label}
@@ -121,7 +121,7 @@ export function PLTab({ booking }: { booking: Booking }) {
   const statusLabel = pl.status === 'profitable' ? 'مربحة' : pl.status === 'break-even' ? 'عند نقطة التعادل' : 'خاسرة';
 
   const inputStyle: React.CSSProperties = {
-    padding: '6px 10px', border: '1.5px solid #e8e0d8', borderRadius: '7px',
+    padding: '6px 10px', border: '1.5px solid var(--a-border)', borderRadius: '7px',
     fontSize: '13px', fontFamily: 'inherit', outline: 'none',
     background: 'white', width: '90px', textAlign: 'center',
   };
@@ -162,7 +162,7 @@ export function PLTab({ booking }: { booking: Booking }) {
       </div>
 
       {/* P&L breakdown table */}
-      <div style={{ background: '#fafafa', borderRadius: '10px', padding: '16px 18px', marginBottom: '20px' }}>
+      <div style={{ background: 'var(--a-surface-alt)', borderRadius: '10px', padding: '16px 18px', marginBottom: '20px' }}>
         <div style={{ fontSize: '11px', fontWeight: 700, color: ATEMA_COLORS.champagne, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>تفاصيل الحساب</div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <tbody>
@@ -201,7 +201,7 @@ export function PLTab({ booking }: { booking: Booking }) {
 
         {/* Owner hourly rate slider */}
         <div style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#555', marginBottom: '8px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--a-text)', marginBottom: '8px' }}>
             سعر ساعة المالكة: <strong style={{ color: ATEMA_COLORS.deepBronze }}>{ownerRate} ر.س/ساعة</strong>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -263,7 +263,7 @@ export function PLTab({ booking }: { booking: Booking }) {
                 <option value="A4">A4</option>
                 <option value="A3">A3</option>
               </select>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#555' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--a-text)' }}>
                 صفحات:
                 <input type="number" min={10} max={40} value={inputs.albumPages}
                   onChange={e => set('albumPages', Number(e.target.value))} style={{ ...inputStyle, width: '70px' }} />

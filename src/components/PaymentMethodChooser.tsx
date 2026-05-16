@@ -6,10 +6,18 @@ import { CreditCard, Building2, ArrowLeft } from 'lucide-react';
 type Lang = 'ar' | 'en';
 const tx = (l: Lang, ar: string, en: string) => l === 'ar' ? ar : en;
 
+// Theme-aware tokens — values resolve from the document CSS custom properties.
 const C = {
-  ivory:'#F5EDE4', sand:'#D6BFA3', champagne:'#E8D9C5',
-  bronze:'#8C6B4F', taupe:'#6B5440', mocha:'#4A3728', black:'#1A1A1A',
+  ivory:     'var(--a-surface)',
+  sand:      'var(--a-border-strong)',
+  champagne: 'var(--a-surface-alt)',
+  bronze:    'var(--a-gold)',
+  taupe:     'var(--a-text-soft)',
+  mocha:     'var(--a-text)',
+  black:     'var(--a-heading)',
 };
+const ICON_GOLD = '#D4AF7A';
+const ICON_CHAMPAGNE = '#EFE3D1';
 
 export type PaymentMethod = 'card' | 'transfer';
 
@@ -23,7 +31,7 @@ interface Props {
 export default function PaymentMethodChooser({ lang, depositSAR, moyasarEnabled, onSelect }: Props) {
   return (
     <div dir={lang === 'ar' ? 'rtl' : 'ltr'}
-      style={{ padding:'24px 22px', background:'white', fontFamily:'Tajawal,sans-serif' }}>
+      style={{ padding:'24px 22px', background:'var(--a-surface)', fontFamily:'Tajawal,sans-serif' }}>
 
       <div style={{ textAlign:'center', marginBottom:'22px' }}>
         <div style={{ fontSize:'0.7rem', letterSpacing:'0.18em', color: C.bronze,
@@ -63,7 +71,7 @@ export default function PaymentMethodChooser({ lang, depositSAR, moyasarEnabled,
               display:'flex', alignItems:'center', justifyContent:'center',
               border:`1px solid ${C.bronze}`,
             }}>
-              <CreditCard size={22} color={C.champagne} />
+              <CreditCard size={22} color={ICON_CHAMPAGNE} />
             </div>
             <div style={{ flex:1, minWidth:0, textAlign: lang==='ar'?'right':'left' }}>
               <div style={{ fontFamily:"'Amiri',serif", fontSize:'1.05rem', color: C.champagne,
@@ -111,7 +119,7 @@ export default function PaymentMethodChooser({ lang, depositSAR, moyasarEnabled,
             display:'flex', alignItems:'center', justifyContent:'center',
             border:`1px solid ${C.champagne}`,
           }}>
-            <Building2 size={22} color={C.bronze} />
+            <Building2 size={22} color={ICON_GOLD} />
           </div>
           <div style={{ flex:1, minWidth:0, textAlign: lang==='ar'?'right':'left' }}>
             <div style={{ fontFamily:"'Amiri',serif", fontSize:'1.05rem', color: C.black,

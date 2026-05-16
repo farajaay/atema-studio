@@ -10,10 +10,17 @@ import {
 } from '../services/calendar';
 import type { BookedDate, BlockedDate } from '../services/calendar';
 
+// Theme-aware tokens — values resolve from document CSS custom properties.
 const C = {
-  ivory:'#F5EDE4', sand:'#D6BFA3', champagne:'#E8D9C5',
-  bronze:'#8C6B4F', taupe:'#6B5440', mocha:'#4A3728', black:'#1A1A1A',
+  ivory:     'var(--a-surface-alt)',
+  sand:      'var(--a-border-strong)',
+  champagne: 'var(--a-border)',
+  bronze:    'var(--a-gold)',
+  taupe:     'var(--a-text-soft)',
+  mocha:     'var(--a-text)',
+  black:     'var(--a-heading)',
 };
+const ICON_GOLD = '#D4AF7A';
 
 const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const DAYS_AR   = ['أحد','اثن','ثلا','أرب','خمي','جمع','سبت'];
@@ -91,7 +98,7 @@ export default function AdminCalendar() {
 
   return (
     <div dir="rtl" style={{
-      background: 'white', borderRadius: '14px', padding: '20px 22px',
+      background: 'var(--a-surface)', borderRadius: '14px', padding: '20px 22px',
       boxShadow: '0 2px 12px rgba(0,0,0,0.06)', marginBottom: '24px',
       fontFamily: 'Tajawal, Cairo, sans-serif',
     }}>
@@ -101,7 +108,7 @@ export default function AdminCalendar() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: C.champagne,
             display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Calendar size={18} color={C.bronze} />
+            <Calendar size={18} color={ICON_GOLD} />
           </div>
           <div>
             <div style={{ fontWeight: 700, color: C.black, fontSize: '15px' }}>التقويم الشهري</div>
@@ -145,7 +152,7 @@ export default function AdminCalendar() {
             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5,
             borderRadius: 8,
           }}>
-            <Loader2 size={20} color={C.bronze} style={{ animation: 'spin 1s linear infinite' }} />
+            <Loader2 size={20} color={ICON_GOLD} style={{ animation: 'spin 1s linear infinite' }} />
           </div>
         )}
         {cells.map((d, i) => {
@@ -158,8 +165,8 @@ export default function AdminCalendar() {
             <button key={d} onClick={() => openCell(d)}
               style={{
                 minHeight: 64, padding: '6px', borderRadius: 10,
-                background: isBlock ? '#FFF5F5' : bks ? C.ivory : 'white',
-                border: isToday ? `2px solid ${C.bronze}` : `1px solid ${isBlock ? '#FCA5A5' : C.champagne}`,
+                background: isBlock ? 'rgba(220,38,38,0.10)' : bks ? C.ivory : 'var(--a-surface)',
+                border: isToday ? `2px solid ${C.bronze}` : `1px solid ${isBlock ? 'rgba(220,38,38,0.35)' : C.champagne}`,
                 cursor: 'pointer', fontFamily: 'inherit', textAlign: 'right',
                 display: 'flex', flexDirection: 'column', alignItems: 'stretch',
                 transition: 'transform 0.1s, box-shadow 0.15s',
@@ -169,13 +176,13 @@ export default function AdminCalendar() {
 
               <div style={{
                 fontSize: '13px', fontWeight: 700,
-                color: isToday ? C.bronze : isBlock ? '#DC2626' : C.black,
+                color: isToday ? C.bronze : isBlock ? '#fca5a5' : C.black,
                 marginBottom: '4px',
               }}>{dayNum}</div>
 
               {isBlock && (
                 <div style={{
-                  fontSize: '9px', color: '#DC2626', display: 'flex',
+                  fontSize: '9px', color: '#fca5a5', display: 'flex',
                   alignItems: 'center', gap: 3,
                 }}>
                   <Ban size={9} />محجوب
@@ -185,7 +192,7 @@ export default function AdminCalendar() {
               {bks && bks.slice(0, 2).map(b => (
                 <div key={b.booking_ref} style={{
                   fontSize: '9px', color: STATUS_COLOR[b.status] ?? C.taupe,
-                  background: 'white', borderRadius: 4, padding: '1px 4px',
+                  background: 'var(--a-surface)', borderRadius: 4, padding: '1px 4px',
                   marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap', border: `1px solid ${(STATUS_COLOR[b.status] ?? C.taupe) + '40'}`,
                 }}>
@@ -261,7 +268,9 @@ function CellModal({ date, existing, bookings, onClose, onChanged }: {
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
       <div dir="rtl" onClick={e => e.stopPropagation()} style={{
-        background: 'white', borderRadius: 14, padding: '22px 22px',
+        background: 'var(--a-surface)', borderRadius: 14, padding: '22px 22px',
+        border: '1px solid var(--a-border-strong)',
+        boxShadow: 'var(--a-shadow)',
         width: '100%', maxWidth: 420, fontFamily: 'Tajawal, sans-serif',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
@@ -301,15 +310,15 @@ function CellModal({ date, existing, bookings, onClose, onChanged }: {
 
         {existing ? (
           <>
-            <div style={{ background: '#FFF5F5', border: '1px solid #FCA5A5',
+            <div style={{ background: 'rgba(220,38,38,0.10)', border: '1px solid rgba(220,38,38,0.35)',
               borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
-              <div style={{ fontSize: 11, color: '#DC2626', marginBottom: 4, fontWeight: 700 }}>
+              <div style={{ fontSize: 11, color: '#fca5a5', marginBottom: 4, fontWeight: 700 }}>
                 هذا اليوم محجوب
               </div>
               <div style={{ fontSize: 13, color: C.mocha }}>السبب: {existing.reason}</div>
             </div>
             <button onClick={doUnblock} disabled={busy} style={{
-              width: '100%', padding: '12px', background: C.bronze, color: 'white',
+              width: '100%', padding: '12px', background: C.bronze, color: '#0B0B0B',
               border: 'none', borderRadius: 10, fontFamily: 'inherit', fontWeight: 700,
               cursor: busy ? 'wait' : 'pointer', fontSize: 13,
             }}>
@@ -328,9 +337,9 @@ function CellModal({ date, existing, bookings, onClose, onChanged }: {
                   fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
                 }} />
             </div>
-            {err && <div style={{ color: '#DC2626', fontSize: 12, marginBottom: 10 }}>{err}</div>}
+            {err && <div style={{ color: '#fca5a5', fontSize: 12, marginBottom: 10 }}>{err}</div>}
             <button onClick={doBlock} disabled={busy} style={{
-              width: '100%', padding: '12px', background: C.black, color: 'white',
+              width: '100%', padding: '12px', background: C.bronze, color: '#0B0B0B',
               border: 'none', borderRadius: 10, fontFamily: 'inherit', fontWeight: 700,
               cursor: busy ? 'wait' : 'pointer', fontSize: 13,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -346,7 +355,7 @@ function CellModal({ date, existing, bookings, onClose, onChanged }: {
 
 const navBtn: React.CSSProperties = {
   width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.sand}`,
-  background: 'white', cursor: 'pointer', display: 'flex',
+  background: 'var(--a-surface)', cursor: 'pointer', display: 'flex',
   alignItems: 'center', justifyContent: 'center', color: C.bronze,
   fontFamily: 'inherit', fontWeight: 600, padding: 0,
 };

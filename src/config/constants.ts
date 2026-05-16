@@ -171,13 +171,17 @@ export const CITIES = [
 ];
 
 // ===== THEME COLORS =====
+// Legacy palette retained for backwards compatibility. Values now point at the
+// theme CSS custom properties (set by applyTheme via useTheme), so any element
+// styled with these tokens automatically follows the active theme — no rewrite
+// required on the consuming components.
 export const ATEMA_COLORS = {
-  champagne: '#d4b5a0',
-  warmSand: '#c4a590',
-  deepBronze: '#8c6b4f',
-  softIvory: '#f5ede4',
-  editorialBlack: '#1a1a1a',
-  lightGray: '#f8f8f8'
+  champagne:      'var(--a-gold)',
+  warmSand:       'var(--a-gold-deep)',
+  deepBronze:     'var(--a-gold-deep)',
+  softIvory:      'var(--a-bg)',
+  editorialBlack: 'var(--a-heading)',
+  lightGray:      'var(--a-surface-alt)',
 };
 
 // ===== VAT RATE =====

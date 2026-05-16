@@ -10,11 +10,17 @@ import { openDocumentInNewTab, downloadDocument } from '../services/invoice';
 type Lang = 'ar' | 'en';
 const tx = (l: Lang, ar: string, en: string) => l === 'ar' ? ar : en;
 
-// Brand colours
+// Theme-aware tokens — values resolve from document CSS custom properties.
 const C = {
-  ivory:'#F5EDE4', sand:'#D6BFA3', champagne:'#E8D9C5',
-  bronze:'#8C6B4F', taupe:'#6B5440', mocha:'#4A3728', black:'#1A1A1A',
+  ivory:     'var(--a-surface)',
+  sand:      'var(--a-border-strong)',
+  champagne: 'var(--a-surface-alt)',
+  bronze:    'var(--a-gold)',
+  taupe:     'var(--a-text-soft)',
+  mocha:     'var(--a-text)',
+  black:     'var(--a-heading)',
 };
+const ICON_GOLD = '#D4AF7A';
 
 // Bank details (Al Rajhi — Fatima Bohassan)
 const BANK = {
@@ -51,7 +57,7 @@ function CopyButton({ text }: { text: string }) {
     }} style={{
       display:'flex', alignItems:'center', gap:'5px', padding:'5px 10px',
       borderRadius:'6px', border:`1px solid ${copied ? '#059669' : C.sand}`,
-      background: copied ? '#d1fae5' : 'white', color: copied ? '#059669' : C.bronze,
+      background: copied ? 'rgba(5,150,105,0.15)' : 'var(--a-surface-alt)', color: copied ? '#34d399' : C.bronze,
       cursor:'pointer', fontSize:'0.7rem', fontFamily:'Tajawal,sans-serif',
       fontWeight:600, transition:'all 0.18s', flexShrink:0,
     }}>
@@ -69,7 +75,7 @@ function DocumentTile({ icon, label, viewLabel, downloadLabel, onView, onDownloa
     <div style={{
       display:'flex', flexDirection:'column', alignItems:'center', gap:'10px',
       padding:'14px 8px', borderRadius:'12px',
-      background:'white', border:`1.5px solid ${C.sand}`, color: C.bronze,
+      background:'var(--a-surface)', border:`1.5px solid ${C.sand}`, color: C.bronze,
       fontFamily:'Tajawal,sans-serif',
     }}>
       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'4px' }}>
@@ -81,7 +87,7 @@ function DocumentTile({ icon, label, viewLabel, downloadLabel, onView, onDownloa
           style={{
             flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'4px',
             padding:'7px 6px', borderRadius:'8px', cursor:'pointer',
-            background:'white', border:`1px solid ${C.sand}`, color: C.bronze,
+            background:'var(--a-surface)', border:`1px solid ${C.sand}`, color: C.bronze,
             fontFamily:'Tajawal,sans-serif', fontWeight:600, fontSize:'0.7rem',
             transition:'all 0.18s',
           }}
@@ -93,7 +99,7 @@ function DocumentTile({ icon, label, viewLabel, downloadLabel, onView, onDownloa
           style={{
             flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'4px',
             padding:'7px 6px', borderRadius:'8px', cursor:'pointer',
-            background: C.bronze, border:`1px solid ${C.bronze}`, color: 'white',
+            background: C.bronze, border:`1px solid ${C.bronze}`, color: '#0B0B0B',
             fontFamily:'Tajawal,sans-serif', fontWeight:600, fontSize:'0.7rem',
             transition:'all 0.18s',
           }}
@@ -156,7 +162,7 @@ export default function BankTransferPayment({
 
   return (
     <div dir={lang === 'ar' ? 'rtl' : 'ltr'}
-      style={{ fontFamily:'Tajawal,sans-serif', background:'white' }}>
+      style={{ fontFamily:'Tajawal,sans-serif', background:'var(--a-surface)' }}>
 
       {/* Status banner */}
       <div style={{
@@ -164,7 +170,7 @@ export default function BankTransferPayment({
         padding:'14px 22px', borderBottom:`1px solid ${C.champagne}`,
         display:'flex', alignItems:'center', gap:'10px',
       }}>
-        <Clock size={16} color={C.bronze} />
+        <Clock size={16} color={ICON_GOLD} />
         <div style={{ flex:1 }}>
           <div style={{ fontFamily:"'Amiri',serif", fontSize:'0.95rem', color: C.black }}>
             {tx(lang,'في انتظار استلام التحويل','Awaiting Bank Transfer')}
@@ -179,8 +185,8 @@ export default function BankTransferPayment({
 
         {/* Amount due */}
         <div style={{
-          background:`linear-gradient(135deg, ${C.black}, #2C2C2C, #4A3728)`,
-          borderRadius:'14px', padding:'20px 22px', color:'white',
+          background:'linear-gradient(135deg, #1A1610, #2C2418, #3D2E1F)',
+          borderRadius:'14px', padding:'20px 22px', color:'#EFE3D1',
           textAlign:'center', marginBottom:'22px',
           boxShadow:`0 8px 24px rgba(140,107,79,0.25)`,
         }}>
@@ -206,14 +212,14 @@ export default function BankTransferPayment({
         {/* Bank details card */}
         <div style={{
           border:`1.5px solid ${C.sand}`, borderRadius:'14px',
-          background:'white', overflow:'hidden', marginBottom:'18px',
+          background:'var(--a-surface)', overflow:'hidden', marginBottom:'18px',
         }}>
           <div style={{
             background: C.ivory, padding:'12px 16px',
             borderBottom:`1px solid ${C.champagne}`,
             display:'flex', alignItems:'center', gap:'10px',
           }}>
-            <Building2 size={15} color={C.bronze} />
+            <Building2 size={15} color={ICON_GOLD} />
             <div style={{ fontFamily:"'Amiri',serif", fontSize:'0.95rem', color: C.black }}>
               {tx(lang,'تفاصيل التحويل البنكي','Bank Transfer Details')}
             </div>
@@ -235,7 +241,7 @@ export default function BankTransferPayment({
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
               <code style={{
-                background:'white', border:`1px solid ${C.sand}`, padding:'4px 10px',
+                background:'var(--a-surface)', border:`1px solid ${C.sand}`, padding:'4px 10px',
                 borderRadius:'6px', fontFamily:"'Inter',monospace", fontSize:'0.78rem',
                 color: C.bronze, fontWeight:600,
               }}>{bookingRef}</code>

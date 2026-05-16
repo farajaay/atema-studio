@@ -18,50 +18,71 @@ import DatePicker from '../components/DatePicker';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { computeVat } from '../services/settings';
 import { X, Loader2 } from 'lucide-react';
+import { useTheme, getInitialTheme } from '../hooks/useTheme';
+import { getBookingPalette } from '../theme/themes';
+import type { ThemeName } from '../theme/themes';
 
-// ── Design tokens — matched to ATEMA brand identity ───────────────────────────
-const T = {
-  pearl:'#F5EDE4',    // Soft Ivory — page background
-  ivory:'#EDE4D8',    // slightly deeper ivory
-  cream:'#E8D9C5',    // Champagne
-  dune:'#D6BFA3',     // Warm Sand
-  champagne:'#E8D9C5',
-  sand:'#D6BFA3',     // Warm Sand
-  sandLt:'#E8D9C5',
-  gold:'#8C6B4F',     // Deep Bronze — prices, accents
-  goldLt:'#A07E62',   // lighter bronze
-  taupe:'#6B5440',    // secondary text
-  mocha:'#4A3728',    // body text
-  coffee:'#1A1A1A',   // Editorial Black — headings
-  espresso:'#1A1A1A', // Editorial Black
-  rose:'#F0E6DA',
-  blush:'#F5EDE4',
-};
+// ── Design tokens — theme-aware, live-mutated on theme change ────────────────
+// T is a module-level object that mirrors the active theme palette. The main
+// BookingPage component calls syncT(theme) during render so all inner helpers
+// (PkgCard, SummaryPanel, etc.) read the correct hex values without prop
+// drilling. Re-render is triggered by useTheme() returning a new name.
+const T = { ...getBookingPalette(getInitialTheme()) };
+let activeTheme: ThemeName = getInitialTheme();
+function syncT(name: ThemeName) {
+  if (name === activeTheme) return;
+  Object.assign(T, getBookingPalette(name));
+  activeTheme = name;
+}
 
 type Lang = 'ar' | 'en';
 const tx = (lang: Lang, ar: string, en: string) => lang === 'ar' ? ar : en;
 
 // ── Visual config (gradient + photo) by package name keywords or price tier ───
+// Tier 0–5 corresponds to the original ivory palette steps (lightest → darkest).
+// Per-theme gradient stops below map each tier to a different visual mood.
+const PKG_GRADIENTS: Record<ThemeName, string[]> = {
+  ivory: [
+    'linear-gradient(160deg,#F0E6DA,#E8D9C5)', // 0 engagement
+    'linear-gradient(160deg,#EDE4D8,#D6BFA3)', // 1 customise
+    'linear-gradient(160deg,#D6BFA3,#C4A882)', // 2 classic
+    'linear-gradient(160deg,#C4A882,#8C6B4F)', // 3 royal
+    'linear-gradient(160deg,#6B5440,#2C2C2C)', // 4 signature
+    'linear-gradient(160deg,#1A1A1A,#2C2C2C)', // 5 couture
+  ],
+  noir: [
+    'linear-gradient(160deg,#1F1A12,#2A2418)', // 0 engagement (warm dusk)
+    'linear-gradient(160deg,#1C1C1C,#322B1E)', // 1 customise
+    'linear-gradient(160deg,#2A2418,#3D3320)', // 2 classic
+    'linear-gradient(160deg,#3D3320,#5C4520)', // 3 royal (gilded)
+    'linear-gradient(160deg,#1A1610,#0F0D08)', // 4 signature (noir)
+    'linear-gradient(160deg,#0B0B0B,#1A1610)', // 5 couture (deepest)
+  ],
+};
+function gradFor(tier: number): string {
+  const stops = PKG_GRADIENTS[activeTheme] ?? PKG_GRADIENTS.ivory;
+  return stops[Math.max(0, Math.min(stops.length - 1, tier))];
+}
 function getVisual(pkg: Package): { gradient: string; photo: string } {
   const n = (pkg.name_ar + ' ' + pkg.name_en).toLowerCase();
   if (n.includes('خطوبة') || n.includes('engagement'))
-    return { gradient: 'linear-gradient(160deg,#F0E6DA,#E8D9C5)', photo: 'engagement.jpeg' };
+    return { gradient: gradFor(0), photo: 'engagement.jpeg' };
   if (n.includes('مخصّص') || n.includes('مخصص') || n.includes('customis'))
-    return { gradient: 'linear-gradient(160deg,#EDE4D8,#D6BFA3)', photo: 'customise.jpeg' };
+    return { gradient: gradFor(1), photo: 'customise.jpeg' };
   if (n.includes('كلاسيك') || n.includes('classic'))
-    return { gradient: 'linear-gradient(160deg,#D6BFA3,#C4A882)', photo: 'classic.jpeg' };
+    return { gradient: gradFor(2), photo: 'classic.jpeg' };
   if (n.includes('ملكي') || n.includes('royal'))
-    return { gradient: 'linear-gradient(160deg,#C4A882,#8C6B4F)', photo: 'royal.jpeg' };
+    return { gradient: gradFor(3), photo: 'royal.jpeg' };
   if (n.includes('توقيع') || n.includes('signature'))
-    return { gradient: 'linear-gradient(160deg,#6B5440,#2C2C2C)', photo: 'signature.jpeg' };
+    return { gradient: gradFor(4), photo: 'signature.jpeg' };
   if (n.includes('couture') || n.includes('كوتور') || n.includes('كوتيور'))
-    return { gradient: 'linear-gradient(160deg,#1A1A1A,#2C2C2C)', photo: 'couture.jpeg' };
+    return { gradient: gradFor(5), photo: 'couture.jpeg' };
   // Price-tier fallback for custom packages
-  if (pkg.price < 2500)  return { gradient: 'linear-gradient(160deg,#F0E6DA,#E8D9C5)', photo: 'engagement.jpeg' };
-  if (pkg.price < 5000)  return { gradient: 'linear-gradient(160deg,#D6BFA3,#C4A882)', photo: 'classic.jpeg' };
-  if (pkg.price < 8000)  return { gradient: 'linear-gradient(160deg,#C4A882,#8C6B4F)', photo: 'royal.jpeg' };
-  if (pkg.price < 12000) return { gradient: 'linear-gradient(160deg,#6B5440,#2C2C2C)', photo: 'signature.jpeg' };
-  return { gradient: 'linear-gradient(160deg,#1A1A1A,#2C2C2C)', photo: 'couture.jpeg' };
+  if (pkg.price < 2500)  return { gradient: gradFor(0), photo: 'engagement.jpeg' };
+  if (pkg.price < 5000)  return { gradient: gradFor(2), photo: 'classic.jpeg' };
+  if (pkg.price < 8000)  return { gradient: gradFor(3), photo: 'royal.jpeg' };
+  if (pkg.price < 12000) return { gradient: gradFor(4), photo: 'signature.jpeg' };
+  return { gradient: gradFor(5), photo: 'couture.jpeg' };
 }
 
 
@@ -676,7 +697,7 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
           <>
             {/* Payment header — booking ref + back/close */}
             <div style={{ padding:'14px 22px', borderBottom:`1px solid rgba(214,191,163,0.2)`,
-              display:'flex', justifyContent:'space-between', alignItems:'center', background:'#FAFAFA' }}>
+              display:'flex', justifyContent:'space-between', alignItems:'center', background: getBookingPalette(activeTheme).rowAlt }}>
               <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
                 {(state === 'card' || (state === 'transfer' && moyasarEnabled)) && (
                   <button onClick={() => setState('choose')}
@@ -897,6 +918,8 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
 
 // ── Main BookingPage ──────────────────────────────────────────────────────────
 export default function BookingPage() {
+  const theme = useTheme();
+  syncT(theme);                                       // keep module-level T in sync
   const { isMobile } = useBreakpoint();
   const { packages, loading: pkgLoading } = usePackagesData();
   const { addons } = useAddonsData();
@@ -970,7 +993,7 @@ export default function BookingPage() {
 
       {/* ── HERO ── */}
       <header style={{
-        background:'linear-gradient(160deg, #C9B393 0%, #BEA882 40%, #C9B393 100%)',
+        background: getBookingPalette(activeTheme).heroGrad,
         minHeight:'360px', position:'relative', overflow:'hidden',
       }}>
         {/* Grain overlay */}
@@ -1077,9 +1100,11 @@ export default function BookingPage() {
                   fontWeight: activeTab === tab.key ? 600 : 400,
                   transition:'all 0.22s',
                   background: activeTab === tab.key
-                    ? 'linear-gradient(135deg,#1A1A1A,#2C2C2C)'
+                    ? getBookingPalette(activeTheme).tabActiveGrad
                     : 'transparent',
-                  color: activeTab === tab.key ? '#E8D9C5' : T.taupe,
+                  color: activeTab === tab.key
+                    ? getBookingPalette(activeTheme).tabActiveText
+                    : T.taupe,
                   boxShadow: activeTab === tab.key ? '0 2px 10px rgba(26,26,26,0.18)' : 'none',
                 }}>
                   {lang==='ar' ? tab.ar : tab.en}

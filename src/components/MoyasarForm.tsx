@@ -56,7 +56,7 @@ export default function MoyasarForm({ depositSAR, description, bookingRef, booki
   if (!PUBLISHABLE_KEY) {
     return (
       <div style={{ padding:'32px 24px', textAlign:'center',
-        fontFamily:'Tajawal,sans-serif', color:'#8C6B4F' }}>
+        fontFamily:'Tajawal,sans-serif', color:'var(--a-gold)' }}>
         <div style={{ fontSize:'2rem', marginBottom:'12px' }}>⚠️</div>
         <p style={{ fontSize:'0.9rem', lineHeight:1.7 }}>
           {lang === 'ar'
@@ -64,8 +64,8 @@ export default function MoyasarForm({ depositSAR, description, bookingRef, booki
             : 'Payment gateway not configured. Add your Moyasar publishable key to .env'}
         </p>
         <code style={{ display:'block', marginTop:'10px', fontSize:'0.78rem',
-          background:'#f5f5f5', padding:'8px 12px', borderRadius:'6px',
-          fontFamily:'monospace', color:'#333' }}>
+          background:'var(--a-surface-alt)', padding:'8px 12px', borderRadius:'6px',
+          fontFamily:'monospace', color:'var(--a-text)' }}>
           VITE_MOYASAR_PUBLISHABLE_KEY=pk_test_...
         </code>
       </div>
@@ -76,7 +76,7 @@ export default function MoyasarForm({ depositSAR, description, bookingRef, booki
     <div dir="ltr" style={{ padding:'8px 0' }}>
       {!sdkReady && !sdkError && (
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center',
-          gap:'10px', padding:'32px', color:'#8C6B4F', fontFamily:'Tajawal,sans-serif' }}>
+          gap:'10px', padding:'32px', color:'var(--a-gold)', fontFamily:'Tajawal,sans-serif' }}>
           <Loader2 size={20} style={{ animation:'spin 1s linear infinite' }} />
           {lang === 'ar' ? 'جارٍ تحميل نموذج الدفع...' : 'Loading payment form...'}
         </div>

@@ -5,10 +5,17 @@ import { useState } from 'react';
 import { Settings, Receipt, Building, X, Save, AlertCircle, CheckCircle2, Loader2, Palette } from 'lucide-react';
 import type { AppSettings, ThemeName } from '../services/settings';
 
+// Theme-aware tokens — values resolve from document CSS custom properties.
 const C = {
-  ivory:'#F5EDE4', sand:'#D6BFA3', champagne:'#E8D9C5',
-  bronze:'#8C6B4F', taupe:'#6B5440', mocha:'#4A3728', black:'#1A1A1A',
+  ivory:     'var(--a-surface)',
+  sand:      'var(--a-border-strong)',
+  champagne: 'var(--a-surface-alt)',
+  bronze:    'var(--a-gold)',
+  taupe:     'var(--a-text-soft)',
+  mocha:     'var(--a-text)',
+  black:     'var(--a-heading)',
 };
+const ICON_GOLD = '#D4AF7A';
 
 export default function AppSettingsPanel({ settings, onSave }: {
   settings: AppSettings;
@@ -33,13 +40,13 @@ export default function AppSettingsPanel({ settings, onSave }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: C.champagne,
             display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Settings size={18} color={C.bronze} />
+            <Settings size={18} color={ICON_GOLD} />
           </div>
           <div>
             <div style={{ fontWeight: 700, color: C.black, fontSize: 15 }}>
               إعدادات النظام
             </div>
-            <div style={{ fontSize: 11, color: '#888' }}>
+            <div style={{ fontSize: 11, color: 'var(--a-text-soft)' }}>
               ضريبة القيمة المضافة · معلومات البائع
             </div>
           </div>
@@ -137,7 +144,9 @@ function SettingsEditModal({ initial, onClose, onSave }: {
       zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
       <div dir="rtl" onClick={e => e.stopPropagation()} style={{
-        background: 'white', borderRadius: 14, width: '100%', maxWidth: 520,
+        background: 'var(--a-surface)', borderRadius: 14, width: '100%', maxWidth: 520,
+        border: '1px solid var(--a-border-strong)',
+        boxShadow: 'var(--a-shadow)',
         fontFamily: 'Tajawal, sans-serif', maxHeight: '92vh', overflow: 'auto',
       }}>
         {/* Header */}
@@ -281,7 +290,7 @@ function ThemeCard({ name, active, onClick, titleAr, subAr, swatches }: {
       style={{
         textAlign: 'right', cursor: 'pointer',
         padding: '10px 12px', borderRadius: 10,
-        background: 'white',
+        background: 'var(--a-surface-alt)',
         border: `2px solid ${active ? C.bronze : C.champagne}`,
         boxShadow: active ? `0 4px 12px ${C.bronze}25` : 'none',
         fontFamily: 'inherit', transition: 'all 0.2s',
@@ -350,25 +359,26 @@ function FieldInput({ label, value, onChange, placeholder, mono }: {
 // ── styles ─────────────────────────────────────────────────────────────────────
 
 const cardStyle: React.CSSProperties = {
-  background: 'white', borderRadius: 14, padding: '20px 22px',
-  boxShadow: '0 2px 12px rgba(0,0,0,0.06)', marginBottom: 24,
+  background: 'var(--a-surface)', borderRadius: 14, padding: '20px 22px',
+  border: '1px solid var(--a-border)',
+  boxShadow: '0 2px 12px rgba(0,0,0,0.18)', marginBottom: 24,
   fontFamily: 'Tajawal, Cairo, sans-serif',
 };
 
 const editBtn: React.CSSProperties = {
   padding: '7px 16px', borderRadius: 8, border: `1.5px solid ${C.champagne}`,
-  background: 'white', color: C.bronze, fontWeight: 700, cursor: 'pointer',
+  background: 'var(--a-surface-alt)', color: C.bronze, fontWeight: 700, cursor: 'pointer',
   fontFamily: 'inherit', fontSize: 12,
 };
 
 const btnPrimary: React.CSSProperties = {
-  padding: '10px 22px', background: C.bronze, color: 'white', border: 'none',
+  padding: '10px 22px', background: C.bronze, color: '#0B0B0B', border: 'none',
   borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
   fontSize: 13, display: 'flex', alignItems: 'center', gap: 6,
 };
 
 const btnSecondary: React.CSSProperties = {
-  padding: '10px 22px', background: 'white', color: C.taupe,
+  padding: '10px 22px', background: 'var(--a-surface-alt)', color: C.taupe,
   border: `1.5px solid ${C.sand}`, borderRadius: 8, fontWeight: 600,
   cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
 };

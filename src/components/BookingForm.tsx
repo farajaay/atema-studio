@@ -123,7 +123,7 @@ const BookingForm: React.FC<Props> = ({ onClose }) => {
 
   if (step === 'processing') return (
     <div style={{ textAlign:'center', padding:'60px 20px' }}>
-      <Loader2 size={40} color={ATEMA_COLORS.champagne} style={{ animation:'spin 1s linear infinite' }} />
+      <Loader2 size={40} color="#D4AF7A" style={{ animation:'spin 1s linear infinite' }} />
       <p style={{ marginTop:'20px', color:'#666', fontSize:'15px' }}>جاري معالجة طلبك...</p>
       <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
     </div>

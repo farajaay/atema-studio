@@ -52,16 +52,22 @@ function PayBadge({ status }: { status: Booking['payment_status'] }) {
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 function StatCard({ icon, label, value, sub, color }: { icon: React.ReactNode; label: string; value: string | number; sub?: string; color: string }) {
+  // For hex semantic colors (#d97706 etc.) append 20 hex alpha (~12%).
+  // For CSS-var colors (var(--a-gold)) use a translucent gold tint instead.
+  const isHex = color.startsWith('#');
+  const tint = isHex ? color + '20' : 'rgba(212,175,122,0.12)';
   return (
-    <div style={{ background: 'white', borderRadius: '12px', padding: '20px 22px',
-      boxShadow: '0 2px 12px rgba(0,0,0,0.06)', borderTop: `3px solid ${color}` }}>
+    <div style={{ background: 'var(--a-surface)', borderRadius: '12px', padding: '20px 22px',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+      border: '1px solid var(--a-border)',
+      borderTop: `3px solid ${color}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={{ fontSize: '12px', color: '#888', marginBottom: '8px', fontWeight: 500 }}>{label}</div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: ATEMA_COLORS.editorialBlack, lineHeight: 1 }}>{value}</div>
-          {sub && <div style={{ fontSize: '11px', color: '#aaa', marginTop: '6px' }}>{sub}</div>}
+          <div style={{ fontSize: '12px', color: 'var(--a-text-soft)', marginBottom: '8px', fontWeight: 500 }}>{label}</div>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--a-heading)', lineHeight: 1 }}>{value}</div>
+          {sub && <div style={{ fontSize: '11px', color: 'var(--a-text-muted)', marginTop: '6px' }}>{sub}</div>}
         </div>
-        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: color + '20',
+        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: tint,
           display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
       </div>
     </div>
@@ -99,41 +105,41 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
   const row = (icon: React.ReactNode, label: string, value?: string) =>
     value ? (
       <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', fontSize: '14px' }}>
-        <span style={{ color: '#bbb', flexShrink: 0, marginTop: '1px' }}>{icon}</span>
-        <div><span style={{ color: '#888', marginLeft: '6px' }}>{label}:</span>
+        <span style={{ color: 'var(--a-text-muted)', flexShrink: 0, marginTop: '1px' }}>{icon}</span>
+        <div><span style={{ color: 'var(--a-text-soft)', marginLeft: '6px' }}>{label}:</span>
           <span style={{ fontWeight: 600, color: ATEMA_COLORS.editorialBlack }}> {value}</span></div>
       </div>
     ) : null;
 
   const sel: React.CSSProperties = {
-    padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #e8e0d8',
+    padding: '8px 12px', borderRadius: '8px', border: '1.5px solid var(--a-border)',
     fontSize: '13px', fontFamily: 'inherit', outline: 'none', cursor: 'pointer',
-    background: 'white',
+    background: 'var(--a-surface)',
   };
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
       zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '16px',
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--a-surface)', borderRadius: '16px',
         maxWidth: '600px', width: '100%', maxHeight: '90vh', overflowY: 'auto',
         boxShadow: '0 24px 64px rgba(0,0,0,0.2)', fontFamily: 'Cairo, Tajawal, Inter, sans-serif' }}>
 
         {/* Header */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f0f0',
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--a-border)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: '16px', color: ATEMA_COLORS.deepBronze }}>
               تفاصيل الحجز
             </div>
-            <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>{booking.booking_ref}</div>
+            <div style={{ fontSize: '12px', color: 'var(--a-text-muted)', marginTop: '2px' }}>{booking.booking_ref}</div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--a-text-muted)' }}>
             <X size={20} />
           </button>
         </div>
 
         {/* Tab bar */}
-        <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f0', padding: '0 24px' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--a-border)', padding: '0 24px' }}>
           {([
             { key: 'details', label: 'التفاصيل',       icon: <Package size={14} /> },
             { key: 'pl',      label: 'الأرباح والخسائر', icon: <TrendingUp size={14} /> },
@@ -141,7 +147,7 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
             <button key={t.key} onClick={() => setTab(t.key)}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '12px 16px', border: 'none',
                 background: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, fontFamily: 'inherit',
-                color: tab === t.key ? ATEMA_COLORS.champagne : '#aaa',
+                color: tab === t.key ? 'var(--a-gold)' : 'var(--a-text-muted)',
                 borderBottom: tab === t.key ? `2px solid ${ATEMA_COLORS.champagne}` : '2px solid transparent',
                 marginBottom: '-1px', transition: 'all 0.2s' }}>
               {t.icon}{t.label}
@@ -164,7 +170,7 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
           </div>
 
           {/* Financials */}
-          <div style={{ background: '#f8f8f8', borderRadius: '10px', padding: '16px 18px', marginBottom: '20px' }}>
+          <div style={{ background: 'var(--a-surface-alt)', borderRadius: '10px', padding: '16px 18px', marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               marginBottom: '12px' }}>
               <div style={{ fontSize: '12px', fontWeight: 700, color: ATEMA_COLORS.champagne,
@@ -173,7 +179,7 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
               {/* VAT toggle — locked off when global VAT is disabled */}
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px',
                 cursor: globalVatEnabled ? 'pointer' : 'not-allowed',
-                fontSize: '12px', color: globalVatEnabled ? '#555' : '#aaa', fontWeight: 600,
+                fontSize: '12px', color: globalVatEnabled ? 'var(--a-text)' : 'var(--a-text-muted)', fontWeight: 600,
                 opacity: globalVatEnabled ? 1 : 0.55 }}>
                 <span>تطبيق ضريبة القيمة المضافة (15%)</span>
                 <span style={{
@@ -184,12 +190,12 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
                     style={{ opacity: 0, width: 0, height: 0 }} />
                   <span style={{
                     position: 'absolute', inset: 0, borderRadius: 22,
-                    background: effectiveVatOn ? ATEMA_COLORS.champagne : '#ccc',
+                    background: effectiveVatOn ? 'var(--a-gold)' : 'var(--a-text-muted)',
                     transition: 'background 0.2s', cursor: globalVatEnabled ? 'pointer' : 'not-allowed',
                   }} />
                   <span style={{
                     position: 'absolute', top: 2, left: effectiveVatOn ? 18 : 2,
-                    width: 18, height: 18, borderRadius: '50%', background: 'white',
+                    width: 18, height: 18, borderRadius: '50%', background: 'var(--a-surface)',
                     transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                   }} />
                 </span>
@@ -202,7 +208,7 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
                 ['المجموع',  recomputedTotal],
               ].map(([l, v]) => (
                 <div key={l as string}>
-                  <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '4px' }}>{l as string}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--a-text-muted)', marginBottom: '4px' }}>{l as string}</div>
                   <div style={{ fontWeight: 700, color: ATEMA_COLORS.champagne, fontSize: '16px' }}>{(v as number).toLocaleString()} ر.س</div>
                 </div>
               ))}
@@ -223,7 +229,7 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
 
           {/* Edit status */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#555', marginBottom: '7px' }}>حالة الحجز</label>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--a-text)', marginBottom: '7px' }}>حالة الحجز</label>
             <select value={status} onChange={e => setStatus(e.target.value as Booking['status'])} style={sel}>
               <option value="pending">قيد الانتظار</option>
               <option value="confirmed">مؤكد</option>
@@ -233,7 +239,7 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#555', marginBottom: '7px' }}>حالة الدفع</label>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--a-text)', marginBottom: '7px' }}>حالة الدفع</label>
             <select value={payment} onChange={e => setPayment(e.target.value as Booking['payment_status'])} style={sel}>
               <option value="unpaid">غير مدفوع</option>
               <option value="paid">مدفوع</option>
@@ -242,17 +248,17 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
           </div>
 
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#555', marginBottom: '7px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--a-text)', marginBottom: '7px' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><StickyNote size={13} />ملاحظات</span>
             </label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-              style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #e8e0d8', borderRadius: '8px',
+              style={{ width: '100%', padding: '10px 14px', border: '1.5px solid var(--a-border)', borderRadius: '8px',
                 fontSize: '13px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
 
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
             <button onClick={onClose} style={{ padding: '10px 22px', border: `1.5px solid ${ATEMA_COLORS.champagne}`,
-              borderRadius: '8px', background: 'white', color: ATEMA_COLORS.champagne,
+              borderRadius: '8px', background: 'var(--a-surface)', color: ATEMA_COLORS.champagne,
               fontWeight: 600, cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}>إلغاء</button>
             <button onClick={handleSave} disabled={saving || saved} style={{
               padding: '10px 22px', background: saved ? '#059669' : ATEMA_COLORS.champagne,
@@ -303,24 +309,26 @@ export default function AdminDashboard() {
 
   if (authLoading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Loader2 size={36} color={ATEMA_COLORS.champagne} style={{ animation: 'spin 1s linear infinite' }} />
+      <Loader2 size={36} color="#D4AF7A" style={{ animation: 'spin 1s linear infinite' }} />
       <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 
   const selStyle = (active: boolean): React.CSSProperties => ({
-    padding: '7px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer',
+    padding: '7px 16px', borderRadius: '20px',
+    border: active ? '1px solid transparent' : '1px solid var(--a-border)',
+    cursor: 'pointer',
     fontSize: '12px', fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.2s',
-    background: active ? ATEMA_COLORS.champagne : 'white',
-    color: active ? 'white' : '#666',
-    boxShadow: active ? '0 2px 8px rgba(212,181,160,0.4)' : 'none',
+    background: active ? 'var(--a-gold)' : 'var(--a-surface-alt)',
+    color: active ? '#0B0B0B' : 'var(--a-text-soft)',
+    boxShadow: active ? '0 2px 8px rgba(212,175,122,0.35)' : 'none',
   });
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f6f9', fontFamily: 'Cairo, Tajawal, Inter, sans-serif', direction: 'rtl' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--a-bg)', fontFamily: 'Cairo, Tajawal, Inter, sans-serif', direction: 'rtl' }}>
 
       {/* Top bar */}
-      <div style={{ background: 'white', padding: isMobile ? '12px 16px' : '14px 30px',
+      <div style={{ background: 'var(--a-surface)', padding: isMobile ? '12px 16px' : '14px 30px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.07)', position: 'sticky', top: 0, zIndex: 50,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -331,31 +339,31 @@ export default function AdminDashboard() {
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: '15px', color: ATEMA_COLORS.deepBronze }}>ATEMA STUDIO</div>
-            <div style={{ fontSize: '11px', color: '#aaa' }}>لوحة التحكم</div>
+            <div style={{ fontSize: '11px', color: 'var(--a-text-muted)' }}>لوحة التحكم</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px' }}>
-          {!isMobile && <span style={{ fontSize: '13px', color: '#888' }}>{user?.email}</span>}
+          {!isMobile && <span style={{ fontSize: '13px', color: 'var(--a-text-soft)' }}>{user?.email}</span>}
           <button onClick={() => navigate('/admin/packages')}
-            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#f5f5f5',
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'var(--a-surface-alt)',
               border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
-              fontSize: '13px', fontFamily: 'inherit', color: '#555', fontWeight: 600 }}>
+              fontSize: '13px', fontFamily: 'inherit', color: 'var(--a-text)', fontWeight: 600 }}>
             <Layers size={14} />{!isMobile && 'الباقات'}
           </button>
           <button onClick={() => navigate('/admin/portfolio')}
-            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#f5f5f5',
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'var(--a-surface-alt)',
               border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
-              fontSize: '13px', fontFamily: 'inherit', color: '#555', fontWeight: 600 }}>
+              fontSize: '13px', fontFamily: 'inherit', color: 'var(--a-text)', fontWeight: 600 }}>
             <ImageIcon size={14} />{!isMobile && 'المعرض'}
           </button>
           <button onClick={() => navigate('/admin/journal')}
-            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#f5f5f5',
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'var(--a-surface-alt)',
               border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
-              fontSize: '13px', fontFamily: 'inherit', color: '#555', fontWeight: 600 }}>
+              fontSize: '13px', fontFamily: 'inherit', color: 'var(--a-text)', fontWeight: 600 }}>
             <BookOpen size={14} />{!isMobile && 'اليوميات'}
           </button>
           <button onClick={fetchBookings} style={{ background: 'none', border: 'none', cursor: 'pointer',
-            color: '#aaa', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px' }}>
+            color: 'var(--a-text-muted)', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px' }}>
             <RefreshCw size={15} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
             {!isMobile && 'تحديث'}
           </button>
@@ -373,8 +381,8 @@ export default function AdminDashboard() {
         {/* Stats Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
           gap: isMobile ? '12px' : '16px', marginBottom: '28px' }}>
-          <StatCard icon={<CalendarDays size={20} color={ATEMA_COLORS.champagne} />}
-            label="إجمالي الحجوزات" value={stats.total} color={ATEMA_COLORS.champagne} />
+          <StatCard icon={<CalendarDays size={20} color="#D4AF7A" />}
+            label="إجمالي الحجوزات" value={stats.total} color="#D4AF7A" />
           <StatCard icon={<Clock size={20} color="#d97706" />}
             label="قيد الانتظار" value={stats.pending}
             sub={`${stats.pending_revenue.toLocaleString()} ر.س معلقة`} color="#d97706" />
@@ -391,7 +399,7 @@ export default function AdminDashboard() {
         <AdminCalendar />
 
         {/* Filters bar */}
-        <div style={{ background: 'white', borderRadius: '12px', padding: '16px 20px',
+        <div style={{ background: 'var(--a-surface)', borderRadius: '12px', padding: '16px 20px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.05)', marginBottom: '20px',
           display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
 
@@ -400,9 +408,9 @@ export default function AdminDashboard() {
             <Search size={14} color="#bbb" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="بحث بالاسم أو رقم الحجز أو الجوال..." dir="rtl"
-              style={{ width: '100%', padding: '9px 36px 9px 12px', border: '1.5px solid #e8e0d8',
+              style={{ width: '100%', padding: '9px 36px 9px 12px', border: '1.5px solid var(--a-border)',
                 borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                fontFamily: 'inherit', background: 'white' }} />
+                fontFamily: 'inherit', background: 'var(--a-surface)' }} />
           </div>
 
           {/* Status filter */}
@@ -419,7 +427,7 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          <span style={{ fontSize: '12px', color: '#aaa', marginRight: 'auto' }}>
+          <span style={{ fontSize: '12px', color: 'var(--a-text-muted)', marginRight: 'auto' }}>
             {filtered.length} / {bookings.length} حجز
           </span>
         </div>
@@ -434,56 +442,56 @@ export default function AdminDashboard() {
         )}
 
         {/* Table */}
-        <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--a-surface)', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
           {loading ? (
             <div style={{ padding: '60px', textAlign: 'center' }}>
-              <Loader2 size={32} color={ATEMA_COLORS.champagne} style={{ animation: 'spin 1s linear infinite' }} />
+              <Loader2 size={32} color="#D4AF7A" style={{ animation: 'spin 1s linear infinite' }} />
               <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
-              <p style={{ color: '#aaa', marginTop: '12px', fontSize: '14px' }}>جاري تحميل الحجوزات...</p>
+              <p style={{ color: 'var(--a-text-muted)', marginTop: '12px', fontSize: '14px' }}>جاري تحميل الحجوزات...</p>
             </div>
           ) : filtered.length === 0 ? (
             <div style={{ padding: '60px', textAlign: 'center' }}>
               <CalendarDays size={40} color="#ddd" style={{ marginBottom: '12px' }} />
-              <p style={{ color: '#aaa', fontSize: '14px' }}>لا توجد حجوزات مطابقة</p>
+              <p style={{ color: 'var(--a-text-muted)', fontSize: '14px' }}>لا توجد حجوزات مطابقة</p>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
-                  <tr style={{ background: '#fafafa', borderBottom: '2px solid #f0f0f0' }}>
+                  <tr style={{ background: 'var(--a-surface-alt)', borderBottom: '2px solid var(--a-border)' }}>
                     {['رقم الحجز','العميل','الباقة','التاريخ','المجموع','الحجز','الدفع','إجراء'].map(h => (
                       <th key={h} style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700,
-                        color: '#666', fontSize: '12px', whiteSpace: 'nowrap' }}>{h}</th>
+                        color: 'var(--a-text-soft)', fontSize: '12px', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((b, i) => (
-                    <tr key={b.id} style={{ borderBottom: '1px solid #f5f5f5',
-                      background: i % 2 === 0 ? 'white' : '#fafafa',
+                    <tr key={b.id} style={{ borderBottom: '1px solid var(--a-border)',
+                      background: i % 2 === 0 ? 'var(--a-surface)' : 'var(--a-surface-alt)',
                       transition: 'background 0.15s' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#fef8f4')}
-                      onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? 'white' : '#fafafa')}>
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(212,175,122,0.08)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? 'var(--a-surface)' : 'var(--a-surface-alt)')}>
                       <td style={{ padding: '12px 14px', fontWeight: 600, color: ATEMA_COLORS.deepBronze, whiteSpace: 'nowrap' }}>{b.booking_ref}</td>
                       <td style={{ padding: '12px 14px' }}>
-                        <div style={{ fontWeight: 600, color: '#333' }}>{b.customer_name}</div>
-                        <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>{b.customer_phone}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--a-text)' }}>{b.customer_name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--a-text-muted)', marginTop: '2px' }}>{b.customer_phone}</div>
                       </td>
-                      <td style={{ padding: '12px 14px', color: '#555', whiteSpace: 'nowrap' }}>{b.package_name || `#${b.package_id}`}</td>
-                      <td style={{ padding: '12px 14px', color: '#555', whiteSpace: 'nowrap' }}>{b.event_date}</td>
+                      <td style={{ padding: '12px 14px', color: 'var(--a-text)', whiteSpace: 'nowrap' }}>{b.package_name || `#${b.package_id}`}</td>
+                      <td style={{ padding: '12px 14px', color: 'var(--a-text)', whiteSpace: 'nowrap' }}>{b.event_date}</td>
                       <td style={{ padding: '12px 14px', fontWeight: 700, color: ATEMA_COLORS.champagne, whiteSpace: 'nowrap' }}>{b.total.toLocaleString()} ر.س</td>
                       <td style={{ padding: '12px 14px' }}><StatusBadge status={b.status} /></td>
                       <td style={{ padding: '12px 14px' }}><PayBadge status={b.payment_status} /></td>
                       <td style={{ padding: '12px 14px' }}>
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button onClick={() => setSelected(b)} title="عرض / تعديل"
-                            style={{ background: '#f0f4ff', border: 'none', borderRadius: '6px',
-                              padding: '6px 10px', cursor: 'pointer', color: '#2563eb' }}>
+                            style={{ background: 'rgba(37,99,235,0.14)', border: '1px solid rgba(37,99,235,0.32)', borderRadius: '6px',
+                              padding: '6px 10px', cursor: 'pointer', color: '#60a5fa' }}>
                             <Eye size={14} />
                           </button>
                           <button onClick={() => setDeleteConf(b.id)} title="حذف"
-                            style={{ background: '#fff5f5', border: 'none', borderRadius: '6px',
-                              padding: '6px 10px', cursor: 'pointer', color: '#dc2626' }}>
+                            style={{ background: 'rgba(220,38,38,0.14)', border: '1px solid rgba(220,38,38,0.32)', borderRadius: '6px',
+                              padding: '6px 10px', cursor: 'pointer', color: '#fca5a5' }}>
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -519,15 +527,15 @@ export default function AdminDashboard() {
       {deleteConf && (
         <div onClick={() => setDeleteConf(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
           zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '14px',
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--a-surface)', borderRadius: '14px',
             padding: '28px', maxWidth: '380px', width: '100%', textAlign: 'center',
             fontFamily: 'Cairo, Tajawal, Inter, sans-serif' }}>
             <Trash2 size={40} color="#dc2626" style={{ marginBottom: '14px' }} />
-            <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#333', marginBottom: '8px' }}>حذف الحجز؟</h3>
-            <p style={{ fontSize: '13px', color: '#888', marginBottom: '22px' }}>هذا الإجراء لا يمكن التراجع عنه.</p>
+            <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--a-text)', marginBottom: '8px' }}>حذف الحجز؟</h3>
+            <p style={{ fontSize: '13px', color: 'var(--a-text-soft)', marginBottom: '22px' }}>هذا الإجراء لا يمكن التراجع عنه.</p>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-              <button onClick={() => setDeleteConf(null)} style={{ padding: '10px 24px', border: '1.5px solid #e0e0e0',
-                borderRadius: '8px', background: 'white', cursor: 'pointer', fontSize: '14px', fontFamily: 'inherit', fontWeight: 600 }}>إلغاء</button>
+              <button onClick={() => setDeleteConf(null)} style={{ padding: '10px 24px', border: '1.5px solid var(--a-border)',
+                borderRadius: '8px', background: 'var(--a-surface)', cursor: 'pointer', fontSize: '14px', fontFamily: 'inherit', fontWeight: 600 }}>إلغاء</button>
               <button onClick={async () => { await deleteBooking(deleteConf!); setDeleteConf(null); }}
                 style={{ padding: '10px 24px', background: '#dc2626', color: 'white', border: 'none',
                   borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontFamily: 'inherit', fontWeight: 700 }}>نعم، احذف</button>
