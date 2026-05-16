@@ -18,12 +18,38 @@ export interface Package {
   included_addon_ids: string[] | null;
 }
 
+// Fallback catalogue — mirrors database/seed-packages-2026-05.sql so the site
+// renders the same offering even when Supabase is unreachable.
 const DEMO: Package[] = [
-  { id: 1, name_ar: 'المخصّصة',   name_en: 'Customise',  price: 2200, duration_hours: 3, edited_photos: 150, album: null,           video: false, description: 'جلسة تصوير مخصصة حسب الطلب',          features: ['١٥٠ صورة معدّلة', '٣ ساعات تصوير', 'تسليم خلال ١٤ يوماً'], badge: null, is_popular: false, active: true, included_addon_ids: [] },
-  { id: 2, name_ar: 'الكلاسيكية', name_en: 'Classic',    price: 4200, duration_hours: 4, edited_photos: 300, album: 'A4 10 pages',  video: false, description: 'الباقة المثالية للمناسبات الخاصة',      features: ['٣٠٠ صورة معدّلة', '٤ ساعات تصوير', 'ألبوم A4 ١٠ صفحات', 'USB', 'تسليم خلال ٢١ يوماً'], badge: null, is_popular: true, active: true, included_addon_ids: [] },
-  { id: 3, name_ar: 'الملكية',    name_en: 'Royal',      price: 6900, duration_hours: 5, edited_photos: 400, album: 'A4 + mini',   video: true,  description: 'تجربة تصوير متكاملة مع فيديو سينمائي',  features: ['٤٠٠ صورة معدّلة', '٥ ساعات تصوير', 'ألبوم A4 + ميني ألبوم', 'فيديو قصير', 'مساعد', 'USB'], badge: 'الأكثر طلباً', is_popular: true, active: true, included_addon_ids: [] },
-  { id: 4, name_ar: 'التوقيع',    name_en: 'Signature',  price: 8500, duration_hours: 6, edited_photos: 500, album: 'A3 12 pages', video: true,  description: 'الباقة الاحترافية الشاملة للأفراح الكبرى', features: ['٥٠٠ صورة معدّلة', '٦ ساعات تصوير', 'ألبوم A3 ١٢ صفحة + ميني', 'فيديو سينمائي كامل', 'مساعد', 'USB'], badge: 'VIP', is_popular: false, active: true, included_addon_ids: [] },
-  { id: 5, name_ar: 'الخطوبة',    name_en: 'Engagement', price: 1800, duration_hours: 2, edited_photos: 100, album: null,           video: false, description: 'جلسة خطوبة رومانسية وأنيقة',            features: ['١٠٠ صورة معدّلة', '٢ ساعات تصوير', 'تسليم خلال ٧ أيام'], badge: null, is_popular: false, active: true, included_addon_ids: [] },
+  { id: 1, name_ar: 'باقة الخطوبة',     name_en: 'Engagement Session', price: 1800,  duration_hours: 2, edited_photos: 30,  album: null,
+    video: false, description: 'جلسة خطوبة رومانسية بأسلوب راقٍ — مثالية لإعلان البداية.',
+    features: ['ساعتان من التصوير الاحترافي', '٣٠ صورة معدّلة بعناية', 'اختيار أجمل اللقطات', 'وحدة تخزين باسم العروسين', 'تصميم Save the Date رقمي هدية'],
+    badge: 'الأساسي', is_popular: false, active: true, included_addon_ids: [] },
+
+  { id: 2, name_ar: 'الباقة المخصّصة',  name_en: 'Customise',          price: 2200,  duration_hours: 3, edited_photos: 150, album: 'صور JPG معالجة',
+    video: false, description: 'تغطية فوتوغرافية مرنة تصمَّم حسب احتياج المناسبة.',
+    features: ['٣ ساعات تصوير شاملة للحفل', 'تسليم جميع الصور بصيغة JPG معالجة', 'وحدة تخزين رقمية', 'اختيار أجمل اللقطات'],
+    badge: 'محبوب', is_popular: false, active: true, included_addon_ids: [] },
+
+  { id: 3, name_ar: 'الباقة الكلاسيكية', name_en: 'Classic',            price: 4200,  duration_hours: 4, edited_photos: 300, album: 'ألبوم A4 ١٥ صفحة',
+    video: false, description: 'الباقة المثالية للمناسبات الخاصة — ألبوم فاخر وذكريات تبقى.',
+    features: ['٤ ساعات تغطية شاملة للحفل', 'ألبوم A4 بـ ١٥ صفحة', '٥ صور عائلية معدّلة', 'وحدة تخزين بجميع الصور المعدّلة'],
+    badge: null, is_popular: false, active: true, included_addon_ids: [] },
+
+  { id: 4, name_ar: 'الباقة الملكية',   name_en: 'Royal',              price: 6900,  duration_hours: 5, edited_photos: 400, album: 'ألبوم A4 + ميني ألبوم',
+    video: true,  description: 'تجربة تصوير ملكية مع فيديو سينمائي قصير وألبومين فاخرين.',
+    features: ['٥ ساعات تغطية شاملة للحفل', 'فيديو سينمائي قصير (٣–٥ دقائق)', 'ألبوم A4 بـ ١٥ صفحة', 'ميني ألبوم عائلي', 'وحدة تخزين باسم العروسين', 'معاينة في نفس اليوم (٥ صور مختارة)'],
+    badge: 'الأكثر طلباً', is_popular: true, active: true, included_addon_ids: [] },
+
+  { id: 5, name_ar: 'باقة التوقيع',     name_en: 'Signature',          price: 8500,  duration_hours: 6, edited_photos: 500, album: 'ألبوم فاخر A3 ١٢ صفحة + ميني',
+    video: true,  description: 'الباقة الاحترافية الشاملة — فيديو سينمائي كامل وألبوم A3 فاخر.',
+    features: ['٦ ساعات تغطية شاملة للحفل', 'فيديو سينمائي كامل', 'جلسة تصوير تحضيرات العروس', 'ألبوم فاخر A3 بـ ١٢ صفحة', 'ميني ألبوم عائلي', 'وحدة تخزين منقوشة بالاسم', 'معاينة في نفس اليوم (٥ صور مختارة)'],
+    badge: 'فاخر', is_popular: false, active: true, included_addon_ids: [] },
+
+  { id: 6, name_ar: 'ATEMA Couture',    name_en: 'ATEMA Couture',      price: 14000, duration_hours: 8, edited_photos: 700, album: 'ألبوم فاخر A3 ٢٠ صفحة + ميني + لوحة جدارية',
+    video: true,  description: 'تجربة الفخامة الكاملة — كل تفاصيل اليوم بتوقيع كوتور حصري.',
+    features: ['تغطية شاملة كاملة للحفل', 'فيديو سينمائي فاخر', 'جلسة تحضيرات العروس', 'تغطية ليلة الحناء', 'ألبوم فاخر A3 بـ ٢٠ صفحة', 'ميني ألبوم فاخر', 'لوحة جدارية فنية مؤطرة', 'وحدة تخزين فاخرة بالاسم', 'معاينة في نفس اليوم (١٠ صور مختارة)', 'خدمة عملاء ومتابعة خاصة'],
+    badge: 'الأفخم', is_popular: true, active: true, included_addon_ids: [] },
 ];
 
 export function usePackagesData() {
