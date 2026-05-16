@@ -1,24 +1,18 @@
-/* ATEMA STUDIO — base styles, brand-aligned */
+/* ATEMA STUDIO — base styles.
+   Theme variables (--a-*) are declared in index.html so they apply during first paint
+   even before React mounts. This file consumes them. */
 
 :root {
-  /* Brand palette */
-  --atema-ivory:     #F5EDE4;  /* Soft Ivory  — page background */
-  --atema-champagne: #E8D9C5;  /* Champagne   — cards, hover */
-  --atema-sand:      #D6BFA3;  /* Warm Sand   — borders, dividers */
-  --atema-bronze:    #8C6B4F;  /* Deep Bronze — prices, accents */
-  --atema-taupe:     #6B5440;  /* Deep Taupe  — secondary text */
-  --atema-mocha:     #4A3728;  /* Mocha       — body text */
-  --atema-black:     #1A1A1A;  /* Editorial Black — headings */
+  --text:   var(--a-text);
+  --text-h: var(--a-heading);
+  --bg:     var(--a-bg);
+  --border: var(--a-border-strong);
+  --accent: var(--a-gold);
 
-  --text:   var(--atema-mocha);
-  --text-h: var(--atema-black);
-  --bg:     var(--atema-ivory);
-  --border: var(--atema-sand);
-  --accent: var(--atema-bronze);
-
-  font: 16px/1.5 'Tajawal', system-ui, 'Segoe UI', Roboto, sans-serif;
+  font: 16px/1.55 'Montserrat', 'Tajawal', system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 300;
   letter-spacing: 0.1px;
-  color-scheme: light only;
+  color-scheme: dark;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -29,7 +23,9 @@
 
 html, body {
   margin: 0;
-  background: var(--atema-ivory);
+  background: var(--a-bg);
+  color: var(--a-text);
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 #root {
@@ -39,13 +35,14 @@ html, body {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  background: var(--atema-ivory);
+  background: var(--a-bg);
 }
 
-h1, h2, h3 {
-  font-family: 'Cormorant Garamond', 'Amiri', serif;
-  font-weight: 500;
+h1, h2, h3, h4 {
+  font-family: 'Cinzel', 'Cormorant Garamond', 'Amiri', serif;
+  font-weight: 300;
   color: var(--text-h);
+  letter-spacing: 0.04em;
   margin: 0;
 }
 
@@ -58,15 +55,6 @@ p { margin: 0; }
 
 /* Selection colour */
 ::selection {
-  background: var(--atema-champagne);
-  color: var(--atema-black);
+  background: var(--a-gold);
+  color: #0B0B0B;
 }
-
-/* Scrollbar — soft bronze */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: var(--atema-ivory); }
-::-webkit-scrollbar-thumb {
-  background: var(--atema-sand);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover { background: var(--atema-bronze); }
