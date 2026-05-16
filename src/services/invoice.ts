@@ -167,6 +167,9 @@ export function generateInvoiceHTML(d: InvoiceData): string {
   .footer-bar{background:#F5EDE4;padding:18px 36px;text-align:center;border-top:1px solid #E8D9C5}
   .footer-bar .eta{font-size:10px;color:#8C6B4F;letter-spacing:0.16em;font-family:'Inter',sans-serif;margin-bottom:6px}
   .footer-bar p{font-size:11px;color:#4A3728}
+  /* FAB couture monogram — reserved for printable invoice / T&C only (per brand-usage rule) */
+  .invoice{position:relative}
+  .fab-monogram{position:absolute;top:20px;left:20px;width:44px;height:44px;border:1px solid rgba(214,191,163,0.55);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Amiri',serif;font-size:13px;letter-spacing:0.04em;color:#D6BFA3;background:rgba(0,0,0,0.18);z-index:2}
   .actions{position:fixed;top:14px;left:14px;display:flex;gap:8px;z-index:100}
   .actions button{padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;background:#1A1A1A;color:#E8D9C5;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
   @media print{.actions{display:none}.invoice{box-shadow:none;border-radius:0}body{background:white;padding:0}}
@@ -177,6 +180,8 @@ export function generateInvoiceHTML(d: InvoiceData): string {
   <button onclick="window.print()">🖨 طباعة / تنزيل PDF</button>
 </div>
 <div class="invoice">
+  <!-- FAB couture monogram (reserved for printable docs only) -->
+  <div class="fab-monogram" aria-hidden="true"><span>FAB</span></div>
   <div class="header">
     <div class="brand">
       <h1>A T E M A</h1>

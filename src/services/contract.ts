@@ -89,10 +89,17 @@ export function generateContractHTML(d: ContractData): string {
   .footer-bar{background:#f4ede4;padding:16px 40px;text-align:center;border-top:1px solid #e8d9c5}
   .footer-bar p{font-size:11px;color:#b09880;letter-spacing:0.08em}
   .ref-badge{display:inline-block;background:#1a1a1a;color:#e8d9c5;border-radius:6px;padding:4px 12px;font-size:11px;letter-spacing:0.1em;font-weight:600;margin-top:6px}
+  /* FAB couture monogram — reserved for printable contract / T&C only (per brand-usage rule) */
+  .page{position:relative}
+  .fab-monogram{position:absolute;top:18px;right:18px;width:42px;height:42px;border:1px solid rgba(201,179,147,0.45);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Amiri',serif;font-size:13px;letter-spacing:0.04em;color:#c9b393;background:rgba(255,255,255,0.04);box-shadow:inset 0 0 0 3px rgba(255,255,255,0.04)}
+  .fab-monogram span{display:inline-block;transform:translateY(-1px)}
 </style>
 </head>
 <body>
 <div class="page">
+
+  <!-- FAB couture monogram (reserved for printable docs only) -->
+  <div class="fab-monogram" aria-hidden="true"><span>FAB</span></div>
 
   <!-- Header -->
   <div class="header">
