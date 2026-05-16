@@ -8,9 +8,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 
-const STORAGE_KEY = 'atema:promo-dismissed';
-const PROMO_IMAGE = `${import.meta.env.BASE_URL}photos/Promotion.PNG`;
-const REVEAL_DELAY_MS = 700;
+const STORAGE_KEY        = 'atema:promo-dismissed';
+const PROMO_DESKTOP      = `${import.meta.env.BASE_URL}photos/Promotion.PNG`;
+const PROMO_MOBILE       = `${import.meta.env.BASE_URL}photos/Promotion_Mobile.PNG`;
+const MOBILE_BREAKPOINT  = '(max-width: 767px)';
+const REVEAL_DELAY_MS    = 700;
 
 export default function PromotionModal() {
   const [open, setOpen] = useState(false);
@@ -53,7 +55,12 @@ export default function PromotionModal() {
       animation: 'promo-fade-in 0.45s ease',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        position: 'relative', maxWidth: '960px', width: '100%',
+        // Mobile: portrait image fills viewport height. Desktop: landscape capped at 960px.
+        position: 'relative',
+        maxWidth: 'min(960px, 96vw)',
+        maxHeight: '92vh',
+        width: '100%',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
         animation: 'promo-pop-in 0.55s cubic-bezier(0.22,0.61,0.36,1)',
       }}>
         {/* Close pill */}
@@ -72,15 +79,27 @@ export default function PromotionModal() {
           <X size={18} />
         </button>
 
-        {/* Clickable promotion image */}
+        {/* Clickable promotion image — <picture> swaps to the portrait
+            Promotion_Mobile.PNG below 768px so mobile users get the
+            vertical layout designed for tall viewports. */}
         <button onClick={go} aria-label="صمّمي باقتك / Design Your Package" style={{
-          display: 'block', width: '100%', padding: 0, border: 'none',
+          display: 'block', width: 'auto', maxWidth: '100%',
+          padding: 0, border: 'none',
           background: 'transparent', cursor: 'pointer',
           borderRadius: '14px', overflow: 'hidden',
           boxShadow: '0 32px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(212,175,122,0.22)',
         }}>
-          <img src={PROMO_IMAGE} alt="ATEMA Studio — Design Your Package promotion"
-            style={{ display: 'block', width: '100%', height: 'auto' }} />
+          <picture>
+            <source media={MOBILE_BREAKPOINT} srcSet={PROMO_MOBILE} />
+            <img src={PROMO_DESKTOP}
+              alt="ATEMA Studio — Design Your Package promotion"
+              style={{
+                display: 'block',
+                width: 'auto', maxWidth: '100%',
+                height: 'auto', maxHeight: '82vh',
+                objectFit: 'contain',
+              }} />
+          </picture>
         </button>
 
         {/* Hint pill below image */}
