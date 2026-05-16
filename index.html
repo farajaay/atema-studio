@@ -8,43 +8,71 @@
     <meta name="description" content="ATEMA Studio — جلسات تصوير احترافية للأفراح والمناسبات في الجبيل والمنطقة الشرقية." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Amiri:ital,wght@0,400;0,700;1,400&family=Tajawal:wght@300;400;500;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@300;400;500;600&family=Montserrat:wght@200;300;400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Amiri:ital,wght@0,400;0,700;1,400&family=Tajawal:wght@300;400;500;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
     <style>
+      /* ── ATEMA Theme Tokens (Couture Noir = default; switched by admin) ── */
+      :root[data-theme="noir"] {
+        --a-bg:#0B0B0B; --a-surface:#141414; --a-surface-alt:#1C1C1C; --a-ivory:#EFE3D1;
+        --a-text:#D8CDB9; --a-text-soft:#9C8E76; --a-text-muted:#6B5F4E; --a-heading:#EFE3D1;
+        --a-gold:#D4AF7A; --a-gold-deep:#BB864B;
+        --a-border:rgba(212,175,122,0.14); --a-border-strong:rgba(212,175,122,0.35);
+        --a-shadow:0 24px 64px rgba(0,0,0,0.55); --a-overlay:rgba(0,0,0,0.78);
+        --a-scrollbar:#1C1C1C; --a-scrollbar-hover:#D4AF7A;
+      }
+      :root[data-theme="ivory"] {
+        --a-bg:#F5EDE4; --a-surface:#FFFFFF; --a-surface-alt:#FBF6EE; --a-ivory:#F5EDE4;
+        --a-text:#4A3728; --a-text-soft:#6B5440; --a-text-muted:#A89376; --a-heading:#1A1A1A;
+        --a-gold:#8C6B4F; --a-gold-deep:#6B5440;
+        --a-border:rgba(214,191,163,0.4); --a-border-strong:rgba(140,107,79,0.45);
+        --a-shadow:0 18px 50px rgba(61,46,31,0.10); --a-overlay:rgba(20,13,8,0.55);
+        --a-scrollbar:#D6BFA3; --a-scrollbar-hover:#8C6B4F;
+      }
+      :root { /* default before React mounts */
+        --a-bg:#0B0B0B; --a-surface:#141414; --a-surface-alt:#1C1C1C; --a-ivory:#EFE3D1;
+        --a-text:#D8CDB9; --a-text-soft:#9C8E76; --a-text-muted:#6B5F4E; --a-heading:#EFE3D1;
+        --a-gold:#D4AF7A; --a-gold-deep:#BB864B;
+        --a-border:rgba(212,175,122,0.14); --a-border-strong:rgba(212,175,122,0.35);
+        --a-shadow:0 24px 64px rgba(0,0,0,0.55); --a-overlay:rgba(0,0,0,0.78);
+        --a-scrollbar:#1C1C1C; --a-scrollbar-hover:#D4AF7A;
+      }
+
       *, *::before, *::after { box-sizing: border-box; }
       html { scroll-behavior: smooth; }
-      body { margin: 0; background: #F5EDE4; overflow-x: hidden; }
-      #root { min-height: 100vh; }
+      body { margin: 0; background: var(--a-bg); color: var(--a-text); overflow-x: hidden;
+             font-family: 'Montserrat', 'Tajawal', system-ui, sans-serif; font-weight: 300; }
+      #root { min-height: 100vh; background: var(--a-bg); }
 
       /* ── Scrollbar ── */
-      ::-webkit-scrollbar { width: 4px; }
-      ::-webkit-scrollbar-track { background: #EDE4D8; }
-      ::-webkit-scrollbar-thumb { background: #D6BFA3; border-radius: 2px; }
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: var(--a-bg); }
+      ::-webkit-scrollbar-thumb { background: var(--a-scrollbar); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--a-scrollbar-hover); }
 
-      /* ── Wordmark shimmer ── */
+      /* ── Wordmark — Cinzel light, gold shimmer ── */
       @keyframes shimmer {
         0%   { background-position: -200% center; }
         100% { background-position:  200% center; }
       }
       .atema-wordmark {
-        font-family: 'Cormorant Garamond', serif;
+        font-family: 'Cinzel', 'Cormorant Garamond', serif;
         font-weight: 300;
-        letter-spacing: 0.38em;
+        letter-spacing: 0.42em;
         text-transform: uppercase;
-        background: linear-gradient(90deg, #1A1A1A 20%, #8C6B4F 45%, #1A1A1A 70%);
+        background: linear-gradient(90deg, var(--a-gold) 20%, var(--a-ivory) 45%, var(--a-gold) 70%);
         background-size: 200%;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        animation: shimmer 5s linear infinite;
+        animation: shimmer 6s linear infinite;
         line-height: 1;
       }
       .atema-sub {
-        font-family: 'Cormorant Garamond', serif;
+        font-family: 'Cinzel', 'Cormorant Garamond', serif;
         font-weight: 300;
         letter-spacing: 0.55em;
         text-transform: uppercase;
         font-size: 0.6rem;
-        color: rgba(26,26,26,0.4);
+        color: var(--a-text-soft);
       }
 
       /* ── Animations ── */
@@ -79,27 +107,27 @@
 
       /* ── Glass ── */
       .glass {
-        background: linear-gradient(145deg, rgba(255,255,255,0.96), rgba(245,237,228,0.92));
+        background: linear-gradient(145deg, var(--a-surface), var(--a-surface-alt));
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(214,191,163,0.28);
-        box-shadow: 0 8px 40px rgba(26,26,26,0.06), inset 0 1px 0 rgba(255,255,255,0.95);
+        border: 1px solid var(--a-border);
+        box-shadow: var(--a-shadow), inset 0 1px 0 rgba(255,255,255,0.04);
       }
 
       /* ── Toggle ── */
       .atema-toggle {
         width: 44px; height: 24px; border-radius: 12px;
-        background: #D6BFA3; position: relative; cursor: pointer;
+        background: var(--a-border-strong); position: relative; cursor: pointer;
         transition: background 0.25s; flex-shrink: 0; border: none;
       }
       .atema-toggle::after {
         content: ''; position: absolute;
         top: 3px; right: 3px;
         width: 18px; height: 18px; border-radius: 50%;
-        background: white; box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+        background: var(--a-ivory); box-shadow: 0 1px 4px rgba(0,0,0,0.18);
         transition: transform 0.25s;
       }
-      .atema-toggle.on { background: #8C6B4F; }
+      .atema-toggle.on { background: var(--a-gold); }
       .atema-toggle.on::after { transform: translateX(-20px); }
 
       /* ── Ornament ── */
@@ -109,66 +137,81 @@
       }
       .ornament::before, .ornament::after {
         content: ''; flex: 1; height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(140,107,79,0.4), transparent);
+        background: linear-gradient(90deg, transparent, var(--a-border-strong), transparent);
       }
       .ornament span {
-        font-family: 'Cormorant Garamond', serif;
-        font-weight: 300; font-size: 0.9rem; letter-spacing: 0.28em;
-        color: #8C6B4F; white-space: nowrap; text-transform: uppercase;
+        font-family: 'Cinzel', 'Cormorant Garamond', serif;
+        font-weight: 300; font-size: 0.9rem; letter-spacing: 0.32em;
+        color: var(--a-gold); white-space: nowrap; text-transform: uppercase;
       }
 
       /* ── Form inputs ── */
       .atema-input {
-        width: 100%; background: rgba(255,255,255,0.95);
-        border: 1.5px solid rgba(214,191,163,0.5);
-        border-radius: 10px; padding: 11px 15px;
-        font-family: 'Tajawal', sans-serif; font-size: 0.9rem;
-        color: #1A1A1A; outline: none;
+        width: 100%; background: var(--a-surface);
+        border: 1px solid var(--a-border-strong);
+        border-radius: 4px; padding: 12px 16px;
+        font-family: 'Montserrat', 'Tajawal', sans-serif; font-size: 0.9rem;
+        font-weight: 300;
+        color: var(--a-text); outline: none;
         transition: border-color 0.2s, box-shadow 0.2s;
       }
+      .atema-input::placeholder { color: var(--a-text-muted); }
       .atema-input:focus {
-        border-color: #8C6B4F;
-        box-shadow: 0 0 0 3px rgba(140,107,79,0.1);
+        border-color: var(--a-gold);
+        box-shadow: 0 0 0 2px rgba(212,175,122,0.18);
       }
-      .atema-input-ltr { font-family: 'Inter', sans-serif; direction: ltr; }
+      .atema-input-ltr { font-family: 'Inter', 'Montserrat', sans-serif; direction: ltr; }
 
-      /* ── Primary button ── */
+      /* ── Primary button — gold on noir, dark on ivory ── */
       .btn-primary {
-        background: linear-gradient(135deg, #1A1A1A 0%, #2C2C2C 60%, #4A3728 100%);
-        color: #E8D9C5; font-family: 'Tajawal', sans-serif;
-        font-weight: 500; font-size: 0.95rem; letter-spacing: 0.04em;
-        padding: 14px 32px; border-radius: 10px; border: none;
+        background: var(--a-gold);
+        color: #0B0B0B;
+        font-family: 'Cinzel', 'Tajawal', sans-serif;
+        font-weight: 400; font-size: 0.84rem; letter-spacing: 0.22em;
+        text-transform: uppercase;
+        padding: 14px 32px; border-radius: 2px; border: 1px solid var(--a-gold);
         cursor: pointer; width: 100%; transition: all 0.3s;
-        box-shadow: 0 4px 20px rgba(26,26,26,0.22);
+        box-shadow: 0 4px 24px rgba(212,175,122,0.18);
       }
       .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 28px rgba(26,26,26,0.32);
+        background: var(--a-gold-deep); border-color: var(--a-gold-deep);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 32px rgba(212,175,122,0.32);
       }
       .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
+      .btn-ghost {
+        background: transparent; color: var(--a-gold);
+        font-family: 'Cinzel', 'Tajawal', sans-serif;
+        font-weight: 400; font-size: 0.82rem; letter-spacing: 0.22em;
+        text-transform: uppercase;
+        padding: 13px 30px; border-radius: 2px;
+        border: 1px solid var(--a-gold); cursor: pointer; transition: all 0.3s;
+      }
+      .btn-ghost:hover { background: var(--a-gold); color: #0B0B0B; }
+
       /* ── Lang toggle ── */
       .lang-toggle {
-        display: flex; border: 1px solid rgba(26,26,26,0.18);
+        display: flex; border: 1px solid var(--a-border-strong);
         border-radius: 20px; overflow: hidden;
-        background: rgba(255,255,255,0.22);
+        background: rgba(255,255,255,0.04);
       }
       .lang-btn {
-        padding: 4px 14px; font-size: 0.72rem; cursor: pointer;
+        padding: 4px 14px; font-size: 0.7rem; cursor: pointer;
         transition: all 0.2s; font-family: 'Inter', sans-serif;
-        color: rgba(26,26,26,0.5); border: none; background: transparent;
-        letter-spacing: 0.08em;
+        color: var(--a-text-soft); border: none; background: transparent;
+        letter-spacing: 0.1em;
       }
       .lang-btn.active {
-        background: #1A1A1A; color: #E8D9C5;
+        background: var(--a-gold); color: #0B0B0B;
         border-radius: 20px; font-weight: 500;
       }
 
       /* ── Sticky bar ── */
       #sticky-bar {
         position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-        background: linear-gradient(135deg, #1A1A1A, #2C2C2C);
-        border-top: 1px solid rgba(214,191,163,0.2);
+        background: var(--a-surface);
+        border-top: 1px solid var(--a-border-strong);
         transform: translateY(100%);
         transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
       }
@@ -179,18 +222,26 @@
         position: fixed; inset: 0; z-index: 200;
         display: flex; align-items: center; justify-content: center; padding: 20px;
         opacity: 0; pointer-events: none; transition: opacity 0.3s;
-        background: rgba(20,13,8,0.75); backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        background: var(--a-overlay); backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
       }
       .atema-modal.open { opacity: 1; pointer-events: all; }
       .atema-modal-box {
-        background: #FCFAF6; border-radius: 18px;
-        border: 1px solid rgba(201,179,147,0.22);
+        background: var(--a-surface); border-radius: 6px;
+        border: 1px solid var(--a-border-strong);
         max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto;
-        box-shadow: 0 32px 80px rgba(20,13,8,0.5);
+        box-shadow: var(--a-shadow);
         transform: scale(0.96) translateY(14px); transition: transform 0.35s;
       }
       .atema-modal.open .atema-modal-box { transform: scale(1) translateY(0); }
+
+      /* ── Editorial display utilities ── */
+      .display-serif { font-family: 'Cinzel', 'Cormorant Garamond', serif; font-weight: 300; letter-spacing: 0.05em; }
+      .editorial-eyebrow {
+        font-family: 'Cinzel', serif; font-weight: 400;
+        font-size: 0.66rem; letter-spacing: 0.4em; text-transform: uppercase;
+        color: var(--a-gold);
+      }
 
       /* ── WhatsApp float ── */
       .wa-float {
@@ -211,8 +262,8 @@
         cursor: pointer; flex-shrink: 0; margin-top: 2px;
       }
     </style>
-    <script type="module" crossorigin src="/atema-studio/assets/index-DBtv7gav.js"></script>
-    <link rel="stylesheet" crossorigin href="/atema-studio/assets/index-C00X_XCb.css">
+    <script type="module" crossorigin src="/atema-studio/assets/index-CigSGeR9.js"></script>
+    <link rel="stylesheet" crossorigin href="/atema-studio/assets/index-Dkvgix3d.css">
   </head>
   <body>
     <div id="root"></div>
