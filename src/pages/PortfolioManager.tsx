@@ -86,17 +86,17 @@ export default function PortfolioManager() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8f6f3', fontFamily: 'inherit' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--a-bg)', fontFamily: 'inherit' }}>
       {/* Top bar */}
       <div style={{
-        background: 'white', padding: isMobile ? '12px 16px' : '14px 30px',
+        background: 'var(--a-surface)', padding: isMobile ? '12px 16px' : '14px 30px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.07)', position: 'sticky', top: 0, zIndex: 50,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button onClick={() => navigate('/admin/dashboard')} style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 4, color: '#888',
+            display: 'flex', alignItems: 'center', gap: 4, color: 'var(--a-text-soft)',
           }}>
             <ChevronLeft size={18} /> {!isMobile && 'لوحة التحكم'}
           </button>
@@ -109,20 +109,20 @@ export default function PortfolioManager() {
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15, color: ATEMA_COLORS.deepBronze }}>المعرض</div>
-            <div style={{ fontSize: 11, color: '#aaa' }}>Portfolio Manager</div>
+            <div style={{ fontSize: 11, color: 'var(--a-text-muted)' }}>Portfolio Manager</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 14 }}>
           <button onClick={load} style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: '#aaa', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13,
+            color: 'var(--a-text-muted)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13,
           }}>
             <RefreshCw size={15} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
             {!isMobile && 'تحديث'}
           </button>
           <button onClick={async () => { await logout(); navigate('/admin'); }} style={{
-            display: 'flex', alignItems: 'center', gap: 5, background: '#fff5f5',
-            border: '1px solid #fecaca', color: '#dc2626', borderRadius: 8,
+            display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(220,38,38,0.10)',
+            border: '1px solid rgba(220,38,38,0.32)', color: '#fca5a5', borderRadius: 8,
             padding: '7px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600,
           }}>
             <LogOut size={14} />{!isMobile && 'خروج'}
@@ -141,7 +141,7 @@ export default function PortfolioManager() {
             image_url: '', sort_order: 100, published: true,
           })} style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            background: ATEMA_COLORS.champagne, color: 'white',
+            background: ATEMA_COLORS.champagne, color: '#0B0B0B',
             border: 'none', borderRadius: 8, padding: '9px 18px',
             cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit', fontSize: 13,
           }}>
@@ -153,9 +153,9 @@ export default function PortfolioManager() {
               <button key={c.key} onClick={() => setFilter(c.key as any)} style={{
                 padding: '7px 14px', borderRadius: 8, cursor: 'pointer',
                 fontSize: 12, fontFamily: 'inherit', fontWeight: 600,
-                background: filter === c.key ? ATEMA_COLORS.champagne : 'white',
-                color: filter === c.key ? 'white' : '#666',
-                border: `1.5px solid ${filter === c.key ? ATEMA_COLORS.champagne : '#e8e0d8'}`,
+                background: filter === c.key ? ATEMA_COLORS.champagne : 'var(--a-surface-alt)',
+                color: filter === c.key ? '#0B0B0B' : 'var(--a-text-soft)',
+                border: `1.5px solid ${filter === c.key ? ATEMA_COLORS.champagne : 'var(--a-border)'}`,
               }}>
                 {c.ar}
               </button>
@@ -165,13 +165,13 @@ export default function PortfolioManager() {
 
         {/* Grid */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 60, color: '#999' }}>
+          <div style={{ textAlign: 'center', padding: 60, color: 'var(--a-text-muted)' }}>
             <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
           </div>
         ) : visible.length === 0 ? (
           <div style={{
-            background: 'white', borderRadius: 12, padding: 60,
-            textAlign: 'center', color: '#999',
+            background: 'var(--a-surface)', borderRadius: 12, padding: 60,
+            textAlign: 'center', color: 'var(--a-text-muted)',
           }}>
             لا توجد عناصر — أضف أوّل صورة باستخدام «عنصر جديد».
           </div>
@@ -182,7 +182,7 @@ export default function PortfolioManager() {
           }}>
             {visible.map(it => (
               <div key={it.id} style={{
-                background: 'white', borderRadius: 12, overflow: 'hidden',
+                background: 'var(--a-surface)', borderRadius: 12, overflow: 'hidden',
                 boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
                 opacity: it.published ? 1 : 0.55,
               }}>
@@ -198,25 +198,25 @@ export default function PortfolioManager() {
                     {CATEGORIES.find(c => c.key === it.category)?.ar}
                   </div>
                   <div style={{
-                    fontSize: 13, color: '#333', fontWeight: 600,
+                    fontSize: 13, color: 'var(--a-text)', fontWeight: 600,
                     marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                   }}>
                     {it.title_ar}
                   </div>
-                  <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, color: 'var(--a-text-muted)', marginBottom: 8 }}>
                     ترتيب: {it.sort_order}
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => setEdit(it)} style={iconBtn('#666')}>
+                    <button onClick={() => setEdit(it)} style={iconBtn('#a8a8a8')}>
                       تعديل
                     </button>
                     <button onClick={() => togglePublished(it)} title={it.published ? 'إخفاء' : 'نشر'}
-                      style={iconBtn(it.published ? '#059669' : '#999')}>
+                      style={iconBtn(it.published ? '#34d399' : '#a8a8a8')}>
                       {it.published ? <Eye size={13} /> : <EyeOff size={13} />}
                     </button>
                     <button onClick={() => remove(it.id)} title="حذف"
-                      style={iconBtn('#dc2626')}>
+                      style={iconBtn('#fca5a5')}>
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -235,7 +235,7 @@ export default function PortfolioManager() {
           padding: 20,
         }}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: 'white', borderRadius: 14, padding: '24px 28px',
+            background: 'var(--a-surface)', borderRadius: 14, padding: '24px 28px',
             maxWidth: 560, width: '100%', maxHeight: '90vh', overflow: 'auto',
           }}>
             <div style={{
@@ -246,7 +246,7 @@ export default function PortfolioManager() {
                 {edit.id ? 'تعديل العنصر' : 'عنصر جديد'}
               </h2>
               <button onClick={() => setEdit(null)} style={{
-                background: 'none', border: 'none', cursor: 'pointer', color: '#999',
+                background: 'none', border: 'none', cursor: 'pointer', color: 'var(--a-text-muted)',
               }}>
                 <X size={20} />
               </button>
@@ -273,8 +273,8 @@ export default function PortfolioManager() {
                 <label style={{
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center',
-                  gap: 8, padding: '32px 16px', border: '1.5px dashed #e8e0d8',
-                  borderRadius: 8, cursor: 'pointer', color: '#888',
+                  gap: 8, padding: '32px 16px', border: '1.5px dashed var(--a-border-strong)',
+                  borderRadius: 8, cursor: 'pointer', color: 'var(--a-text-soft)',
                 }}>
                   {uploading ? (
                     <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
@@ -338,7 +338,7 @@ export default function PortfolioManager() {
             </div>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: 10,
-              marginTop: 16, fontSize: 13, color: '#555', cursor: 'pointer' }}>
+              marginTop: 16, fontSize: 13, color: 'var(--a-text)', cursor: 'pointer' }}>
               <input type="checkbox" checked={edit.published ?? true}
                 onChange={e => setEdit(s => ({ ...(s ?? {}), published: e.target.checked }))} />
               منشور (مرئي للعملاء)
@@ -347,7 +347,7 @@ export default function PortfolioManager() {
             <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
               <button onClick={save} disabled={saving} style={{
                 flex: 1, padding: '10px 14px', borderRadius: 8,
-                background: ATEMA_COLORS.champagne, color: 'white',
+                background: ATEMA_COLORS.champagne, color: '#0B0B0B',
                 border: 'none', cursor: saving ? 'wait' : 'pointer',
                 fontWeight: 600, fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -359,7 +359,7 @@ export default function PortfolioManager() {
               </button>
               <button onClick={() => setEdit(null)} style={{
                 padding: '10px 18px', borderRadius: 8,
-                background: '#f5f5f5', color: '#555', border: 'none',
+                background: 'var(--a-surface-alt)', color: 'var(--a-text)', border: 'none',
                 cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
               }}>
                 إلغاء
@@ -375,17 +375,17 @@ export default function PortfolioManager() {
 }
 
 const lbl: React.CSSProperties = {
-  display: 'block', fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 6,
+  display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--a-text)', marginBottom: 6,
 };
 const inp: React.CSSProperties = {
-  width: '100%', padding: '9px 12px', border: '1.5px solid #e8e0d8',
+  width: '100%', padding: '9px 12px', border: '1.5px solid var(--a-border)',
   borderRadius: 8, fontSize: 13, fontFamily: 'inherit',
-  outline: 'none', boxSizing: 'border-box', background: 'white', color: '#333',
+  outline: 'none', boxSizing: 'border-box', background: 'var(--a-surface)', color: 'var(--a-text)',
 };
 function iconBtn(color: string): React.CSSProperties {
   return {
     flex: 1, padding: '6px 8px', borderRadius: 6,
-    background: 'white', color, border: `1px solid ${color}33`,
+    background: 'var(--a-surface-alt)', color, border: `1px solid ${color}33`,
     cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 600,
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
   };

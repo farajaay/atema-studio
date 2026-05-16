@@ -95,17 +95,17 @@ export default function JournalManager() {
   if (authLoading) return <div style={{ padding: 80, textAlign: 'center' }}>...</div>;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8f6f3', fontFamily: 'inherit' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--a-bg)', fontFamily: 'inherit' }}>
       {/* Top bar */}
       <div style={{
-        background: 'white', padding: isMobile ? '12px 16px' : '14px 30px',
+        background: 'var(--a-surface)', padding: isMobile ? '12px 16px' : '14px 30px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.07)', position: 'sticky', top: 0, zIndex: 50,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button onClick={() => navigate('/admin/dashboard')} style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 4, color: '#888',
+            display: 'flex', alignItems: 'center', gap: 4, color: 'var(--a-text-soft)',
           }}>
             <ChevronLeft size={18} /> {!isMobile && 'لوحة التحكم'}
           </button>
@@ -118,20 +118,20 @@ export default function JournalManager() {
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15, color: ATEMA_COLORS.deepBronze }}>اليوميات</div>
-            <div style={{ fontSize: 11, color: '#aaa' }}>Journal Manager</div>
+            <div style={{ fontSize: 11, color: 'var(--a-text-muted)' }}>Journal Manager</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 14 }}>
           <button onClick={load} style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: '#aaa', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13,
+            color: 'var(--a-text-muted)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13,
           }}>
             <RefreshCw size={15} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
             {!isMobile && 'تحديث'}
           </button>
           <button onClick={async () => { await logout(); navigate('/admin'); }} style={{
-            display: 'flex', alignItems: 'center', gap: 5, background: '#fff5f5',
-            border: '1px solid #fecaca', color: '#dc2626', borderRadius: 8,
+            display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(220,38,38,0.10)',
+            border: '1px solid rgba(220,38,38,0.32)', color: '#fca5a5', borderRadius: 8,
             padding: '7px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600,
           }}>
             <LogOut size={14} />{!isMobile && 'خروج'}
@@ -146,7 +146,7 @@ export default function JournalManager() {
             body_ar: '', body_en: '', cover_url: '', published: false,
           })} style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            background: ATEMA_COLORS.champagne, color: 'white',
+            background: ATEMA_COLORS.champagne, color: '#0B0B0B',
             border: 'none', borderRadius: 8, padding: '9px 18px',
             cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit', fontSize: 13,
           }}>
@@ -155,13 +155,13 @@ export default function JournalManager() {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 60, color: '#999' }}>
+          <div style={{ textAlign: 'center', padding: 60, color: 'var(--a-text-muted)' }}>
             <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
           </div>
         ) : posts.length === 0 ? (
           <div style={{
-            background: 'white', borderRadius: 12, padding: 60,
-            textAlign: 'center', color: '#999',
+            background: 'var(--a-surface)', borderRadius: 12, padding: 60,
+            textAlign: 'center', color: 'var(--a-text-muted)',
           }}>
             لا توجد منشورات بعد.
           </div>
@@ -169,7 +169,7 @@ export default function JournalManager() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {posts.map(p => (
               <div key={p.id} style={{
-                background: 'white', borderRadius: 12,
+                background: 'var(--a-surface)', borderRadius: 12,
                 boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
                 display: 'flex', gap: 14,
                 padding: isMobile ? 12 : 14,
@@ -187,15 +187,15 @@ export default function JournalManager() {
                   <div style={{
                     width: isMobile ? '100%' : 160,
                     height: isMobile ? 140 : 100,
-                    background: '#f0eae3', borderRadius: 8,
+                    background: 'var(--a-surface-alt)', borderRadius: 8,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#bbb', flexShrink: 0,
+                    color: 'var(--a-text-muted)', flexShrink: 0,
                   }}>
                     <BookOpen size={22} />
                   </div>
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11, color: '#999', marginBottom: 3 }}>
+                  <div style={{ fontSize: 11, color: 'var(--a-text-muted)', marginBottom: 3 }}>
                     {p.published
                       ? <>منشور · {fmt(p.published_at)}</>
                       : <>مسودة</>
@@ -208,7 +208,7 @@ export default function JournalManager() {
                     {p.title_ar}
                   </div>
                   <div style={{
-                    fontSize: 12, color: '#666', lineHeight: 1.6,
+                    fontSize: 12, color: 'var(--a-text-soft)', lineHeight: 1.6,
                     display: '-webkit-box', WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical', overflow: 'hidden',
                   }}>
@@ -219,19 +219,19 @@ export default function JournalManager() {
                   display: 'flex', gap: 6, alignItems: 'center',
                   flexShrink: 0, flexDirection: isMobile ? 'row' : 'column',
                 }}>
-                  <button onClick={() => setEdit(p)} style={smallBtn('#666')}>تعديل</button>
-                  <button onClick={() => togglePublished(p)} style={smallBtn(p.published ? '#059669' : '#999')}>
+                  <button onClick={() => setEdit(p)} style={smallBtn('#a8a8a8')}>تعديل</button>
+                  <button onClick={() => togglePublished(p)} style={smallBtn(p.published ? '#34d399' : '#a8a8a8')}>
                     {p.published
                       ? <><Eye size={12} /> منشور</>
                       : <><EyeOff size={12} /> مسودة</>}
                   </button>
                   {p.published && (
                     <a href={`#/journal/${p.slug}`} target="_blank" rel="noreferrer"
-                      style={{ ...smallBtn('#2563eb'), textDecoration: 'none' }}>
+                      style={{ ...smallBtn('#60a5fa'), textDecoration: 'none' }}>
                       <ExternalLink size={12} /> عرض
                     </a>
                   )}
-                  <button onClick={() => remove(p.id)} style={smallBtn('#dc2626')}>
+                  <button onClick={() => remove(p.id)} style={smallBtn('#fca5a5')}>
                     <Trash2 size={12} />
                   </button>
                 </div>
@@ -248,7 +248,7 @@ export default function JournalManager() {
           padding: 20,
         }}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: 'white', borderRadius: 14, padding: '24px 28px',
+            background: 'var(--a-surface)', borderRadius: 14, padding: '24px 28px',
             maxWidth: 720, width: '100%', maxHeight: '92vh', overflow: 'auto',
           }}>
             <div style={{
@@ -259,7 +259,7 @@ export default function JournalManager() {
                 {edit.id ? 'تعديل المنشور' : 'منشور جديد'}
               </h2>
               <button onClick={() => setEdit(null)} style={{
-                background: 'none', border: 'none', cursor: 'pointer', color: '#999',
+                background: 'none', border: 'none', cursor: 'pointer', color: 'var(--a-text-muted)',
               }}>
                 <X size={20} />
               </button>
@@ -286,8 +286,8 @@ export default function JournalManager() {
                 <label style={{
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center',
-                  gap: 8, padding: '28px 16px', border: '1.5px dashed #e8e0d8',
-                  borderRadius: 8, cursor: 'pointer', color: '#888',
+                  gap: 8, padding: '28px 16px', border: '1.5px dashed var(--a-border-strong)',
+                  borderRadius: 8, cursor: 'pointer', color: 'var(--a-text-soft)',
                 }}>
                   {uploading ? (
                     <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
@@ -357,7 +357,7 @@ export default function JournalManager() {
             </div>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: 10,
-              marginTop: 16, fontSize: 13, color: '#555', cursor: 'pointer' }}>
+              marginTop: 16, fontSize: 13, color: 'var(--a-text)', cursor: 'pointer' }}>
               <input type="checkbox" checked={edit.published ?? false}
                 onChange={e => setEdit(s => ({ ...(s ?? {}), published: e.target.checked }))} />
               منشور (مرئي للعملاء)
@@ -366,7 +366,7 @@ export default function JournalManager() {
             <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
               <button onClick={save} disabled={saving} style={{
                 flex: 1, padding: '10px 14px', borderRadius: 8,
-                background: ATEMA_COLORS.champagne, color: 'white',
+                background: ATEMA_COLORS.champagne, color: '#0B0B0B',
                 border: 'none', cursor: saving ? 'wait' : 'pointer',
                 fontWeight: 600, fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -378,7 +378,7 @@ export default function JournalManager() {
               </button>
               <button onClick={() => setEdit(null)} style={{
                 padding: '10px 18px', borderRadius: 8,
-                background: '#f5f5f5', color: '#555', border: 'none',
+                background: 'var(--a-surface-alt)', color: 'var(--a-text)', border: 'none',
                 cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
               }}>
                 إلغاء
@@ -394,17 +394,21 @@ export default function JournalManager() {
 }
 
 const lbl: React.CSSProperties = {
-  display: 'block', fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 6,
+  display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--a-text)', marginBottom: 6,
 };
 const inp: React.CSSProperties = {
-  width: '100%', padding: '9px 12px', border: '1.5px solid #e8e0d8',
+  width: '100%', padding: '9px 12px', border: '1.5px solid var(--a-border)',
   borderRadius: 8, fontSize: 13, fontFamily: 'inherit',
-  outline: 'none', boxSizing: 'border-box', background: 'white', color: '#333',
+  outline: 'none', boxSizing: 'border-box', background: 'var(--a-surface)', color: 'var(--a-text)',
 };
 function smallBtn(color: string): React.CSSProperties {
   return {
     padding: '6px 10px', borderRadius: 6,
-    background: 'white', color, border: `1px solid ${color}33`,
+    // Translucent tinted pill — pops on both themes. The icon/text color
+    // (the `color` arg) is the semantic accent.
+    background: 'var(--a-surface-alt)',
+    color,
+    border: `1px solid ${color}33`,
     cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 600,
     display: 'flex', alignItems: 'center', gap: 4,
   };

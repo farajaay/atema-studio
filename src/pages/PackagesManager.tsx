@@ -24,12 +24,12 @@ function Tip({ text }: { text: string }) {
       <Info size={13} color="#bbb" />
       {show && (
         <div style={{ position: 'absolute', bottom: '130%', right: '-8px', zIndex: 200,
-          background: '#1e1e1e', color: 'white', borderRadius: '9px', padding: '10px 14px',
+          background: 'var(--a-gold)', color: '#0B0B0B', borderRadius: '9px', padding: '10px 14px',
           fontSize: '12px', width: '240px', lineHeight: 1.6, boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
           whiteSpace: 'normal', direction: 'rtl' }}>
           {text}
           <div style={{ position: 'absolute', bottom: '-5px', right: '12px',
-            width: '10px', height: '10px', background: '#1e1e1e', transform: 'rotate(45deg)' }} />
+            width: '10px', height: '10px', background: 'var(--a-gold)', transform: 'rotate(45deg)' }} />
         </div>
       )}
     </span>
@@ -40,7 +40,7 @@ function Tip({ text }: { text: string }) {
 function Label({ icon, text, tip }: { icon: React.ReactNode; text: string; tip: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '6px',
-      fontSize: '12px', fontWeight: 700, color: '#555', marginBottom: '7px' }}>
+      fontSize: '12px', fontWeight: 700, color: 'var(--a-text)', marginBottom: '7px' }}>
       <span style={{ color: ATEMA_COLORS.champagne }}>{icon}</span>
       {text}
       <Tip text={tip} />
@@ -56,19 +56,19 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
         width: '44px', height: '24px', borderRadius: '12px', position: 'relative',
         background: on ? ATEMA_COLORS.champagne : '#ddd', transition: 'background 0.2s', flexShrink: 0 }}>
         <div style={{ position: 'absolute', top: '3px', right: on ? '3px' : '19px',
-          width: '18px', height: '18px', borderRadius: '9px', background: 'white',
+          width: '18px', height: '18px', borderRadius: '9px', background: 'var(--a-surface)',
           boxShadow: '0 1px 4px rgba(0,0,0,0.25)', transition: 'right 0.2s' }} />
       </div>
-      <span style={{ fontSize: '13px', color: '#555', fontWeight: 500 }}>{label}</span>
+      <span style={{ fontSize: '13px', color: 'var(--a-text)', fontWeight: 500 }}>{label}</span>
     </label>
   );
 }
 
 // ── Input style ───────────────────────────────────────────────────────────────
 const inp: React.CSSProperties = {
-  width: '100%', padding: '9px 12px', border: '1.5px solid #e8e0d8',
+  width: '100%', padding: '9px 12px', border: '1.5px solid var(--a-border)',
   borderRadius: '8px', fontSize: '13px', fontFamily: 'inherit',
-  outline: 'none', boxSizing: 'border-box', background: 'white', color: '#333',
+  outline: 'none', boxSizing: 'border-box', background: 'var(--a-surface)', color: 'var(--a-text)',
 };
 
 // ── Features editor ───────────────────────────────────────────────────────────
@@ -84,8 +84,9 @@ function FeaturesEditor({ features, onChange }: {
           <input value={f} onChange={e => { const a = [...features]; a[i] = e.target.value; onChange(a); }}
             style={{ ...inp, flex: 1, padding: '7px 10px' }} />
           <button onClick={() => onChange(features.filter((_, j) => j !== i))}
-            style={{ background: '#fff0f0', border: 'none', borderRadius: '6px', padding: '6px 8px',
-              cursor: 'pointer', color: '#dc2626', flexShrink: 0 }}>
+            style={{ background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.28)',
+              borderRadius: '6px', padding: '6px 8px',
+              cursor: 'pointer', color: '#fca5a5', flexShrink: 0 }}>
             <X size={13} />
           </button>
         </div>
@@ -95,7 +96,7 @@ function FeaturesEditor({ features, onChange }: {
           onKeyDown={e => { if (e.key === 'Enter' && newItem.trim()) { onChange([...features, newItem.trim()]); setNewItem(''); } }}
           style={{ ...inp, flex: 1, padding: '7px 10px' }} />
         <button onClick={() => { if (newItem.trim()) { onChange([...features, newItem.trim()]); setNewItem(''); } }}
-          style={{ background: ATEMA_COLORS.champagne + '20', border: `1px solid ${ATEMA_COLORS.champagne}`,
+          style={{ background: 'rgba(212,175,122,0.16)', border: `1px solid ${ATEMA_COLORS.champagne}`,
             borderRadius: '8px', padding: '7px 14px', cursor: 'pointer', color: ATEMA_COLORS.champagne,
             fontFamily: 'inherit', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap' }}>
           + إضافة
@@ -232,7 +233,7 @@ export default function PackagesManager() {
 
   // ── Shared top bar ──────────────────────────────────────────────────────────
   const TopBar = (
-    <div style={{ background: 'white', padding: isMobile ? '12px 16px' : '14px 30px',
+    <div style={{ background: 'var(--a-surface)', padding: isMobile ? '12px 16px' : '14px 30px',
       boxShadow: '0 2px 8px rgba(0,0,0,0.07)', position: 'sticky', top: 0, zIndex: 50,
       display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -243,22 +244,22 @@ export default function PackagesManager() {
         </div>
         <div>
           <div style={{ fontWeight: 700, fontSize: '15px', color: ATEMA_COLORS.deepBronze }}>إدارة الباقات</div>
-          <div style={{ fontSize: '11px', color: '#aaa' }}>{packages.length} باقة</div>
+          <div style={{ fontSize: '11px', color: 'var(--a-text-muted)' }}>{packages.length} باقة</div>
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '14px' }}>
         <button onClick={() => navigate('/admin/dashboard')}
-          style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#f5f5f5',
+          style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'var(--a-surface-alt)',
             border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
-            fontSize: '13px', fontFamily: 'inherit', color: '#555', fontWeight: 600 }}>
+            fontSize: '13px', fontFamily: 'inherit', color: 'var(--a-text)', fontWeight: 600 }}>
           <LayoutDashboard size={14} /> الحجوزات
         </button>
-        <button onClick={fetchPackages} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa' }}>
+        <button onClick={fetchPackages} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--a-text-muted)' }}>
           <RefreshCw size={15} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
         </button>
         <button onClick={async () => { await logout(); navigate('/admin'); }}
-          style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#fff5f5',
-            border: '1px solid #fecaca', color: '#dc2626', borderRadius: '8px',
+          style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(220,38,38,0.10)',
+            border: '1px solid rgba(220,38,38,0.32)', color: '#fca5a5', borderRadius: '8px',
             padding: '7px 14px', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit', fontWeight: 600 }}>
           <LogOut size={14} />{!isMobile && 'خروج'}
         </button>
@@ -269,13 +270,13 @@ export default function PackagesManager() {
   // ── Package list sidebar ────────────────────────────────────────────────────
   const PackageList = (
     <div style={{ width: isMobile ? '100%' : '280px', flexShrink: 0,
-      background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+      background: 'var(--a-surface)', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
       overflow: 'hidden', alignSelf: 'flex-start' }}>
-      <div style={{ padding: '16px 18px', borderBottom: '1px solid #f0f0f0',
+      <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--a-border)',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontWeight: 700, fontSize: '13px', color: '#555' }}>الباقات</span>
+        <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--a-text)' }}>الباقات</span>
         <button onClick={startNew} style={{ display: 'flex', alignItems: 'center', gap: '5px',
-          background: ATEMA_COLORS.champagne, color: 'white', border: 'none', borderRadius: '8px',
+          background: ATEMA_COLORS.champagne, color: '#0B0B0B', border: 'none', borderRadius: '8px',
           padding: '6px 12px', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit', fontWeight: 700 }}>
           <Plus size={13} /> جديدة
         </button>
@@ -289,24 +290,24 @@ export default function PackagesManager() {
         return (
           <div key={pkg.id} onClick={() => selectPackage(pkg)}
             style={{ padding: '14px 18px', cursor: 'pointer', transition: 'background 0.15s',
-              borderBottom: '1px solid #f8f8f8',
-              background: isActive ? ATEMA_COLORS.champagne + '12' : 'white',
+              borderBottom: '1px solid var(--a-border)',
+              background: isActive ? 'rgba(212,175,122,0.10)' : 'var(--a-surface)',
               borderRight: isActive ? `3px solid ${ATEMA_COLORS.champagne}` : '3px solid transparent' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: '14px', color: ATEMA_COLORS.deepBronze, marginBottom: '3px' }}>
                   {pkg.name_ar}
-                  {pkg.badge && <span style={{ marginRight: '6px', background: ATEMA_COLORS.champagne + '20',
+                  {pkg.badge && <span style={{ marginRight: '6px', background: 'rgba(212,175,122,0.16)',
                     color: ATEMA_COLORS.champagne, fontSize: '10px', padding: '1px 6px',
                     borderRadius: '10px', fontWeight: 600 }}>{pkg.badge}</span>}
                 </div>
-                <div style={{ fontSize: '11px', color: '#aaa' }}>{pkg.name_en}</div>
+                <div style={{ fontSize: '11px', color: 'var(--a-text-muted)' }}>{pkg.name_en}</div>
                 <div style={{ fontSize: '12px', color: ATEMA_COLORS.champagne, fontWeight: 700, marginTop: '4px' }}>
                   {pkg.price.toLocaleString()} ر.س
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                {!pkg.active && <span style={{ fontSize: '10px', background: '#fee2e2', color: '#dc2626', padding: '2px 7px', borderRadius: '8px', fontWeight: 600 }}>مخفية</span>}
+                {!pkg.active && <span style={{ fontSize: '10px', background: 'rgba(220,38,38,0.15)', color: '#fca5a5', padding: '2px 7px', borderRadius: '8px', fontWeight: 600 }}>مخفية</span>}
                 {pkg.is_popular && <Star size={12} color="#D4AF7A" fill="#D4AF7A" />}
                 {isActive && <ChevronRight size={14} color="#D4AF7A" />}
               </div>
@@ -319,7 +320,7 @@ export default function PackagesManager() {
 
   // ── Edit form ───────────────────────────────────────────────────────────────
   const EditForm = draft ? (
-    <div style={{ flex: 1, background: 'white', borderRadius: '12px',
+    <div style={{ flex: 1, background: 'var(--a-surface)', borderRadius: '12px',
       boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: isMobile ? '20px 16px' : '28px 30px' }}>
 
       {/* Form header */}
@@ -328,13 +329,13 @@ export default function PackagesManager() {
           <div style={{ fontWeight: 700, fontSize: '17px', color: ATEMA_COLORS.deepBronze }}>
             {isNew ? 'باقة جديدة' : `تعديل: ${draft.name_ar || '—'}`}
           </div>
-          {!isNew && <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>ID: {draft.id}</div>}
+          {!isNew && <div style={{ fontSize: '11px', color: 'var(--a-text-muted)', marginTop: '2px' }}>ID: {draft.id}</div>}
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <Toggle on={draft.active} onChange={v => setField('active', v)}
             label={draft.active ? 'مفعّلة على الموقع' : 'مخفية'} />
           {isMobile && (
-            <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa' }}>
+            <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--a-text-muted)' }}>
               <X size={18} />
             </button>
           )}
@@ -345,19 +346,19 @@ export default function PackagesManager() {
       <div style={{ background: ATEMA_COLORS.softIvory, borderRadius: '10px', padding: '12px 16px',
         marginBottom: '24px', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '3px' }}>السعر (بدون VAT)</div>
+          <div style={{ fontSize: '11px', color: 'var(--a-text-muted)', marginBottom: '3px' }}>السعر (بدون VAT)</div>
           <div style={{ fontWeight: 700, color: ATEMA_COLORS.deepBronze, fontSize: '16px' }}>{draft.price.toLocaleString()} ر.س</div>
         </div>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '3px' }}>VAT 15%</div>
-          <div style={{ fontWeight: 700, color: '#888', fontSize: '16px' }}>{vatAmount.toLocaleString()} ر.س</div>
+          <div style={{ fontSize: '11px', color: 'var(--a-text-muted)', marginBottom: '3px' }}>VAT 15%</div>
+          <div style={{ fontWeight: 700, color: 'var(--a-text-soft)', fontSize: '16px' }}>{vatAmount.toLocaleString()} ر.س</div>
         </div>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '3px' }}>إجمالي العميل</div>
+          <div style={{ fontSize: '11px', color: 'var(--a-text-muted)', marginBottom: '3px' }}>إجمالي العميل</div>
           <div style={{ fontWeight: 700, color: ATEMA_COLORS.champagne, fontSize: '16px' }}>{totalIncVat.toLocaleString()} ر.س</div>
         </div>
         <div style={{ marginRight: 'auto', display: 'flex', alignItems: 'center' }}>
-          <span style={{ fontSize: '11px', color: '#aaa' }}>
+          <span style={{ fontSize: '11px', color: 'var(--a-text-muted)' }}>
             هامش مباشر تقديري: ~{Math.round((draft.price * 0.75)).toLocaleString()} ر.س
           </span>
         </div>
@@ -404,8 +405,8 @@ export default function PackagesManager() {
               <button key={b} onClick={() => setField('badge', b)}
                 style={{ padding: '4px 10px', borderRadius: '14px', fontSize: '11px', fontFamily: 'inherit',
                   cursor: 'pointer', fontWeight: 600, border: `1px solid ${ATEMA_COLORS.champagne}`,
-                  background: draft.badge === b ? ATEMA_COLORS.champagne : 'white',
-                  color: draft.badge === b ? 'white' : ATEMA_COLORS.champagne }}>
+                  background: draft.badge === b ? ATEMA_COLORS.champagne : 'var(--a-surface-alt)',
+                  color: draft.badge === b ? '#0B0B0B' : ATEMA_COLORS.champagne }}>
                 {b}
               </button>
             ))}
@@ -442,13 +443,13 @@ export default function PackagesManager() {
       </div>
 
       {/* Included Add-ons */}
-      <div style={{ marginBottom: '24px', borderTop: '1px solid #f0f0f0', paddingTop: '20px' }}>
+      <div style={{ marginBottom: '24px', borderTop: '1px solid var(--a-border)', paddingTop: '20px' }}>
         <Label icon={<Tag size={13} />}
           text="الإضافات المشمولة في الباقة"
           tip="اختر الإضافات التي تُعدّ جزءاً من هذه الباقة. ستظهر في بطاقة الباقة على الموقع تحت قائمة المميزات." />
 
         {addonsLoading ? (
-          <div style={{ fontSize: '12px', color: '#aaa', padding: '8px 0' }}>جارٍ تحميل الإضافات...</div>
+          <div style={{ fontSize: '12px', color: 'var(--a-text-muted)', padding: '8px 0' }}>جارٍ تحميل الإضافات...</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
             {addons.map((addon: Addon) => {
@@ -457,8 +458,8 @@ export default function PackagesManager() {
                 <label key={addon.id}
                   style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer',
                     padding: '9px 12px', borderRadius: '8px', transition: 'background 0.15s',
-                    background: checked ? ATEMA_COLORS.champagne + '15' : '#fafafa',
-                    border: `1.5px solid ${checked ? ATEMA_COLORS.champagne : '#e8e0d8'}` }}>
+                    background: checked ? 'rgba(212,175,122,0.12)' : 'var(--a-surface-alt)',
+                    border: `1.5px solid ${checked ? ATEMA_COLORS.champagne : 'var(--a-border)'}` }}>
                   <input type="checkbox" checked={checked}
                     onChange={() => toggleIncludedAddon(addon.id)}
                     style={{ accentColor: ATEMA_COLORS.champagne, width: '15px', height: '15px', flexShrink: 0 }} />
@@ -479,7 +480,7 @@ export default function PackagesManager() {
         )}
 
         {/* Add new addon */}
-        <div style={{ background: '#f9f9f9', border: '1px dashed #d6bfa3', borderRadius: '10px', padding: '14px 16px' }}>
+        <div style={{ background: 'var(--a-surface-alt)', border: '1px dashed var(--a-border-strong)', borderRadius: '10px', padding: '14px 16px' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: '#777', marginBottom: '10px' }}>
             + إضافة خدمة جديدة إلى قائمة الإضافات
           </div>
@@ -496,7 +497,7 @@ export default function PackagesManager() {
               style={{ ...inp, padding: '8px 10px' }} />
             <button onClick={handleSaveAddon} disabled={savingAddon || !newAddonAr.trim() || newAddonPrice <= 0}
               style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 16px',
-                background: addonSaved ? '#059669' : ATEMA_COLORS.champagne, color: 'white', border: 'none',
+                background: addonSaved ? '#059669' : ATEMA_COLORS.champagne, color: '#0B0B0B', border: 'none',
                 borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit',
                 fontWeight: 700, whiteSpace: 'nowrap', opacity: (!newAddonAr.trim() || newAddonPrice <= 0) ? 0.5 : 1 }}>
               {savingAddon ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
@@ -509,10 +510,10 @@ export default function PackagesManager() {
 
       {/* Action buttons */}
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center',
-        paddingTop: '20px', borderTop: '1px solid #f0f0f0' }}>
+        paddingTop: '20px', borderTop: '1px solid var(--a-border)' }}>
         <button onClick={handleSave} disabled={saving}
           style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '11px 24px',
-            background: saved ? '#059669' : ATEMA_COLORS.champagne, color: 'white', border: 'none',
+            background: saved ? '#059669' : ATEMA_COLORS.champagne, color: '#0B0B0B', border: 'none',
             borderRadius: '9px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
             fontSize: '14px', fontFamily: 'inherit', transition: 'background 0.2s' }}>
           {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />حفظ...</>
@@ -523,7 +524,7 @@ export default function PackagesManager() {
         {!isNew && !deleteConf && (
           <button onClick={() => setDeleteConf(true)}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '11px 18px',
-              background: '#fff5f5', border: '1.5px solid #fecaca', color: '#dc2626',
+              background: 'rgba(220,38,38,0.10)', border: '1.5px solid rgba(220,38,38,0.32)', color: '#fca5a5',
               borderRadius: '9px', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit', fontWeight: 600 }}>
             <Trash2 size={14} /> حذف الباقة
           </button>
@@ -531,12 +532,12 @@ export default function PackagesManager() {
 
         {deleteConf && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px',
-            background: '#fff5f5', border: '1.5px solid #fecaca', borderRadius: '9px', padding: '10px 14px' }}>
+            background: 'rgba(220,38,38,0.10)', border: '1.5px solid rgba(220,38,38,0.32)', borderRadius: '9px', padding: '10px 14px' }}>
             <AlertTriangle size={14} color="#dc2626" />
-            <span style={{ fontSize: '13px', color: '#dc2626', fontWeight: 600 }}>تأكيد الحذف؟</span>
+            <span style={{ fontSize: '13px', color: '#fca5a5', fontWeight: 600 }}>تأكيد الحذف؟</span>
             <button onClick={handleDelete} style={{ background: '#dc2626', color: 'white', border: 'none',
               borderRadius: '6px', padding: '5px 14px', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit', fontWeight: 700 }}>نعم</button>
-            <button onClick={() => setDeleteConf(false)} style={{ background: 'white', border: '1px solid #e0e0e0',
+            <button onClick={() => setDeleteConf(false)} style={{ background: 'var(--a-surface)', border: '1px solid var(--a-border)',
               borderRadius: '6px', padding: '5px 14px', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit' }}>إلغاء</button>
           </div>
         )}
@@ -544,23 +545,23 @@ export default function PackagesManager() {
         {!isNew && (
           <a href="https://farajaay.github.io/atema-studio/" target="_blank" rel="noreferrer"
             style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '5px',
-              fontSize: '12px', color: '#aaa', textDecoration: 'none' }}>
+              fontSize: '12px', color: 'var(--a-text-muted)', textDecoration: 'none' }}>
             <ArrowRight size={12} /> معاينة الموقع
           </a>
         )}
       </div>
 
       {error && (
-        <div style={{ marginTop: '14px', padding: '10px 14px', background: '#fff5f5',
-          border: '1px solid #fecaca', borderRadius: '8px', fontSize: '12px', color: '#dc2626' }}>
+        <div style={{ marginTop: '14px', padding: '10px 14px', background: 'rgba(220,38,38,0.10)',
+          border: '1px solid rgba(220,38,38,0.32)', borderRadius: '8px', fontSize: '12px', color: '#fca5a5' }}>
           {error}
         </div>
       )}
     </div>
   ) : (
-    <div style={{ flex: 1, background: 'white', borderRadius: '12px', display: 'flex',
+    <div style={{ flex: 1, background: 'var(--a-surface)', borderRadius: '12px', display: 'flex',
       alignItems: 'center', justifyContent: 'center', padding: '60px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.05)', color: '#ccc', flexDirection: 'column', gap: '12px' }}>
+      boxShadow: '0 2px 8px rgba(0,0,0,0.05)', color: 'var(--a-text-muted)', flexDirection: 'column', gap: '12px' }}>
       <Layers size={40} />
       <p style={{ fontSize: '14px' }}>اختر باقة من القائمة أو أنشئ واحدة جديدة</p>
     </div>
@@ -568,13 +569,13 @@ export default function PackagesManager() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f6f9',
+    <div style={{ minHeight: '100vh', background: 'var(--a-bg)',
       fontFamily: 'Cairo, Tajawal, Inter, sans-serif', direction: 'rtl' }}>
       {TopBar}
       <div style={{ maxWidth: '1300px', margin: '0 auto', padding: isMobile ? '20px 16px' : '28px 30px' }}>
         {!import.meta.env.VITE_SUPABASE_URL && (
-          <div style={{ marginBottom: '16px', padding: '10px 16px', background: '#fef3c7',
-            border: '1px solid #fde68a', borderRadius: '8px', fontSize: '12px', color: '#92400e' }}>
+          <div style={{ marginBottom: '16px', padding: '10px 16px', background: 'rgba(217,119,6,0.14)',
+            border: '1px solid rgba(217,119,6,0.32)', borderRadius: '8px', fontSize: '12px', color: '#fbbf24' }}>
             ⚠️ وضع العرض — التغييرات لن تُحفظ. أضف VITE_SUPABASE_URL لتفعيل الحفظ الحقيقي.
           </div>
         )}
