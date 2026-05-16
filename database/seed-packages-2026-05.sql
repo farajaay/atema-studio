@@ -1,6 +1,11 @@
 -- ATEMA STUDIO — Packages & Add-ons seed
 -- Mirrors the printed price list (قائمة الأسعار) handed to clients.
--- Idempotent: safe to re-run; existing rows are upserted by (slug-equivalent) keys.
+--
+-- Idempotent and FK-safe: existing bookings reference packages.id, so this
+-- script UPSERTS rows by explicit id (1..6) and DEACTIVATES (sets active=false)
+-- any leftover legacy packages instead of deleting them. That preserves
+-- booking history while hiding obsolete tiers from the catalogue + admin.
+--
 -- Run AFTER schema.sql and migrations-2026-05*.sql.
 
 -- ─── Ensure schema columns exist (idempotent guards) ─────────────────────────
@@ -34,20 +39,14 @@ on conflict (id) do update set
   sort_order = excluded.sort_order;
 
 -- ─── 2. PACKAGES (6 tiers — engagement → couture) ────────────────────────────
--- Wipe-and-reseed so the catalogue exactly matches the printed price list.
--- (Removes any obsolete demo packages from earlier development.)
-delete from public.packages;
-
--- Reset SERIAL so ids land at 1..6 — matches the printed list ordering.
-alter sequence public.packages_id_seq restart with 1;
-
+-- UPSERT by explicit id so existing bookings keep their FK reference intact.
 insert into public.packages
-  (name_ar, name_en, price, duration_hours, edited_photos, album, video,
+  (id, name_ar, name_en, price, duration_hours, edited_photos, album, video,
    description, features, badge, is_popular, active, sort_order, included_addon_ids)
 values
 
 -- ── 1. Engagement Session — 1,800 SAR ────────────────────────────────────────
-('باقة الخطوبة', 'Engagement Session', 1800, 2, 30,
+(1, 'باقة الخطوبة', 'Engagement Session', 1800, 2, 30,
  NULL, false,
  'جلسة خطوبة رومانسية بأسلوب راقٍ — مثالية لإعلان البداية.',
  array[
@@ -60,7 +59,7 @@ values
  'الأساسي', false, true, 10, array[]::text[]),
 
 -- ── 2. Customise — 2,200 SAR ─────────────────────────────────────────────────
-('الباقة المخصّصة', 'Customise', 2200, 3, 150,
+(2, 'الباقة المخصّصة', 'Customise', 2200, 3, 150,
  'صور JPG معالجة', false,
  'تغطية فوتوغرافية مرنة تصمَّم حسب احتياج المناسبة.',
  array[
@@ -72,7 +71,7 @@ values
  'محبوب', false, true, 20, array[]::text[]),
 
 -- ── 3. Classic — 4,200 SAR ───────────────────────────────────────────────────
-('الباقة الكلاسيكية', 'Classic', 4200, 4, 300,
+(3, 'الباقة الكلاسيكية', 'Classic', 4200, 4, 300,
  'ألبوم A4 ١٥ صفحة', false,
  'الباقة المثالية للمناسبات الخاصة — ألبوم فاخر وذكريات تبقى.',
  array[
@@ -84,7 +83,7 @@ values
  NULL, false, true, 30, array[]::text[]),
 
 -- ── 4. Royal — 6,900 SAR — الأكثر طلباً ──────────────────────────────────────
-('الباقة الملكية', 'Royal', 6900, 5, 400,
+(4, 'الباقة الملكية', 'Royal', 6900, 5, 400,
  'ألبوم A4 + ميني ألبوم', true,
  'تجربة تصوير ملكية مع فيديو سينمائي قصير وألبومين فاخرين.',
  array[
@@ -98,7 +97,7 @@ values
  'الأكثر طلباً', true, true, 40, array[]::text[]),
 
 -- ── 5. Signature — 8,500 SAR ─────────────────────────────────────────────────
-('باقة التوقيع', 'Signature', 8500, 6, 500,
+(5, 'باقة التوقيع', 'Signature', 8500, 6, 500,
  'ألبوم فاخر A3 ١٢ صفحة + ميني', true,
  'الباقة الاحترافية الشاملة — فيديو سينمائي كامل وألبوم A3 فاخر.',
  array[
@@ -113,7 +112,7 @@ values
  'فاخر', false, true, 50, array[]::text[]),
 
 -- ── 6. ATEMA Couture — 14,000 SAR — الأفخم ───────────────────────────────────
-('ATEMA Couture', 'ATEMA Couture', 14000, 8, 700,
+(6, 'ATEMA Couture', 'ATEMA Couture', 14000, 8, 700,
  'ألبوم فاخر A3 ٢٠ صفحة + ميني + لوحة جدارية', true,
  'تجربة الفخامة الكاملة — كل تفاصيل اليوم بتوقيع كوتور حصري.',
  array[
@@ -128,11 +127,43 @@ values
    'معاينة في نفس اليوم (١٠ صور مختارة)',
    'خدمة عملاء ومتابعة خاصة'
  ],
- 'الأفخم', true, true, 60, array[]::text[]);
+ 'الأفخم', true, true, 60, array[]::text[])
+
+on conflict (id) do update set
+  name_ar            = excluded.name_ar,
+  name_en            = excluded.name_en,
+  price              = excluded.price,
+  duration_hours     = excluded.duration_hours,
+  edited_photos      = excluded.edited_photos,
+  album              = excluded.album,
+  video              = excluded.video,
+  description        = excluded.description,
+  features           = excluded.features,
+  badge              = excluded.badge,
+  is_popular         = excluded.is_popular,
+  active             = excluded.active,
+  sort_order         = excluded.sort_order,
+  included_addon_ids = excluded.included_addon_ids;
+
+-- Hide (don't delete) any legacy packages with ids > 6 so they vanish from the
+-- catalogue and admin grid but stay attached to historical bookings.
+update public.packages
+   set active = false, sort_order = 9999
+ where id > 6;
+
+-- Re-sync the SERIAL sequence so future auto-id inserts via the admin panel
+-- don't collide with the explicit ids we just upserted.
+select setval(
+  pg_get_serial_sequence('public.packages', 'id'),
+  greatest((select coalesce(max(id), 0) from public.packages), 6)
+);
 
 -- ─── 3. Verify ───────────────────────────────────────────────────────────────
 -- Quick sanity output (will appear in the SQL editor result pane).
-select '— Packages —' as section;
-select id, name_ar, price, duration_hours, badge from public.packages order by sort_order;
+select '— Active packages —' as section;
+select id, name_ar, price, duration_hours, badge, sort_order
+  from public.packages where active order by sort_order;
+select '— Deactivated legacy packages (preserved for booking history) —' as section;
+select id, name_ar, price from public.packages where not active order by id;
 select '— Add-ons —' as section;
 select id, name_ar, price from public.addons order by sort_order;
