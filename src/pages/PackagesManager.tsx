@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import { usePackagesData } from '../hooks/usePackagesData';
 import type { Package } from '../hooks/usePackagesData';
+import { useAddonsData } from '../hooks/useAddonsData';
+import type { Addon } from '../hooks/useAddonsData';
+import { supabase } from '../services/supabase';
 import { ATEMA_COLORS } from '../config/constants';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import {
@@ -106,12 +109,14 @@ function FeaturesEditor({ features, onChange }: {
 const EMPTY: Omit<Package, 'id'> = {
   name_ar: '', name_en: '', price: 2000, duration_hours: 3, edited_photos: 150,
   album: '', video: false, description: '', features: [], badge: '', is_popular: false, active: true,
+  included_addon_ids: [],
 };
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function PackagesManager() {
   const { user, loading: authLoading, logout } = useAdminAuth();
   const { packages, loading, error, fetchPackages, updatePackage, createPackage, deletePackage } = usePackagesData();
+  const { addons, loading: addonsLoading } = useAddonsData();
   const navigate = useNavigate();
   const { isMobile } = useBreakpoint();
 
@@ -122,6 +127,13 @@ export default function PackagesManager() {
   const [saved,       setSaved]       = useState(false);
   const [deleteConf,  setDeleteConf]  = useState(false);
   const [showForm,    setShowForm]    = useState(false);  // mobile: show list or form
+
+  // New addon form
+  const [newAddonAr,    setNewAddonAr]    = useState('');
+  const [newAddonEn,    setNewAddonEn]    = useState('');
+  const [newAddonPrice, setNewAddonPrice] = useState<number>(0);
+  const [savingAddon,   setSavingAddon]   = useState(false);
+  const [addonSaved,    setAddonSaved]    = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/admin', { replace: true });
@@ -180,6 +192,31 @@ export default function PackagesManager() {
     }
   }
 
+  async function handleSaveAddon() {
+    if (!newAddonAr.trim() || newAddonPrice <= 0) return;
+    setSavingAddon(true);
+    const id = newAddonAr.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '') + '-' + Date.now();
+    if (supabase) {
+      await supabase.from('addons').insert({
+        id, name_ar: newAddonAr.trim(), name_en: newAddonEn.trim() || newAddonAr.trim(),
+        price: newAddonPrice, active: true, sort_order: 99,
+      });
+    }
+    setSavingAddon(false);
+    setAddonSaved(true);
+    setNewAddonAr(''); setNewAddonEn(''); setNewAddonPrice(0);
+    setTimeout(() => setAddonSaved(false), 2000);
+  }
+
+  function toggleIncludedAddon(addonId: string) {
+    if (!draft) return;
+    const current = draft.included_addon_ids ?? [];
+    const updated  = current.includes(addonId)
+      ? current.filter(id => id !== addonId)
+      : [...current, addonId];
+    setDraft(d => d ? { ...d, included_addon_ids: updated } : d);
+  }
+
   const VAT_RATE = 0.15;
   const vatAmount   = draft ? Math.round(draft.price * VAT_RATE) : 0;
   const totalIncVat = draft ? draft.price + vatAmount : 0;
@@ -214,7 +251,7 @@ export default function PackagesManager() {
           style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#f5f5f5',
             border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
             fontSize: '13px', fontFamily: 'inherit', color: '#555', fontWeight: 600 }}>
-          <LayoutDashboard size={14} />{!isMobile && 'الحجوزات'}
+          <LayoutDashboard size={14} /> الحجوزات
         </button>
         <button onClick={fetchPackages} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa' }}>
           <RefreshCw size={15} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
@@ -404,6 +441,72 @@ export default function PackagesManager() {
         <FeaturesEditor features={draft.features ?? []} onChange={f => setField('features', f)} />
       </div>
 
+      {/* Included Add-ons */}
+      <div style={{ marginBottom: '24px', borderTop: '1px solid #f0f0f0', paddingTop: '20px' }}>
+        <Label icon={<Tag size={13} />}
+          text="الإضافات المشمولة في الباقة"
+          tip="اختر الإضافات التي تُعدّ جزءاً من هذه الباقة. ستظهر في بطاقة الباقة على الموقع تحت قائمة المميزات." />
+
+        {addonsLoading ? (
+          <div style={{ fontSize: '12px', color: '#aaa', padding: '8px 0' }}>جارٍ تحميل الإضافات...</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+            {addons.map((addon: Addon) => {
+              const checked = (draft.included_addon_ids ?? []).includes(addon.id);
+              return (
+                <label key={addon.id}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer',
+                    padding: '9px 12px', borderRadius: '8px', transition: 'background 0.15s',
+                    background: checked ? ATEMA_COLORS.champagne + '15' : '#fafafa',
+                    border: `1.5px solid ${checked ? ATEMA_COLORS.champagne : '#e8e0d8'}` }}>
+                  <input type="checkbox" checked={checked}
+                    onChange={() => toggleIncludedAddon(addon.id)}
+                    style={{ accentColor: ATEMA_COLORS.champagne, width: '15px', height: '15px', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: checked ? 700 : 400,
+                      color: checked ? ATEMA_COLORS.deepBronze : '#444', whiteSpace: 'nowrap',
+                      overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {addon.name_ar}
+                    </div>
+                    <div style={{ fontSize: '11px', color: ATEMA_COLORS.champagne, fontWeight: 600 }}>
+                      {addon.price.toLocaleString()} ر.س
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Add new addon */}
+        <div style={{ background: '#f9f9f9', border: '1px dashed #d6bfa3', borderRadius: '10px', padding: '14px 16px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#777', marginBottom: '10px' }}>
+            + إضافة خدمة جديدة إلى قائمة الإضافات
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 2fr 1fr auto', gap: '8px', alignItems: 'center' }}>
+            <input value={newAddonAr} onChange={e => setNewAddonAr(e.target.value)}
+              placeholder="اسم الإضافة بالعربية *"
+              style={{ ...inp, padding: '8px 10px' }} />
+            <input value={newAddonEn} onChange={e => setNewAddonEn(e.target.value)}
+              placeholder="Name in English"
+              style={{ ...inp, padding: '8px 10px' }} />
+            <input type="number" min={0} value={newAddonPrice || ''}
+              onChange={e => setNewAddonPrice(Number(e.target.value))}
+              placeholder="السعر ر.س *"
+              style={{ ...inp, padding: '8px 10px' }} />
+            <button onClick={handleSaveAddon} disabled={savingAddon || !newAddonAr.trim() || newAddonPrice <= 0}
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 16px',
+                background: addonSaved ? '#059669' : ATEMA_COLORS.champagne, color: 'white', border: 'none',
+                borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit',
+                fontWeight: 700, whiteSpace: 'nowrap', opacity: (!newAddonAr.trim() || newAddonPrice <= 0) ? 0.5 : 1 }}>
+              {savingAddon ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+               : addonSaved ? <><CheckCircle2 size={13} /> تم</>
+               : <><Plus size={13} /> حفظ</>}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Action buttons */}
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center',
         paddingTop: '20px', borderTop: '1px solid #f0f0f0' }}>
@@ -439,7 +542,7 @@ export default function PackagesManager() {
         )}
 
         {!isNew && (
-          <a href="/#/" target="_blank" rel="noreferrer"
+          <a href="https://farajaay.github.io/atema-studio/" target="_blank" rel="noreferrer"
             style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '5px',
               fontSize: '12px', color: '#aaa', textDecoration: 'none' }}>
             <ArrowRight size={12} /> معاينة الموقع

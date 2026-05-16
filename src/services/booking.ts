@@ -6,32 +6,40 @@ function ref(): string {
 }
 
 export async function createBooking(payload: CreateBookingRequest): Promise<BookingResponse> {
+  const bookingRef = ref();
+
   // Real Supabase call
   if (supabase) {
+    const pkgId = typeof payload.packageId === 'number' ? payload.packageId : null;
     const { data, error } = await supabase
       .from('bookings')
       .insert([{
-        package_id:       payload.packageId,
-        addon_ids:        payload.addOnIds,
+        booking_ref:      bookingRef,
+        package_id:       pkgId,
+        addon_ids:        payload.addOnIds ?? [],
         event_date:       payload.eventDate,
         event_time:       payload.eventTime,
         customer_name:    payload.customerName,
         customer_phone:   payload.customerPhone,
-        customer_email:   payload.customerEmail,
-        location:         payload.location,
-        special_requests: payload.specialRequests,
+        customer_email:   payload.customerEmail ?? null,
+        location:         payload.location ?? null,
+        special_requests: payload.specialRequests ?? null,
         subtotal:         payload.subtotal,
         vat:              payload.vat,
         total:            payload.total,
         status:           'pending',
+        payment_status:   'unpaid',
       }])
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error('Booking insert error:', error);
+      throw new Error(error.message);
+    }
     return {
       id:         data.id,
-      bookingRef: data.booking_ref,
+      bookingRef: data.booking_ref ?? bookingRef,
       status:     data.status,
       createdAt:  data.created_at,
       eventDate:  data.event_date,

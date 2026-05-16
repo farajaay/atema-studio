@@ -40,7 +40,7 @@ export interface BookingFormData {
 // ===== BOOKING REQUEST (TO SUPABASE) =====
 export interface CreateBookingRequest {
   customerId?: string;
-  packageId: number;
+  packageId: number | string;
   addOnIds: string[];
   eventDate: string;
   eventTime: string;

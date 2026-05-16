@@ -3,6 +3,16 @@
 -- Run this in: Supabase Dashboard → SQL Editor
 -- ============================================================
 
+-- ── TRUNCATE / DROP (run this block to reset everything) ──────────────────────
+DROP TABLE IF EXISTS whatsapp_logs CASCADE;
+DROP TABLE IF EXISTS payments      CASCADE;
+DROP TABLE IF EXISTS bookings      CASCADE;
+DROP TABLE IF EXISTS customers     CASCADE;
+DROP TABLE IF EXISTS addons        CASCADE;
+DROP TABLE IF EXISTS packages      CASCADE;
+DROP FUNCTION IF EXISTS set_updated_at CASCADE;
+-- ──────────────────────────────────────────────────────────────────────────────
+
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
