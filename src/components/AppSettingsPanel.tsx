@@ -2,8 +2,8 @@
 // Global VAT toggle + seller VAT# / CR# (required when enabling).
 
 import { useState } from 'react';
-import { Settings, Receipt, Building, X, Save, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-import type { AppSettings } from '../services/settings';
+import { Settings, Receipt, Building, X, Save, AlertCircle, CheckCircle2, Loader2, Palette } from 'lucide-react';
+import type { AppSettings, ThemeName } from '../services/settings';
 
 const C = {
   ivory:'#F5EDE4', sand:'#D6BFA3', champagne:'#E8D9C5',
@@ -58,6 +58,8 @@ export default function AppSettingsPanel({ settings, onSave }: {
           value={settings.cr_number || '—'} mono />
         <Field icon={<Building size={14} />} label="اسم البائع"
           value={settings.seller_name_ar} />
+        <Field icon={<Palette size={14} />} label="ثيم الموقع"
+          value={settings.theme === 'noir' ? 'Couture Noir (أسود فاخر)' : 'Atelier Ivory (عاجي كلاسيكي)'} />
       </div>
 
       {!settings.vat_enabled && (
@@ -90,7 +92,7 @@ export default function AppSettingsPanel({ settings, onSave }: {
 
 function SettingsEditModal({ initial, onClose, onSave }: {
   initial: { vat_enabled: boolean; vat_number: string; cr_number: string;
-             seller_name_ar: string; seller_name_en: string };
+             seller_name_ar: string; seller_name_en: string; theme: ThemeName };
   onClose: () => void;
   onSave: (patch: Partial<typeof initial>) => Promise<boolean>;
 }) {
@@ -99,6 +101,7 @@ function SettingsEditModal({ initial, onClose, onSave }: {
   const [crNum,     setCrNum]     = useState(initial.cr_number);
   const [nameAr,    setNameAr]    = useState(initial.seller_name_ar);
   const [nameEn,    setNameEn]    = useState(initial.seller_name_en);
+  const [theme,     setTheme]     = useState<ThemeName>(initial.theme);
   const [saving,    setSaving]    = useState(false);
   const [err,       setErr]       = useState('');
 
@@ -122,6 +125,7 @@ function SettingsEditModal({ initial, onClose, onSave }: {
       cr_number:      crNum.trim(),
       seller_name_ar: nameAr.trim(),
       seller_name_en: nameEn.trim(),
+      theme,
     });
     setSaving(false);
     if (!ok) setErr('فشل في حفظ الإعدادات');
@@ -196,6 +200,27 @@ function SettingsEditModal({ initial, onClose, onSave }: {
             </div>
           )}
 
+          {/* Theme picker */}
+          <div style={{
+            padding: '14px 16px', borderRadius: 12, background: C.ivory,
+            border: `1px solid ${C.sand}`, marginBottom: 18,
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.bronze,
+              marginBottom: 10, letterSpacing: '0.05em',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <Palette size={13} /> ثيم الموقع (يُطبَّق فور الحفظ)
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <ThemeCard name="noir" active={theme === 'noir'} onClick={() => setTheme('noir')}
+                titleAr="Couture Noir" subAr="أسود فاخر · ذهبي شمبانيا"
+                swatches={['#0B0B0B', '#D4AF7A', '#EFE3D1']} />
+              <ThemeCard name="ivory" active={theme === 'ivory'} onClick={() => setTheme('ivory')}
+                titleAr="Atelier Ivory" subAr="عاجي كلاسيكي · برونزي"
+                swatches={['#F5EDE4', '#D4B5A0', '#8C6B4F']} />
+            </div>
+          </div>
+
           {/* Seller name */}
           <FieldInput label="اسم البائع (عربي) — يظهر على الفاتورة"
             value={nameAr} onChange={setNameAr} />
@@ -243,6 +268,44 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
         transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
       }} />
     </span>
+  );
+}
+
+function ThemeCard({ name, active, onClick, titleAr, subAr, swatches }: {
+  name: ThemeName; active: boolean; onClick: () => void;
+  titleAr: string; subAr: string; swatches: string[];
+}) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={active}
+      data-theme={name}
+      style={{
+        textAlign: 'right', cursor: 'pointer',
+        padding: '10px 12px', borderRadius: 10,
+        background: 'white',
+        border: `2px solid ${active ? C.bronze : C.champagne}`,
+        boxShadow: active ? `0 4px 12px ${C.bronze}25` : 'none',
+        fontFamily: 'inherit', transition: 'all 0.2s',
+        display: 'flex', flexDirection: 'column', gap: 8,
+      }}>
+      <div style={{ display: 'flex', gap: 5 }}>
+        {swatches.map(s => (
+          <span key={s} style={{
+            width: 22, height: 22, borderRadius: 4,
+            background: s, border: '1px solid rgba(0,0,0,0.08)',
+          }} />
+        ))}
+      </div>
+      <div style={{ fontWeight: 700, color: C.black, fontSize: 13 }}>{titleAr}</div>
+      <div style={{ fontSize: 11, color: C.taupe }}>{subAr}</div>
+      {active && (
+        <div style={{
+          fontSize: 10, fontWeight: 700, color: C.bronze,
+          display: 'flex', alignItems: 'center', gap: 4,
+        }}>
+          <CheckCircle2 size={11} /> الثيم النشط
+        </div>
+      )}
+    </button>
   );
 }
 

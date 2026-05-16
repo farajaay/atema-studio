@@ -13,7 +13,8 @@ import {
   LayoutDashboard, CalendarDays, Package, LogOut, RefreshCw,
   Search, Eye, Trash2, CheckCircle2,
   Clock, XCircle, CircleDollarSign, Users, AlertCircle,
-  Loader2, X, Phone, Mail, MapPin, StickyNote, Save, TrendingUp, Layers
+  Loader2, X, Phone, Mail, MapPin, StickyNote, Save, TrendingUp, Layers,
+  Image as ImageIcon, BookOpen
 } from 'lucide-react';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
@@ -340,6 +341,18 @@ export default function AdminDashboard() {
               border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
               fontSize: '13px', fontFamily: 'inherit', color: '#555', fontWeight: 600 }}>
             <Layers size={14} />{!isMobile && 'الباقات'}
+          </button>
+          <button onClick={() => navigate('/admin/portfolio')}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#f5f5f5',
+              border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
+              fontSize: '13px', fontFamily: 'inherit', color: '#555', fontWeight: 600 }}>
+            <ImageIcon size={14} />{!isMobile && 'المعرض'}
+          </button>
+          <button onClick={() => navigate('/admin/journal')}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#f5f5f5',
+              border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
+              fontSize: '13px', fontFamily: 'inherit', color: '#555', fontWeight: 600 }}>
+            <BookOpen size={14} />{!isMobile && 'اليوميات'}
           </button>
           <button onClick={fetchBookings} style={{ background: 'none', border: 'none', cursor: 'pointer',
             color: '#aaa', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px' }}>
