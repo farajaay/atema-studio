@@ -4,8 +4,8 @@
 
 import { useState } from 'react';
 import { supabase } from '../services/supabase';
-import { Copy, Check, FileText, Receipt, MessageCircle, Building2, Hash, User as UserIcon, Clock } from 'lucide-react';
-import { openDocumentInNewTab } from '../services/invoice';
+import { Copy, Check, FileText, Receipt, MessageCircle, Building2, Hash, User as UserIcon, Clock, Eye, Download } from 'lucide-react';
+import { openDocumentInNewTab, downloadDocument } from '../services/invoice';
 
 type Lang = 'ar' | 'en';
 const tx = (l: Lang, ar: string, en: string) => l === 'ar' ? ar : en;
@@ -58,6 +58,51 @@ function CopyButton({ text }: { text: string }) {
       {copied ? <Check size={11} /> : <Copy size={11} />}
       {copied ? 'تم النسخ' : 'نسخ'}
     </button>
+  );
+}
+
+function DocumentTile({ icon, label, viewLabel, downloadLabel, onView, onDownload }: {
+  icon: React.ReactNode; label: string; viewLabel: string; downloadLabel: string;
+  onView: () => void; onDownload: () => void;
+}) {
+  return (
+    <div style={{
+      display:'flex', flexDirection:'column', alignItems:'center', gap:'10px',
+      padding:'14px 8px', borderRadius:'12px',
+      background:'white', border:`1.5px solid ${C.sand}`, color: C.bronze,
+      fontFamily:'Tajawal,sans-serif',
+    }}>
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'4px' }}>
+        {icon}
+        <div style={{ fontWeight:600, fontSize:'0.78rem' }}>{label}</div>
+      </div>
+      <div style={{ display:'flex', gap:'6px', width:'100%' }}>
+        <button onClick={onView}
+          style={{
+            flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'4px',
+            padding:'7px 6px', borderRadius:'8px', cursor:'pointer',
+            background:'white', border:`1px solid ${C.sand}`, color: C.bronze,
+            fontFamily:'Tajawal,sans-serif', fontWeight:600, fontSize:'0.7rem',
+            transition:'all 0.18s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = C.ivory; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}>
+          <Eye size={12} />{viewLabel}
+        </button>
+        <button onClick={onDownload}
+          style={{
+            flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'4px',
+            padding:'7px 6px', borderRadius:'8px', cursor:'pointer',
+            background: C.bronze, border:`1px solid ${C.bronze}`, color: 'white',
+            fontFamily:'Tajawal,sans-serif', fontWeight:600, fontSize:'0.7rem',
+            transition:'all 0.18s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = C.taupe; e.currentTarget.style.borderColor = C.taupe; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = C.bronze; e.currentTarget.style.borderColor = C.bronze; }}>
+          <Download size={12} />{downloadLabel}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -229,36 +274,24 @@ export default function BankTransferPayment({
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
               {contractHTML && (
-                <button onClick={() => openDocumentInNewTab(contractHTML, `Contract — ${bookingRef}`)}
-                  style={{
-                    display:'flex', flexDirection:'column', alignItems:'center', gap:'6px',
-                    padding:'14px 8px', borderRadius:'12px', cursor:'pointer',
-                    background:'white', border:`1.5px solid ${C.sand}`, color: C.bronze,
-                    fontFamily:'Tajawal,sans-serif', fontWeight:600, fontSize:'0.78rem',
-                    transition:'all 0.18s',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = C.ivory; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}
-                  >
-                  <FileText size={20} />
-                  {tx(lang,'العقد','Contract')}
-                </button>
+                <DocumentTile
+                  icon={<FileText size={20} />}
+                  label={tx(lang,'العقد','Contract')}
+                  viewLabel={tx(lang,'عرض','View')}
+                  downloadLabel={tx(lang,'تحميل','Download')}
+                  onView={() => openDocumentInNewTab(contractHTML, `Contract — ${bookingRef}`)}
+                  onDownload={() => downloadDocument(contractHTML, `ATEMA-Contract-${bookingRef}`)}
+                />
               )}
               {invoiceHTML && (
-                <button onClick={() => openDocumentInNewTab(invoiceHTML, `Invoice — ${bookingRef}`)}
-                  style={{
-                    display:'flex', flexDirection:'column', alignItems:'center', gap:'6px',
-                    padding:'14px 8px', borderRadius:'12px', cursor:'pointer',
-                    background:'white', border:`1.5px solid ${C.sand}`, color: C.bronze,
-                    fontFamily:'Tajawal,sans-serif', fontWeight:600, fontSize:'0.78rem',
-                    transition:'all 0.18s',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = C.ivory; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}
-                  >
-                  <Receipt size={20} />
-                  {tx(lang,'الفاتورة الضريبية','Tax Invoice')}
-                </button>
+                <DocumentTile
+                  icon={<Receipt size={20} />}
+                  label={tx(lang,'الفاتورة الضريبية','Tax Invoice')}
+                  viewLabel={tx(lang,'عرض','View')}
+                  downloadLabel={tx(lang,'تحميل','Download')}
+                  onView={() => openDocumentInNewTab(invoiceHTML, `Invoice — ${bookingRef}`)}
+                  onDownload={() => downloadDocument(invoiceHTML, `ATEMA-Invoice-${bookingRef}`)}
+                />
               )}
             </div>
           </div>

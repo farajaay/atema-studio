@@ -295,3 +295,18 @@ export function openDocumentInNewTab(html: string, title: string = 'Document'): 
   win.document.write(html);
   win.document.close();
 }
+
+// ── Download an HTML document as a self-contained .html file ──────────────────
+export function downloadDocument(html: string, filename: string): void {
+  const safeName = filename.endsWith('.html') ? filename : `${filename}.html`;
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = safeName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // Defer revoke so Safari/iOS can pick up the blob before it's freed.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
