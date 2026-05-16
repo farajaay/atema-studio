@@ -14,6 +14,7 @@ import { generateInvoiceHTML, generateInvoiceNumber, saveInvoice } from '../serv
 import MoyasarForm from '../components/MoyasarForm';
 import PaymentMethodChooser from '../components/PaymentMethodChooser';
 import BankTransferPayment from '../components/BankTransferPayment';
+import DatePicker from '../components/DatePicker';
 import { X, Loader2 } from 'lucide-react';
 
 // ── Design tokens — matched to ATEMA brand identity ───────────────────────────
@@ -546,8 +547,12 @@ function LegalPopup({ title, htmlContent, onClose }: {
 }
 
 // ── Booking Form Modal ────────────────────────────────────────────────────────
-function BookingFormModal({ lang, pkg, total, activeAddons, onClose }: {
-  lang: Lang; pkg: Package | undefined; total: number; activeAddons: Set<string>; onClose: () => void;
+function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal, onClose }: {
+  lang: Lang; pkg: Package | undefined; total: number;
+  activeAddons: Set<string>;
+  addonLines: AddonLine[];
+  addTotal: number;
+  onClose: () => void;
 }) {
   const [form,      setForm]      = useState({ name:'', phone:'', email:'', date:'', time:'', city:'', venue:'', notes:'' });
   const [agreed,    setAgreed]    = useState(false);
@@ -576,7 +581,7 @@ function BookingFormModal({ lang, pkg, total, activeAddons, onClose }: {
     setErrMsg(''); setState('loading');
 
     const cityFee  = CITIES.find(c => c.value === form.city)?.fee ?? 0;
-    const subtotal = (pkg?.price ?? 0) + cityFee;
+    const subtotal = (pkg?.price ?? 0) + addTotal + cityFee;
     const vat      = Math.round(subtotal * 0.15);
     const fullTotal = subtotal + vat;
     const deposit   = Math.round(fullTotal * 0.5); // 50% deposit
@@ -611,7 +616,7 @@ function BookingFormModal({ lang, pkg, total, activeAddons, onClose }: {
         durationHours:  pkg?.duration_hours ?? 0,
         subtotal, vat, total: fullTotal, deposit,
         remaining:      fullTotal - deposit,
-        addons:         [],
+        addons:         addonLines.map(l => lang === 'ar' ? l.nameAr : l.nameEn),
       });
       setContractHTML(cHTML);
       saveContract(response.id, response.bookingRef, cHTML);
@@ -627,7 +632,10 @@ function BookingFormModal({ lang, pkg, total, activeAddons, onClose }: {
         customerPhone:  form.phone,
         packageNameAr:  pkg?.name_ar ?? 'الباقة الأساسية',
         packageNameEn:  pkg?.name_en ?? 'Base Package',
-        addons:         [],
+        addons:         addonLines.map(l => ({
+          name:  lang === 'ar' ? l.nameAr : l.nameEn,
+          price: l.price,
+        })),
         subtotal, vat, total: fullTotal,
         paymentMethod:  'pending',
         depositPaid:    0,
@@ -769,8 +777,9 @@ function BookingFormModal({ lang, pkg, total, activeAddons, onClose }: {
                 </div>
                 <div style={grp}>
                   <label style={lbl}>{tx(lang,'تاريخ المناسبة *','Event Date *')}</label>
-                  <input className="atema-input atema-input-ltr" type="date" value={form.date}
-                    onChange={e => set('date', e.target.value)} />
+                  <DatePicker lang={lang} value={form.date}
+                    onChange={v => set('date', v)}
+                    placeholder={tx(lang,'اختاري التاريخ','Select date')} />
                 </div>
                 <div style={grp}>
                   <label style={lbl}>{tx(lang,'وقت البدء','Start Time')}</label>
@@ -1332,7 +1341,9 @@ export default function BookingPage() {
       {/* ── BOOKING FORM MODAL ── */}
       {showForm && (
         <BookingFormModal lang={lang} pkg={activePkg} total={activeTotal}
-          activeAddons={activeAddonSet} onClose={() => setShowForm(false)} />
+          activeAddons={activeAddonSet}
+          addonLines={addonLines} addTotal={addTotal}
+          onClose={() => setShowForm(false)} />
       )}
     </div>
   );

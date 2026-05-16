@@ -17,6 +17,7 @@ export interface Booking {
   subtotal: number;
   vat: number;
   total: number;
+  vat_enabled?: boolean;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   payment_status: 'unpaid' | 'paid' | 'refunded';
   created_at: string;
