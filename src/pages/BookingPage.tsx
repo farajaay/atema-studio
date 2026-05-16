@@ -120,9 +120,21 @@ function PkgCard({ pkg, lang, selected, onSelect, onDetails }: {
       <div style={{ position:'relative', height:'200px', overflow:'hidden',
         background: visual.gradient }}>
         {photoOk && (
-          <img src={`${BASE}photos/${visual.photo}`} alt={pkg.name_ar}
-            className="pkg-photo" style={{ position:'absolute', inset:0, width:'100%', height:'100%' }}
-            onError={() => setPhotoOk(false)} />
+          // <picture> serves the lightweight WebP variant to modern browsers
+          // and falls back to the optimised JPEG everywhere else.
+          // lazy + async decoding keeps the booking-page first paint fast —
+          // package photos sit below the hero so they don't need to block.
+          <picture>
+            <source type="image/webp"
+              srcSet={`${BASE}photos/${visual.photo.replace(/\.[^.]+$/, '.webp')}`} />
+            <img src={`${BASE}photos/${visual.photo}`} alt={pkg.name_ar}
+              className="pkg-photo"
+              loading="lazy"
+              decoding="async"
+              width={400} height={200}
+              style={{ position:'absolute', inset:0, width:'100%', height:'100%' }}
+              onError={() => setPhotoOk(false)} />
+          </picture>
         )}
         {/* Overlay */}
         <div style={{ position:'absolute', inset:0,
@@ -226,9 +238,14 @@ function PkgDetailsModal({ pkg, lang, selected, onSelect, onClose }: {
         <div style={{ position:'relative', height:'220px', borderRadius:'20px 20px 0 0',
           overflow:'hidden', background: visual.gradient, flexShrink:0 }}>
           {photoOk && (
-            <img src={`${BASE}photos/${visual.photo}`} alt={pkg.name_ar}
-              style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}
-              onError={() => setPhotoOk(false)} />
+            <picture>
+              <source type="image/webp"
+                srcSet={`${BASE}photos/${visual.photo.replace(/\.[^.]+$/, '.webp')}`} />
+              <img src={`${BASE}photos/${visual.photo}`} alt={pkg.name_ar}
+                decoding="async"
+                style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}
+                onError={() => setPhotoOk(false)} />
+            </picture>
           )}
           <div style={{ position:'absolute', inset:0,
             background:'linear-gradient(to bottom, transparent 30%, rgba(26,16,8,0.52) 100%)' }} />

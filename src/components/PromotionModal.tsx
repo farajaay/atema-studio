@@ -8,11 +8,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 
-const STORAGE_KEY        = 'atema:promo-dismissed';
-const PROMO_DESKTOP      = `${import.meta.env.BASE_URL}photos/Promotion.PNG`;
-const PROMO_MOBILE       = `${import.meta.env.BASE_URL}photos/Promotion_Mobile.PNG`;
-const MOBILE_BREAKPOINT  = '(max-width: 767px)';
-const REVEAL_DELAY_MS    = 700;
+const STORAGE_KEY            = 'atema:promo-dismissed';
+const BASE                   = import.meta.env.BASE_URL;
+const PROMO_DESKTOP_WEBP     = `${BASE}photos/Promotion.webp`;
+const PROMO_DESKTOP_JPEG     = `${BASE}photos/Promotion.jpg`;
+const PROMO_MOBILE_WEBP      = `${BASE}photos/Promotion_Mobile.webp`;
+const PROMO_MOBILE_JPEG      = `${BASE}photos/Promotion_Mobile.jpg`;
+const MOBILE_BREAKPOINT      = '(max-width: 767px)';
+const REVEAL_DELAY_MS        = 700;
 
 export default function PromotionModal() {
   const [open, setOpen] = useState(false);
@@ -90,9 +93,15 @@ export default function PromotionModal() {
           boxShadow: '0 32px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(212,175,122,0.22)',
         }}>
           <picture>
-            <source media={MOBILE_BREAKPOINT} srcSet={PROMO_MOBILE} />
-            <img src={PROMO_DESKTOP}
+            {/* Mobile portrait — WebP then JPEG fallback */}
+            <source media={MOBILE_BREAKPOINT} type="image/webp" srcSet={PROMO_MOBILE_WEBP} />
+            <source media={MOBILE_BREAKPOINT} type="image/jpeg" srcSet={PROMO_MOBILE_JPEG} />
+            {/* Desktop landscape — WebP then JPEG */}
+            <source type="image/webp" srcSet={PROMO_DESKTOP_WEBP} />
+            <img src={PROMO_DESKTOP_JPEG}
               alt="ATEMA Studio — Design Your Package promotion"
+              decoding="async"
+              fetchPriority="high"
               style={{
                 display: 'block',
                 width: 'auto', maxWidth: '100%',

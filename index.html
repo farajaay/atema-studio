@@ -9,6 +9,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@300;400;500;600&family=Montserrat:wght@200;300;400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Amiri:ital,wght@0,400;0,700;1,400&family=Tajawal:wght@300;400;500;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+
+    <!-- Preload the promotion modal artwork so it streams in parallel with the
+         JS bundle and is already on disk by the time the modal mounts. The
+         `media` attribute makes the browser pick desktop OR mobile, never both. -->
+    <link rel="preload" as="image" type="image/webp"
+          href="/atema-studio/photos/Promotion.webp"
+          media="(min-width: 768px)" />
+    <link rel="preload" as="image" type="image/webp"
+          href="/atema-studio/photos/Promotion_Mobile.webp"
+          media="(max-width: 767px)" />
     <style>
       /* ── ATEMA Theme Tokens (Couture Noir = default; switched by admin) ── */
       :root[data-theme="noir"] {
