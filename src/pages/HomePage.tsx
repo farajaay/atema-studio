@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
 import FadeUp from '../components/FadeUp';
+import PromotionModal from '../components/PromotionModal';
 import { useLang } from '../hooks/useLang';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 
@@ -16,6 +17,7 @@ export default function HomePage() {
 
   return (
     <div style={{ background: 'var(--a-bg)', color: 'var(--a-text)', minHeight: '100vh' }}>
+      <PromotionModal />
       <SiteHeader lang={lang} setLang={setLang} />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}

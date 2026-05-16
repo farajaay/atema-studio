@@ -3,6 +3,7 @@
 // Photos: drop your images into /public/photos/ (engagement.jpg, classic.jpg, royal.jpg, signature.jpg, couture.jpg, hero.jpg)
 
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { usePackagesData } from '../hooks/usePackagesData';
 import type { Package } from '../hooks/usePackagesData';
@@ -338,14 +339,14 @@ function AddonRow({ addon, lang, active, qty, onToggle, onQtyChange }: {
     <div onClick={() => { if (!isHour) onToggle(); }} style={{
       display:'flex', alignItems:'center', gap:'14px', padding:'14px 18px',
       borderRadius:'12px', cursor: isHour ? 'default' : 'pointer', transition:'all 0.22s',
-      background: isActive ? 'rgba(214,191,163,0.22)' : 'rgba(255,255,255,0.9)',
-      border:`1px solid ${isActive ? 'rgba(140,107,79,0.38)' : 'rgba(214,191,163,0.25)'}`,
+      background: isActive ? 'rgba(212,175,122,0.16)' : 'var(--a-surface-alt)',
+      border:`1px solid ${isActive ? 'var(--a-border-strong)' : 'var(--a-border)'}`,
     }}>
       {isHour ? (
         <div style={{ display:'flex', alignItems:'center', gap:'4px', flexShrink:0 }}>
           <button onClick={e => { e.stopPropagation(); setQty(qty + 1); }} style={{
             width:'28px', height:'28px', borderRadius:'50%', border:`1px solid ${T.sand}`,
-            background: T.gold, color:'white', cursor:'pointer', fontSize:'1.1rem',
+            background: T.gold, color:'#0B0B0B', cursor:'pointer', fontSize:'1.1rem',
             display:'flex', alignItems:'center', justifyContent:'center',
           }}>+</button>
           <input type="number" min="0" max="12" value={qty}
@@ -354,11 +355,11 @@ function AddonRow({ addon, lang, active, qty, onToggle, onQtyChange }: {
             style={{ width:'36px', textAlign:'center', border:`1px solid ${T.dune}`,
               borderRadius:'6px', padding:'4px 2px', fontSize:'0.85rem',
               fontFamily:"'Cormorant Garamond',serif", color: T.coffee,
-              background:'white', outline:'none' }} />
+              background:'var(--a-surface)', outline:'none' }} />
           <button onClick={e => { e.stopPropagation(); setQty(qty - 1); }} style={{
             width:'28px', height:'28px', borderRadius:'50%', border:`1px solid ${T.sand}`,
             background: qty > 0 ? T.gold : 'transparent',
-            color: qty > 0 ? 'white' : T.taupe, cursor:'pointer', fontSize:'1.1rem',
+            color: qty > 0 ? '#0B0B0B' : T.taupe, cursor:'pointer', fontSize:'1.1rem',
             display:'flex', alignItems:'center', justifyContent:'center',
           }}>−</button>
         </div>
@@ -920,13 +921,19 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
 export default function BookingPage() {
   const theme = useTheme();
   syncT(theme);                                       // keep module-level T in sync
+  const location = useLocation();
   const { isMobile } = useBreakpoint();
   const { packages, loading: pkgLoading } = usePackagesData();
   const { addons } = useAddonsData();
   const { settings } = useAppSettings();
   const vatEnabled = settings.vat_enabled;
   const [lang,           setLang]           = useState<Lang>('ar');
-  const [activeTab,      setActiveTab]      = useState<'packages' | 'custom'>('packages');
+  // Initial tab can be pre-selected via navigation state (e.g. the homepage
+  // promotion modal routes to /book with state.tab === 'custom').
+  const initialTab: 'packages' | 'custom' =
+    (location.state as { tab?: 'packages' | 'custom' } | null)?.tab === 'custom'
+      ? 'custom' : 'packages';
+  const [activeTab,      setActiveTab]      = useState<'packages' | 'custom'>(initialTab);
   const [selectedPkg,    setSelectedPkg]    = useState<number | null>(null);
   const [detailPkg,      setDetailPkg]      = useState<Package | null>(null);
   const [activeAddons,   setActiveAddons]   = useState<Set<string>>(new Set());
@@ -1022,7 +1029,7 @@ export default function BookingPage() {
           </div>
 
           <a href="tel:+966548323496" dir="ltr"
-            style={{ fontSize:'0.72rem', color:'rgba(61,46,31,0.55)',
+            style={{ fontSize:'0.72rem', color:'var(--a-text-soft)',
               textDecoration:'none', fontFamily:"'Inter',sans-serif" }}>
             054 832 3496
           </a>
@@ -1034,7 +1041,8 @@ export default function BookingPage() {
           padding: isMobile ? '24px 20px 40px' : '32px 40px 52px' }}>
 
           <p style={{ fontFamily:"'Tajawal',sans-serif", fontSize:'0.7rem',
-            letterSpacing:'0.28em', color:'rgba(61,46,31,0.42)', marginBottom:'12px' }}>
+            letterSpacing:'0.28em', color:'var(--a-gold)', marginBottom:'12px',
+            textTransform:'uppercase', opacity:0.9 }}>
             {tx(lang,'احجزي جلستك','Book Your Session')}
           </p>
 
@@ -1043,14 +1051,14 @@ export default function BookingPage() {
           </div>
           <div className="atema-sub" style={{ marginTop:'4px' }}>S T U D I O</div>
 
-          <p style={{ fontFamily:"'Amiri',serif", color:'rgba(61,46,31,0.72)',
+          <p style={{ fontFamily:"'Amiri',serif", color:'var(--a-text)',
             fontSize: isMobile?'0.95rem':'1.05rem', lineHeight:1.9, marginTop:'20px',
             maxWidth:'420px' }}>
             {tx(lang,'لحظات تستحق أن تُخلَّد','Moments worth immortalising')}
           </p>
 
           <p style={{ fontFamily:"'Tajawal',sans-serif", fontSize:'0.82rem',
-            color:'rgba(61,46,31,0.5)', lineHeight:1.8, maxWidth:'360px',
+            color:'var(--a-text-soft)', lineHeight:1.8, maxWidth:'360px',
             textAlign:'center', marginTop:'8px' }}>
             {tx(lang,
               'جلسات تصوير احترافية تُصاغ بهدوء وذوق — اختاري باقتك وأضيفي ما يكمل رؤيتكِ',
@@ -1061,14 +1069,14 @@ export default function BookingPage() {
           <div style={{ display:'flex', alignItems:'center', gap:'6px', marginTop:'22px' }}>
             {['','',''].map((_, i) => (
               <div key={i} style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-                <div style={{ width:'8px', height:'8px', borderRadius:'50',
-                  background: i===0 ? T.espresso : 'rgba(61,46,31,0.2)',
+                <div style={{ width:'8px', height:'8px', borderRadius:'50%',
+                  background: i===0 ? T.gold : 'var(--a-border-strong)',
                   transform: i===0 ? 'scale(1.5)' : 'scale(1)', transition:'all 0.35s' }} />
-                {i < 2 && <div style={{ width:'32px', height:'1px', background:'rgba(61,46,31,0.15)' }} />}
+                {i < 2 && <div style={{ width:'32px', height:'1px', background:'var(--a-border)' }} />}
               </div>
             ))}
           </div>
-          <p style={{ fontSize:'0.68rem', color:'rgba(61,46,31,0.36)',
+          <p style={{ fontSize:'0.68rem', color:'var(--a-text-muted)',
             letterSpacing:'0.14em', marginTop:'8px', fontFamily:"'Tajawal',sans-serif" }}>
             {tx(lang,'الباقة · الإضافات · تفاصيلك','Package · Add-ons · Details')}
           </p>
@@ -1082,10 +1090,10 @@ export default function BookingPage() {
           {/* ── TAB BAR ── */}
           <div style={{ display:'flex', justifyContent:'center', marginBottom:'40px' }}>
             <div style={{
-              display:'inline-flex', background:'white',
+              display:'inline-flex', background:'var(--a-surface-alt)',
               borderRadius:'12px', padding:'4px',
-              border:`1px solid rgba(214,191,163,0.35)`,
-              boxShadow:'0 2px 12px rgba(26,26,26,0.06)',
+              border:'1px solid var(--a-border)',
+              boxShadow:'0 2px 12px rgba(0,0,0,0.18)',
               gap:'4px',
             }}>
               {([

@@ -366,9 +366,13 @@ const cardStyle: React.CSSProperties = {
 };
 
 const editBtn: React.CSSProperties = {
-  padding: '7px 16px', borderRadius: 8, border: `1.5px solid ${C.champagne}`,
-  background: 'var(--a-surface-alt)', color: C.bronze, fontWeight: 700, cursor: 'pointer',
+  padding: '7px 16px', borderRadius: 8,
+  border: '1.5px solid var(--a-gold)',
+  background: 'transparent',
+  color: 'var(--a-gold)',
+  fontWeight: 700, cursor: 'pointer',
   fontFamily: 'inherit', fontSize: 12,
+  letterSpacing: '0.04em',
 };
 
 const btnPrimary: React.CSSProperties = {
