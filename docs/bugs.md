@@ -316,21 +316,21 @@ This section is updated as fixes land. Patch commits reference these IDs
 |---|---|---|
 | C-1 | ✅ Fixed | `faa43bb` |
 | C-2 | ✅ Fixed | `e6a75e4` |
-| C-3 | ✅ Code shipped; awaits Supabase Edge Function deploy | `<final commit>` |
+| C-3 | ✅ Code shipped; awaits Supabase Edge Function deploy | `ceafc29` |
 | H-1 | ✅ Fixed | `e6a75e4` |
 | H-2 | ✅ Fixed | `e6a75e4` |
 | H-3 | ✅ Fixed | `e6a75e4` |
 | H-5 | Open (Supabase config, not code) | — |
 | M-1 | Open (intentional — guarded) | — |
-| M-2 | ✅ Fixed | `<final commit>` |
+| M-2 | ✅ Fixed | `ceafc29` |
 | M-3 | ✅ Fixed (partial — booking form only) | `e6a75e4` |
 | M-4 | ✅ Fixed | `e6a75e4` |
 | M-5 | ✅ Fixed | `e6a75e4` |
 | M-7 | ✅ Fixed | `e6a75e4` |
 | L-1 | ✅ Already correct on audit re-read | n/a |
-| L-2 | ✅ Fixed | `<final commit>` |
+| L-2 | ✅ Fixed | `ceafc29` |
 | L-3 | Open (cosmetic — `@types/node` minor) | — |
-| L-4 | ✅ Fixed | `<final commit>` |
+| L-4 | ✅ Fixed | `ceafc29` |
 | L-5 | Open (SSR future-proofing only) | — |
 | L-6 | Open (cosmetic — VAT reg in seller block) | — |
 | L-7 | ✅ Verified clean in AdminDashboard | n/a |
