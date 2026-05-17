@@ -139,14 +139,19 @@ function PkgCard({ pkg, lang, selected, onSelect, onDetails }: {
         {/* Overlay */}
         <div style={{ position:'absolute', inset:0,
           background:'linear-gradient(to bottom, transparent 40%, rgba(36,25,16,0.32) 100%)' }} />
-        {/* Badge */}
+        {/* Badge — dark brown gradient pill with bright ivory ink, readable on
+            both themes (T.champagne resolves dark in noir, so we lock the
+            badge text to a literal ivory). */}
         {pkg.badge && (
           <div style={{ position:'absolute', top:'12px',
             ...(lang === 'ar' ? { right:'12px' } : { left:'12px' }),
-            background:'linear-gradient(135deg,#241910,#3D2E1F)',
-            color: T.champagne, borderRadius:'20px', padding:'3px 12px',
-            fontSize:'0.67rem', fontWeight:600, fontFamily:'Tajawal, sans-serif',
-            letterSpacing:'0.04em' }}>
+            background:'linear-gradient(135deg,#3D2E1F,#5C4520)',
+            color:'#EFE3D1',
+            border:'1px solid rgba(212,175,122,0.55)',
+            borderRadius:'20px', padding:'4px 14px',
+            fontSize:'0.7rem', fontWeight:600, fontFamily:'Tajawal, sans-serif',
+            letterSpacing:'0.06em',
+            boxShadow:'0 2px 8px rgba(0,0,0,0.35)' }}>
             {pkg.badge}
           </div>
         )}
@@ -259,10 +264,13 @@ function PkgDetailsModal({ pkg, lang, selected, onSelect, onClose }: {
           }}>×</button>
           {pkg.badge && (
             <div style={{ position:'absolute', top:'12px', right:'12px',
-              background:'linear-gradient(135deg,#241910,#3D2E1F)',
-              color: T.champagne, borderRadius:'20px', padding:'3px 12px',
-              fontSize:'0.67rem', fontWeight:600, fontFamily:'Tajawal, sans-serif',
-              letterSpacing:'0.04em' }}>
+              background:'linear-gradient(135deg,#3D2E1F,#5C4520)',
+              color:'#EFE3D1',
+              border:'1px solid rgba(212,175,122,0.55)',
+              borderRadius:'20px', padding:'4px 14px',
+              fontSize:'0.7rem', fontWeight:600, fontFamily:'Tajawal, sans-serif',
+              letterSpacing:'0.06em',
+              boxShadow:'0 2px 8px rgba(0,0,0,0.35)' }}>
               {pkg.badge}
             </div>
           )}
