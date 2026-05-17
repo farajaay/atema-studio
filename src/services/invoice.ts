@@ -70,6 +70,18 @@ export function generateInvoiceNumber(): string {
 }
 
 // ── Invoice HTML generator ────────────────────────────────────────────────────
+// Escape user-controlled strings before interpolating into the template
+// (Patch C-1). Invoices and contracts are rendered via window.document.write,
+// so any unescaped < / " in customer values would execute as markup or
+// break document structure.
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+};
+function esc(s: unknown): string {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
+}
+
 function fmt(n: number): string {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -103,7 +115,7 @@ export function generateInvoiceHTML(d: InvoiceData): string {
 
   const addonRows = d.addons.length === 0 ? '' : d.addons.map(a => `
     <tr>
-      <td>${a.name}${a.qty && a.qty > 1 ? ` × ${a.qty}` : ''}</td>
+      <td>${esc(a.name)}${a.qty && a.qty > 1 ? ` × ${a.qty}` : ''}</td>
       <td style="text-align:left;direction:ltr">${fmt(a.price * (a.qty ?? 1))}</td>
     </tr>
   `).join('');
@@ -124,7 +136,7 @@ export function generateInvoiceHTML(d: InvoiceData): string {
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${docTitleAr} — ${d.invoiceNumber}</title>
+<title>${esc(docTitleAr)} — ${esc(d.invoiceNumber)}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;400;600;700&family=Inter:wght@400;500;600;700&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
@@ -187,15 +199,15 @@ export function generateInvoiceHTML(d: InvoiceData): string {
       <h1>A T E M A</h1>
       <p>S T U D I O</p>
       <div class="crinfo">
-        ${s.seller_name_ar} · جبيل، السعودية<br/>
-        ${vatActive ? `الرقم الضريبي / VAT: ${s.vat_number}<br/>` : ''}
-        ${s.cr_number ? `السجل التجاري / CR: ${s.cr_number}` : ''}
+        ${esc(s.seller_name_ar)} · جبيل، السعودية<br/>
+        ${vatActive ? `الرقم الضريبي / VAT: ${esc(s.vat_number)}<br/>` : ''}
+        ${s.cr_number ? `السجل التجاري / CR: ${esc(s.cr_number)}` : ''}
       </div>
     </div>
     <div class="doc-meta">
-      <div class="doc-title">${docTitleEn}</div>
-      <div class="doc-num">${d.invoiceNumber}</div>
-      <div class="doc-date">${fmtDate(d.issueDate)}</div>
+      <div class="doc-title">${esc(docTitleEn)}</div>
+      <div class="doc-num">${esc(d.invoiceNumber)}</div>
+      <div class="doc-date">${esc(fmtDate(d.issueDate))}</div>
     </div>
   </div>
 
@@ -205,12 +217,12 @@ export function generateInvoiceHTML(d: InvoiceData): string {
     <div class="row">
       <div class="info-box">
         <div class="lbl">العميلة / Customer</div>
-        <div class="val">${d.customerName}</div>
-        <div class="sub" dir="ltr">${d.customerPhone}</div>
+        <div class="val">${esc(d.customerName)}</div>
+        <div class="sub" dir="ltr">${esc(d.customerPhone)}</div>
       </div>
       <div class="info-box">
         <div class="lbl">رقم الحجز / Booking Ref</div>
-        <div class="val" style="font-family:'Inter',sans-serif;font-size:13px">${d.bookingRef}</div>
+        <div class="val" style="font-family:'Inter',sans-serif;font-size:13px">${esc(d.bookingRef)}</div>
         <div class="sub">طريقة الدفع: ${d.paymentMethod === 'card' ? 'بطاقة ائتمانية' : d.paymentMethod === 'transfer' ? 'تحويل بنكي' : 'بانتظار التحديد'}</div>
       </div>
     </div>
@@ -222,7 +234,7 @@ export function generateInvoiceHTML(d: InvoiceData): string {
       </thead>
       <tbody>
         <tr>
-          <td><strong>${d.packageNameAr}</strong> <span style="color:#888">(${d.packageNameEn})</span></td>
+          <td><strong>${esc(d.packageNameAr)}</strong> <span style="color:#888">(${esc(d.packageNameEn)})</span></td>
           <td>${fmt(d.subtotal - d.addons.reduce((s, a) => s + a.price * (a.qty ?? 1), 0))}</td>
         </tr>
         ${addonRows}

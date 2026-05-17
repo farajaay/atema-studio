@@ -314,7 +314,7 @@ This section is updated as fixes land. Patch commits reference these IDs
 
 | ID | Status | Commit |
 |---|---|---|
-| C-1 | Open | — |
+| C-1 | ✅ Fixed | `<C-1 commit hash>` |
 | C-2 | Open | — |
 | C-3 | Open | — |
 | H-1 | Open | — |

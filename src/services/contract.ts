@@ -30,11 +30,23 @@ function fmt(n: number): string {
   return n.toLocaleString('ar-SA');
 }
 
+// Escape user-controlled strings before interpolating them into the HTML
+// template (Patch C-1). The contract is rendered via window.document.write
+// in a freshly opened tab, so any unescaped < or " in customer-supplied
+// values would execute as markup / break the document structure.
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+};
+function esc(s: unknown): string {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
+}
+
 export function generateContractHTML(d: ContractData): string {
   const eventDateFmt  = formatDateAr(d.eventDate);
   const contractDateFmt = d.contractDate || formatDateAr(new Date().toISOString().split('T')[0]);
   const addonsStr = d.addons.length > 0
-    ? `<tr><td style="padding:6px 12px;border:1px solid #d6bfa3;font-size:13px">الإضافات</td><td style="padding:6px 12px;border:1px solid #d6bfa3;font-size:13px">${d.addons.join(' · ')}</td></tr>`
+    ? `<tr><td style="padding:6px 12px;border:1px solid #d6bfa3;font-size:13px">الإضافات</td><td style="padding:6px 12px;border:1px solid #d6bfa3;font-size:13px">${d.addons.map(esc).join(' · ')}</td></tr>`
     : '';
 
   return `<!DOCTYPE html>
@@ -42,7 +54,7 @@ export function generateContractHTML(d: ContractData): string {
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>عقد خدمات التصوير — ${d.bookingRef}</title>
+<title>عقد خدمات التصوير — ${esc(d.bookingRef)}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;400;600;700&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
@@ -122,21 +134,21 @@ export function generateContractHTML(d: ContractData): string {
       </div>
       <div class="party-box">
         <div class="role">الطرف الثاني — العميلة</div>
-        <div class="name">${d.customerName}</div>
-        <div class="detail">${d.customerPhone}</div>
+        <div class="name">${esc(d.customerName)}</div>
+        <div class="detail">${esc(d.customerPhone)}</div>
       </div>
     </div>
 
     <!-- Contract Data -->
     <h2>بيانات العقد</h2>
     <table class="data-table">
-      <tr><td>رقم الحجز</td><td><strong>${d.bookingRef}</strong></td></tr>
-      <tr><td>تاريخ إبرام العقد</td><td>${contractDateFmt}</td></tr>
-      <tr><td>تاريخ المناسبة</td><td>${eventDateFmt}</td></tr>
-      <tr><td>وقت البدء</td><td>${d.eventTime || '—'}</td></tr>
+      <tr><td>رقم الحجز</td><td><strong>${esc(d.bookingRef)}</strong></td></tr>
+      <tr><td>تاريخ إبرام العقد</td><td>${esc(contractDateFmt)}</td></tr>
+      <tr><td>تاريخ المناسبة</td><td>${esc(eventDateFmt)}</td></tr>
+      <tr><td>وقت البدء</td><td>${esc(d.eventTime) || '—'}</td></tr>
       <tr><td>مدة التصوير</td><td>${d.durationHours} ساعات</td></tr>
-      <tr><td>الباقة المختارة</td><td>${d.packageNameAr} (${d.packageNameEn})</td></tr>
-      <tr><td>موقع المناسبة</td><td>${d.location || '—'}</td></tr>
+      <tr><td>الباقة المختارة</td><td>${esc(d.packageNameAr)} (${esc(d.packageNameEn)})</td></tr>
+      <tr><td>موقع المناسبة</td><td>${esc(d.location) || '—'}</td></tr>
       ${addonsStr}
       <tr><td>موعد استحقاق الدفعة الثانية</td><td>قبل يوم من تاريخ المناسبة</td></tr>
     </table>
@@ -270,12 +282,12 @@ export function generateContractHTML(d: ContractData): string {
       <div class="sig-box">
         <div class="role">الطرف الأول — ATEMA Studio</div>
         <div class="sig-line"></div>
-        <div class="sig-label">فاطمة بوحسن · التاريخ: ${contractDateFmt}</div>
+        <div class="sig-label">فاطمة بوحسن · التاريخ: ${esc(contractDateFmt)}</div>
       </div>
       <div class="sig-box">
         <div class="role">الطرف الثاني — العميلة</div>
         <div class="sig-line"></div>
-        <div class="sig-label">${d.customerName} · وافقت إلكترونياً عند الحجز</div>
+        <div class="sig-label">${esc(d.customerName)} · وافقت إلكترونياً عند الحجز</div>
       </div>
     </div>
 
@@ -283,7 +295,7 @@ export function generateContractHTML(d: ContractData): string {
 
   <div class="footer-bar">
     <p>ATEMA STUDIO · atema.studio · 0548323496 · @atema.studio · جبيل، المملكة العربية السعودية</p>
-    <div class="ref-badge">${d.bookingRef}</div>
+    <div class="ref-badge">${esc(d.bookingRef)}</div>
   </div>
 </div>
 </body>
