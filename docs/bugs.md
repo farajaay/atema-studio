@@ -315,18 +315,18 @@ This section is updated as fixes land. Patch commits reference these IDs
 | ID | Status | Commit |
 |---|---|---|
 | C-1 | ✅ Fixed | `faa43bb` |
-| C-2 | ✅ Fixed | `<form-hardening commit>` |
+| C-2 | ✅ Fixed | `e6a75e4` |
 | C-3 | Open | — |
-| H-1 | ✅ Fixed | `<form-hardening commit>` |
-| H-2 | ✅ Fixed | `<form-hardening commit>` |
-| H-3 | ✅ Fixed | `<form-hardening commit>` |
+| H-1 | ✅ Fixed | `e6a75e4` |
+| H-2 | ✅ Fixed | `e6a75e4` |
+| H-3 | ✅ Fixed | `e6a75e4` |
 | H-5 | Open (Supabase config, not code) | — |
 | M-1 | Open | — |
 | M-2 | Open | — |
-| M-3 | ✅ Fixed (partial — booking form only) | `<form-hardening commit>` |
-| M-4 | ✅ Fixed | `<form-hardening commit>` |
-| M-5 | ✅ Fixed | `<form-hardening commit>` |
-| M-7 | ✅ Fixed | `<form-hardening commit>` |
+| M-3 | ✅ Fixed (partial — booking form only) | `e6a75e4` |
+| M-4 | ✅ Fixed | `e6a75e4` |
+| M-5 | ✅ Fixed | `e6a75e4` |
+| M-7 | ✅ Fixed | `e6a75e4` |
 | L-1 | Open | — |
 | L-2 | Open | — |
 | L-3 | Open | — |
