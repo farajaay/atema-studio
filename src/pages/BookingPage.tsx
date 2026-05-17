@@ -2,7 +2,7 @@
 // Design: V4/V5 prototype — Cormorant Garamond · Amiri · Tajawal
 // Photos: drop your images into /public/photos/ (engagement.jpg, classic.jpg, royal.jpg, signature.jpg, couture.jpg, hero.jpg)
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { usePackagesData } from '../hooks/usePackagesData';
@@ -22,6 +22,9 @@ import { X, Loader2 } from 'lucide-react';
 import { useTheme, getInitialTheme } from '../hooks/useTheme';
 import { getBookingPalette } from '../theme/themes';
 import type { ThemeName } from '../theme/themes';
+import {
+  normalizeSaudiMobile, validEmail, isFutureOrToday, clampText,
+} from '../utils/validation';
 
 // ── Design tokens — theme-aware, live-mutated on theme change ────────────────
 // T is a module-level object that mirrors the active theme palette. The main
@@ -619,6 +622,9 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
   const [booked,    setBooked]    = useState<{ id: string; ref: string; deposit: number; total: number } | null>(null);
   const [contractHTML, setContractHTML] = useState<string>('');
   const [invoiceHTML,  setInvoiceHTML]  = useState<string>('');
+  // Patch H-1: in-flight guard so rapid double-click can't fire two
+  // createBooking() requests before the first one updates `state`.
+  const submittingRef = useRef(false);
 
   // Whether Moyasar is configured (real publishable key present)
   const moyasarKey = (import.meta.env.VITE_MOYASAR_PUBLISHABLE_KEY as string | undefined) ?? '';
@@ -629,12 +635,39 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
   const isPaymentStage = state === 'choose' || state === 'card' || state === 'transfer';
 
   async function handleSubmit() {
-    if (!agreed || !pdpl)   { setErrMsg(tx(lang,'يجب الموافقة على الشروط والخصوصية','Please agree to terms and privacy')); return; }
-    if (!form.name.trim())  { setErrMsg(tx(lang,'الرجاء إدخال الاسم','Please enter your name')); return; }
+    // ── In-flight guard (Patch H-1) ────────────────────────────────────
+    if (submittingRef.current) return;
+
+    // ── Consent gates (M-7: separate messages for clarity) ──────────────
+    if (!agreed)            { setErrMsg(tx(lang,'يجب الموافقة على الشروط والأحكام','Please agree to the Terms & Conditions')); return; }
+    if (!pdpl)              { setErrMsg(tx(lang,'يجب الموافقة على سياسة الخصوصية','Please accept the Privacy & PDPL policy')); return; }
+
+    // ── Field presence ─────────────────────────────────────────────────
+    const name = clampText(form.name, 120);
+    if (!name)              { setErrMsg(tx(lang,'الرجاء إدخال الاسم','Please enter your name')); return; }
     if (!form.phone.trim()) { setErrMsg(tx(lang,'الرجاء إدخال رقم الجوال','Please enter your phone')); return; }
     if (!form.date)         { setErrMsg(tx(lang,'الرجاء تحديد تاريخ المناسبة','Please select event date')); return; }
     if (!form.city)         { setErrMsg(tx(lang,'الرجاء اختيار المدينة','Please select city')); return; }
+
+    // ── Field format (Patch C-2) ───────────────────────────────────────
+    const normPhone = normalizeSaudiMobile(form.phone);
+    if (!normPhone) {
+      setErrMsg(tx(lang,
+        'رقم الجوال غير صحيح — استخدمي صيغة سعودية (+9665XXXXXXXX أو 05XXXXXXXX)',
+        'Invalid mobile — use Saudi format (+9665XXXXXXXX or 05XXXXXXXX)'));
+      return;
+    }
+    if (form.email && !validEmail(form.email)) {
+      setErrMsg(tx(lang,'البريد الإلكتروني غير صحيح','Invalid email address'));
+      return;
+    }
+    if (!isFutureOrToday(form.date)) {
+      setErrMsg(tx(lang,'لا يمكن حجز تاريخ ماضٍ','Cannot book a past date'));
+      return;
+    }
+
     setErrMsg(''); setState('loading');
+    submittingRef.current = true;
 
     const cityFee  = CITIES.find(c => c.value === form.city)?.fee ?? 0;
     const subtotal = (pkg?.price ?? 0) + addTotal + cityFee;
@@ -642,25 +675,30 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
     const fullTotal = subtotal + vat;
     const deposit   = Math.round(fullTotal * 0.5); // 50% deposit
 
+    // All customer text fields trimmed + capped before storage
+    const cleanEmail  = clampText(form.email, 254);
+    const cleanVenue  = clampText(form.venue, 200);
+    const cleanNotes  = clampText(form.notes, 2000);
+
     try {
       const response = await createBooking({
-        customerName:    form.name,
-        customerPhone:   form.phone,
-        customerEmail:   form.email,
+        customerName:    name,
+        customerPhone:   normPhone,
+        customerEmail:   cleanEmail,
         packageId:       pkg?.id ?? 'customise',
         addOnIds:        Array.from(activeAddons),
         eventDate:       form.date,
         eventTime:       form.time || '18:00',
-        location:        form.venue || form.city,
-        specialRequests: form.notes,
+        location:        cleanVenue || form.city,
+        specialRequests: cleanNotes,
         subtotal, vat, total: fullTotal,
       });
       setBooked({ id: response.id, ref: response.bookingRef, deposit, total: fullTotal });
 
       // Generate and save contract
       const cHTML = generateContractHTML({
-        customerName:   form.name,
-        customerPhone:  form.phone,
+        customerName:   name,
+        customerPhone:  normPhone,
         bookingRef:     response.bookingRef,
         bookingId:      response.id,
         contractDate:   new Date().toISOString().split('T')[0],
@@ -668,7 +706,7 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
         eventTime:      form.time || '18:00',
         packageNameAr:  pkg?.name_ar ?? 'الباقة الأساسية',
         packageNameEn:  pkg?.name_en ?? 'Base Package',
-        location:       form.venue || form.city,
+        location:       cleanVenue || form.city,
         durationHours:  pkg?.duration_hours ?? 0,
         subtotal, vat, total: fullTotal, deposit,
         remaining:      fullTotal - deposit,
@@ -684,8 +722,8 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
         bookingRef:     response.bookingRef,
         bookingId:      response.id,
         issueDate:      new Date().toISOString(),
-        customerName:   form.name,
-        customerPhone:  form.phone,
+        customerName:   name,
+        customerPhone:  normPhone,
         packageNameAr:  pkg?.name_ar ?? 'الباقة الأساسية',
         packageNameEn:  pkg?.name_en ?? 'Base Package',
         addons:         addonLines.map(l => ({
@@ -707,6 +745,8 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
       setState('error');
       const msg = err instanceof Error ? err.message : String(err);
       setErrMsg(tx(lang,'حدث خطأ: ','Error: ') + msg);
+    } finally {
+      submittingRef.current = false;
     }
   }
 
@@ -817,19 +857,22 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
             <div style={{ padding:'22px 24px' }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', marginBottom:'14px' }}>
                 <div style={grp}>
-                  <label style={lbl}>{tx(lang,'الاسم الكامل *','Full Name *')}</label>
-                  <input className="atema-input" value={form.name}
+                  <label style={lbl} htmlFor="bf-name">{tx(lang,'الاسم الكامل *','Full Name *')}</label>
+                  <input id="bf-name" className="atema-input" value={form.name}
+                    maxLength={120}
                     onChange={e => set('name', e.target.value)}
                     placeholder={tx(lang,'اسمك الكريم','Your name')} />
                 </div>
                 <div style={grp}>
-                  <label style={lbl}>{tx(lang,'رقم الجوال *','Mobile *')}</label>
-                  <input className="atema-input atema-input-ltr" type="tel" value={form.phone}
+                  <label style={lbl} htmlFor="bf-phone">{tx(lang,'رقم الجوال *','Mobile *')}</label>
+                  <input id="bf-phone" className="atema-input atema-input-ltr" type="tel" value={form.phone}
+                    maxLength={20} inputMode="tel" autoComplete="tel"
                     onChange={e => set('phone', e.target.value)} placeholder="+966 5X XXX XXXX" />
                 </div>
                 <div style={grp}>
-                  <label style={lbl}>{tx(lang,'البريد الإلكتروني','Email')}</label>
-                  <input className="atema-input atema-input-ltr" type="email" value={form.email}
+                  <label style={lbl} htmlFor="bf-email">{tx(lang,'البريد الإلكتروني','Email')}</label>
+                  <input id="bf-email" className="atema-input atema-input-ltr" type="email" value={form.email}
+                    maxLength={254} autoComplete="email"
                     onChange={e => set('email', e.target.value)} placeholder="you@email.com" />
                 </div>
                 <div style={grp}>
@@ -858,15 +901,17 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
               </div>
 
               <div style={{ marginBottom:'14px' }}>
-                <label style={lbl}>{tx(lang,'اسم القاعة / المكان','Venue Name')}</label>
-                <input className="atema-input" value={form.venue}
+                <label style={lbl} htmlFor="bf-venue">{tx(lang,'اسم القاعة / المكان','Venue Name')}</label>
+                <input id="bf-venue" className="atema-input" value={form.venue}
+                  maxLength={200}
                   onChange={e => set('venue', e.target.value)}
                   placeholder={tx(lang,'اسم القاعة والعنوان','Venue name and address')} />
               </div>
 
               <div style={{ marginBottom:'18px' }}>
-                <label style={lbl}>{tx(lang,'طلبات خاصة أو ملاحظات','Special Requests')}</label>
-                <textarea className="atema-input" rows={3} value={form.notes}
+                <label style={lbl} htmlFor="bf-notes">{tx(lang,'طلبات خاصة أو ملاحظات','Special Requests')}</label>
+                <textarea id="bf-notes" className="atema-input" rows={3} value={form.notes}
+                  maxLength={2000}
                   onChange={e => set('notes', e.target.value)}
                   placeholder={tx(lang,'أي تفاصيل تودّين مشاركتها...','Any details you\'d like to share...')}
                   style={{ resize:'vertical' }} />
@@ -906,7 +951,8 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
               </div>
 
               {errMsg && (
-                <div style={{ background:'#fff5f5', border:'1px solid #fecaca',
+                <div role="alert" aria-live="polite"
+                  style={{ background:'#fff5f5', border:'1px solid #fecaca',
                   borderRadius:'8px', padding:'10px 14px', marginBottom:'14px',
                   fontSize:'0.8rem', color:'#dc2626', fontFamily:'Tajawal,sans-serif' }}>
                   {errMsg}

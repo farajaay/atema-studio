@@ -1,8 +1,32 @@
 import type { CreateBookingRequest, BookingResponse } from '../types';
 import { supabase } from './supabase';
 
+// Booking reference generator (Patch H-2).
+// Format: ATEMA-{YYMMDD}-{8-char Crockford base32 from CSPRNG bytes}.
+// • Cryptographically random via crypto.getRandomValues — not predictable
+//   from Date.now() leakage like the previous Math.random implementation.
+// • 8 base32 chars = 40 bits = 1.1 trillion possibilities per day. Collision
+//   probability is negligible for ATEMA's volume.
+// • Crockford alphabet excludes I/L/O/U so refs are unambiguous when read
+//   aloud or copy-pasted.
+const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
+function randomTail(): string {
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for (let i = 0; i < bytes.length; i++) {
+    out += CROCKFORD[bytes[i] & 0x1f];
+  }
+  return out;
+}
+
 function ref(): string {
-  return `ATEMA-${Date.now()}-${Math.random().toString(36).substr(2,9).toUpperCase()}`;
+  const d = new Date();
+  const yy  = String(d.getFullYear()).slice(2);
+  const mm  = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `ATEMA-${yy}${mm}${day}-${randomTail()}`;
 }
 
 export async function createBooking(payload: CreateBookingRequest): Promise<BookingResponse> {
