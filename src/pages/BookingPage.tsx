@@ -689,6 +689,7 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
         addOnIds:        Array.from(activeAddons),
         eventDate:       form.date,
         eventTime:       form.time || '18:00',
+        city:            form.city,
         location:        cleanVenue || form.city,
         specialRequests: cleanNotes,
         subtotal, vat, total: fullTotal,

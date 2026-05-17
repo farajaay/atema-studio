@@ -47,8 +47,13 @@ export interface CreateBookingRequest {
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
+  /** Structured city key (jubail / dammam / khobar / qatif / ahsa / riyadh /
+   *  other) — used by the server-side Edge Function for fee lookup. */
+  city?: string;
   location: string;
   specialRequests?: string;
+  /** subtotal / vat / total are echoed to the server but the Edge Function
+   *  (Patch C-3) recomputes them from packages + addons and ignores these. */
   subtotal: number;
   vat: number;
   total: number;
@@ -64,23 +69,6 @@ export interface BookingResponse {
   total: number;
 }
 
-// ===== RAED PAYMENT (STUB) =====
-export interface RaedPaymentIntent {
-  orderId: string;
-  amount: number; // SAR
-  currency: 'SAR';
-  description: string;
-  customerEmail: string;
-  customerPhone: string;
-  redirectUrl: string;
-}
-
-export interface RaedPaymentResponse {
-  status: 'success' | 'pending' | 'failed';
-  transactionId?: string;
-  paymentUrl?: string;
-  message: string;
-}
 
 // ===== BOOKING SUMMARY STATE =====
 export interface BookingSummary {

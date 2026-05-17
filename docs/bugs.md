@@ -316,21 +316,21 @@ This section is updated as fixes land. Patch commits reference these IDs
 |---|---|---|
 | C-1 | ✅ Fixed | `faa43bb` |
 | C-2 | ✅ Fixed | `e6a75e4` |
-| C-3 | Open | — |
+| C-3 | ✅ Code shipped; awaits Supabase Edge Function deploy | `<final commit>` |
 | H-1 | ✅ Fixed | `e6a75e4` |
 | H-2 | ✅ Fixed | `e6a75e4` |
 | H-3 | ✅ Fixed | `e6a75e4` |
 | H-5 | Open (Supabase config, not code) | — |
-| M-1 | Open | — |
-| M-2 | Open | — |
+| M-1 | Open (intentional — guarded) | — |
+| M-2 | ✅ Fixed | `<final commit>` |
 | M-3 | ✅ Fixed (partial — booking form only) | `e6a75e4` |
 | M-4 | ✅ Fixed | `e6a75e4` |
 | M-5 | ✅ Fixed | `e6a75e4` |
 | M-7 | ✅ Fixed | `e6a75e4` |
-| L-1 | Open | — |
-| L-2 | Open | — |
-| L-3 | Open | — |
-| L-4 | Open | — |
-| L-5 | Open | — |
-| L-6 | Open | — |
-| L-7 | Open | — |
+| L-1 | ✅ Already correct on audit re-read | n/a |
+| L-2 | ✅ Fixed | `<final commit>` |
+| L-3 | Open (cosmetic — `@types/node` minor) | — |
+| L-4 | ✅ Fixed | `<final commit>` |
+| L-5 | Open (SSR future-proofing only) | — |
+| L-6 | Open (cosmetic — VAT reg in seller block) | — |
+| L-7 | ✅ Verified clean in AdminDashboard | n/a |

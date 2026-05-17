@@ -1,18 +1,41 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { parseMoyasarCallback } from './services/moyasar';
-import BookingPage from './pages/BookingPage';
-import PaymentResultPage from './pages/PaymentResultPage';
-import AdminLogin from './pages/AdminLogin';
-import AdminDashboard from './pages/AdminDashboard';
-import PackagesManager from './pages/PackagesManager';
-import PortfolioManager from './pages/PortfolioManager';
-import JournalManager from './pages/JournalManager';
-import HomePage from './pages/HomePage';
-import PortfolioPage from './pages/PortfolioPage';
-import JournalPage from './pages/JournalPage';
-import JournalPostPage from './pages/JournalPostPage';
-import AboutPage from './pages/AboutPage';
 import { useTheme } from './hooks/useTheme';
+
+// ─── Public routes (loaded eagerly — first-paint critical) ───────────────────
+import HomePage         from './pages/HomePage';
+import BookingPage      from './pages/BookingPage';
+import PortfolioPage    from './pages/PortfolioPage';
+import JournalPage      from './pages/JournalPage';
+import JournalPostPage  from './pages/JournalPostPage';
+import AboutPage        from './pages/AboutPage';
+import PaymentResultPage from './pages/PaymentResultPage';
+
+// ─── Admin routes (lazy — keep the public bundle lean) ──────────────────────
+// A typical customer never visits /admin/*, so React.lazy + Suspense cuts the
+// admin sub-tree (~140 KB minified incl. PackagesManager / JournalManager /
+// PortfolioManager / AdminDashboard / AdminCalendar / AppSettingsPanel) out
+// of the initial page payload. They stream in only when an admin navigates
+// to one of these routes.
+const AdminLogin       = lazy(() => import('./pages/AdminLogin'));
+const AdminDashboard   = lazy(() => import('./pages/AdminDashboard'));
+const PackagesManager  = lazy(() => import('./pages/PackagesManager'));
+const PortfolioManager = lazy(() => import('./pages/PortfolioManager'));
+const JournalManager   = lazy(() => import('./pages/JournalManager'));
+
+function AdminFallback() {
+  return (
+    <div style={{
+      minHeight: '100vh', display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+      background: 'var(--a-bg)', color: 'var(--a-gold)',
+      fontFamily: "'Cinzel', serif", letterSpacing: '0.3em', fontSize: '0.8rem',
+    }}>
+      ATEMA · LOADING
+    </div>
+  );
+}
 
 export default function App() {
   // Sync the active theme with admin settings.
@@ -33,18 +56,27 @@ export default function App() {
 
   return (
     <Routes>
+      {/* Public — eager */}
       <Route path="/"                element={<HomePage />} />
       <Route path="/book"            element={<BookingPage />} />
       <Route path="/portfolio"       element={<PortfolioPage />} />
       <Route path="/journal"         element={<JournalPage />} />
       <Route path="/journal/:slug"   element={<JournalPostPage />} />
       <Route path="/about"           element={<AboutPage />} />
-      <Route path="/admin"           element={<AdminLogin />} />
-      <Route path="/admin/dashboard" element={<AdminDashboard />} />
-      <Route path="/admin/packages"  element={<PackagesManager />} />
-      <Route path="/admin/portfolio" element={<PortfolioManager />} />
-      <Route path="/admin/journal"   element={<JournalManager />} />
-      <Route path="*"                element={<Navigate to="/" replace />} />
+
+      {/* Admin — lazy */}
+      <Route path="/admin"           element={
+        <Suspense fallback={<AdminFallback />}><AdminLogin /></Suspense>} />
+      <Route path="/admin/dashboard" element={
+        <Suspense fallback={<AdminFallback />}><AdminDashboard /></Suspense>} />
+      <Route path="/admin/packages"  element={
+        <Suspense fallback={<AdminFallback />}><PackagesManager /></Suspense>} />
+      <Route path="/admin/portfolio" element={
+        <Suspense fallback={<AdminFallback />}><PortfolioManager /></Suspense>} />
+      <Route path="/admin/journal"   element={
+        <Suspense fallback={<AdminFallback />}><JournalManager /></Suspense>} />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

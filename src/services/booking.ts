@@ -29,11 +29,63 @@ function ref(): string {
   return `ATEMA-${yy}${mm}${day}-${randomTail()}`;
 }
 
+/**
+ * Create a booking.
+ *
+ * Tries the `create-booking` Supabase Edge Function first (Patch C-3 —
+ * recomputes subtotal/vat/total server-side from the packages + addons
+ * tables, so the client can't supply a forged total). If the function is
+ * not deployed (404) or its endpoint is unreachable, falls back to the
+ * direct insert path — same behaviour as before C-3, only used while the
+ * Edge Function is being rolled out.
+ */
 export async function createBooking(payload: CreateBookingRequest): Promise<BookingResponse> {
-  const bookingRef = ref();
-
-  // Real Supabase call
   if (supabase) {
+    // ── Preferred path: Edge Function ────────────────────────────────
+    try {
+      const { data, error } = await supabase.functions.invoke('create-booking', {
+        body: {
+          customerName:    payload.customerName,
+          customerPhone:   payload.customerPhone,
+          customerEmail:   payload.customerEmail ?? null,
+          packageId:       typeof payload.packageId === 'number' ? payload.packageId : null,
+          addOnIds:        payload.addOnIds ?? [],
+          eventDate:       payload.eventDate,
+          eventTime:       payload.eventTime,
+          city:            payload.city ?? extractCityKey(payload.location),
+          location:        payload.location ?? null,
+          specialRequests: payload.specialRequests ?? null,
+        },
+      });
+      if (!error && data && typeof data.id === 'string') {
+        return {
+          id:         data.id,
+          bookingRef: data.bookingRef,
+          status:     data.status,
+          createdAt:  data.createdAt,
+          eventDate:  data.eventDate,
+          total:      data.total,
+        };
+      }
+      // Function returned an error response (validation, etc.)
+      if (error) {
+        // 404 = not deployed yet → silent fall-through to direct insert.
+        // Any other status = surface the message.
+        if (!/(404|Function not found)/i.test(String((error as { message?: string }).message ?? ''))) {
+          console.error('createBooking edge function error:', error);
+          throw new Error(typeof (data as { error?: string })?.error === 'string'
+            ? (data as { error: string }).error
+            : (error as { message?: string }).message ?? 'create_booking_failed');
+        }
+        console.warn('create-booking edge function not deployed yet — falling back to direct insert.');
+      }
+    } catch (err) {
+      // Network / unknown — fall through to direct insert
+      console.warn('create-booking edge function unreachable, falling back:', err);
+    }
+
+    // ── Fallback path: direct insert (pre-C-3 behaviour) ─────────────
+    const bookingRef = ref();
     const pkgId = typeof payload.packageId === 'number' ? payload.packageId : null;
     const { data, error } = await supabase
       .from('bookings')
@@ -71,7 +123,7 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
     };
   }
 
-  // Mock fallback
+  // Mock fallback for local dev without Supabase
   await new Promise(r => setTimeout(r, 800));
   return {
     id: `mock_${Date.now()}`,
@@ -81,6 +133,21 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
     eventDate: payload.eventDate,
     total: payload.total,
   };
+}
+
+/** Best-effort extraction of a CITIES key from a `location` string for the
+ *  Edge Function's city-fee lookup. The form posts the venue + city joined
+ *  as the `location` value, so we look for known city tokens. */
+function extractCityKey(location: string | null | undefined): string {
+  if (!location) return 'other';
+  const v = location.toLowerCase();
+  if (v.includes('jubail') || v.includes('الجبيل')) return 'jubail';
+  if (v.includes('dammam') || v.includes('الدمام')) return 'dammam';
+  if (v.includes('khobar') || v.includes('الخبر'))  return 'khobar';
+  if (v.includes('qatif')  || v.includes('القطيف'))  return 'qatif';
+  if (v.includes('ahsa')   || v.includes('الأحساء'))  return 'ahsa';
+  if (v.includes('riyadh') || v.includes('الرياض'))  return 'riyadh';
+  return 'other';
 }
 
 export async function getPackages() {
