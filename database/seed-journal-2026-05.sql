@@ -46,7 +46,7 @@ When it arrives, the lens almost captures it on its own. I add no filter, correc
 
 This profession, in the end, is not about cameras. It is about learning when to be quiet, and to let the light do the speaking.$body$,
 
-  '/atema-studio/photos/customise.jpeg',
+  '/photos/customise.jpeg',
   true,
   '2026-01-15 10:00:00+03'
 ),
@@ -76,7 +76,7 @@ What happens in those minutes cannot be written down. Sometimes she smiles. Some
 
 Only from that moment do we begin to photograph. Because the truest portrait cannot be taken until the woman has first seen herself.$body$,
 
-  '/atema-studio/photos/royal.jpeg',
+  '/photos/royal.jpeg',
   true,
   '2026-02-08 11:30:00+03'
 ),
@@ -106,7 +106,7 @@ Sometimes, before a frame, I step toward her and adjust a pleat in her gown. The
 
 These are hands that do not hurry. Because they know that a fabric, if pulled too tightly, loses its breath — and so does a woman.$body$,
 
-  '/atema-studio/photos/signature.jpeg',
+  '/photos/signature.jpeg',
   true,
   '2026-03-02 09:15:00+03'
 ),
@@ -136,7 +136,7 @@ That smile, that gaze, never arrives on command. It comes only when you are conv
 
 This is why every session at ATEMA includes time for stillness. For coffee between frames. For conversation about things that have nothing to do with photography. For those gaps in which you imagine we are not working — while, in truth, we are working at the very most important part.$body$,
 
-  '/atema-studio/photos/engagement.jpeg',
+  '/photos/engagement.jpeg',
   true,
   '2026-03-29 14:00:00+03'
 ),
@@ -170,7 +170,7 @@ We do not answer that question with words. We answer it with a box, placed in a 
 
 This is not a photography service. It is a birth certificate, issued to a memory.$body$,
 
-  '/atema-studio/photos/couture.jpeg',
+  '/photos/couture.jpeg',
   true,
   '2026-04-20 16:00:00+03'
 ),
@@ -210,7 +210,7 @@ And when you look back, one day, at the photographs of that day — you will not
 With all our warmth,
 ATEMA Studio$body$,
 
-  '/atema-studio/photos/classic.jpeg',
+  '/photos/classic.jpeg',
   true,
   '2026-05-10 08:45:00+03'
 )

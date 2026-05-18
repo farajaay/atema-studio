@@ -243,7 +243,7 @@ npm run build             # outputs to dist/
 npm run deploy            # publishes dist/ to gh-pages branch
 ```
 
-`vite.config.ts` sets `base: '/atema-studio/'` for the GH Pages subpath.
+`vite.config.ts` sets `base: '/'` for the custom domain (atemastudio.xyz). Switch back to `/atema-studio/` if reverting to the github.io project URL.
 The router uses `HashRouter` because GH Pages cannot handle SPA paths server-side.
 
 ---

@@ -116,7 +116,7 @@ export default function PaymentResultPage({ paymentId, paymentStatus, bookingId,
               </p>
             )}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <a href="https://farajaay.github.io/atema-studio/" style={btn(true)}>
+              <a href="https://atemastudio.xyz/" style={btn(true)}>
                 العودة للرئيسية
               </a>
               <a href="https://wa.me/966548323496" target="_blank" rel="noreferrer"
@@ -141,7 +141,7 @@ export default function PaymentResultPage({ paymentId, paymentStatus, bookingId,
               </p>
             )}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <a href="https://farajaay.github.io/atema-studio/" style={btn(true)}>
+              <a href="https://atemastudio.xyz/" style={btn(true)}>
                 إعادة المحاولة
               </a>
               <a href="https://wa.me/966548323496" target="_blank" rel="noreferrer"

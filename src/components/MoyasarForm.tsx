@@ -4,7 +4,9 @@ import { loadMoyasarSDK } from '../services/moyasar';
 import { Loader2 } from 'lucide-react';
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_MOYASAR_PUBLISHABLE_KEY ?? '';
-const SITE_BASE       = 'https://farajaay.github.io/atema-studio/';
+// Custom domain — also configure both production hosts in Moyasar dashboard
+// callback URLs so we transition without breaking older bookmarked sessions.
+const SITE_BASE       = 'https://atemastudio.xyz/';
 
 interface Props {
   depositSAR:  number;   // amount to charge (50% deposit)

@@ -20,7 +20,7 @@ includes:
 | **Document engine** | Auto-generated ZATCA-compliant invoices (with QR), formal contracts, T&C popups |
 | **Theme engine** | Two themes (Couture Noir + Atelier Ivory), switchable from the admin panel |
 
-Hosted on **GitHub Pages** at <https://farajaay.github.io/atema-studio> with
+Hosted on **GitHub Pages** at <https://atemastudio.xyz> with
 data in **Supabase** (Postgres + Storage + Auth).
 
 ---
@@ -330,7 +330,7 @@ npm run deploy       # publish dist/ to gh-pages branch
 ```
 
 Pushing to `master` does **not** auto-deploy — `npm run deploy` is the manual
-step. Production URL: <https://farajaay.github.io/atema-studio>.
+step. Production URL: <https://atemastudio.xyz>.
 
 ---
 

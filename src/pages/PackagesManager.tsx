@@ -543,7 +543,7 @@ export default function PackagesManager() {
         )}
 
         {!isNew && (
-          <a href="https://farajaay.github.io/atema-studio/" target="_blank" rel="noreferrer"
+          <a href="https://atemastudio.xyz/" target="_blank" rel="noreferrer"
             style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '5px',
               fontSize: '12px', color: 'var(--a-text-muted)', textDecoration: 'none' }}>
             <ArrowRight size={12} /> معاينة الموقع

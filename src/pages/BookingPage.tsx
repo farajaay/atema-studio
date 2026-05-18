@@ -104,7 +104,7 @@ const CITIES = [
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const BASE = import.meta.env.BASE_URL; // '/atema-studio/' on GitHub Pages
+const BASE = import.meta.env.BASE_URL; // '/' on the custom domain (atemastudio.xyz)
 
 // ── Package Card ──────────────────────────────────────────────────────────────
 function PkgCard({ pkg, lang, selected, onSelect, onDetails }: {

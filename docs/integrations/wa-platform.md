@@ -180,7 +180,7 @@ opt-in required).
 
 أيّ تعديل آخر يسعدنا 💌
 ```
-**Buttons:** `URL` → label "أضف لمستك" → `https://farajaay.github.io/atema-studio/#/book?ref={{1}}`
+**Buttons:** `URL` → label "أضف لمستك" → `https://atemastudio.xyz/#/book?ref={{1}}`
 
 ---
 
@@ -264,7 +264,7 @@ opt-in required).
 
 نشتاق نشوفك من جديد 🌷
 ```
-**Buttons:** `URL` → "احجزي بـ ١٥٪ خصم" → `https://farajaay.github.io/atema-studio/#/book?coupon=LOYAL15`
+**Buttons:** `URL` → "احجزي بـ ١٥٪ خصم" → `https://atemastudio.xyz/#/book?coupon=LOYAL15`
 
 ---
 

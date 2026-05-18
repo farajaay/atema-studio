@@ -42,8 +42,8 @@
    ```
 3. **Configure the success/cancel callback URLs** in the Moyasar dashboard:
    ```
-   Success: https://farajaay.github.io/atema-studio/#/?moyasar_id={id}&status=paid
-   Cancel:  https://farajaay.github.io/atema-studio/#/?status=cancelled
+   Success: https://atemastudio.xyz/#/?moyasar_id={id}&status=paid
+   Cancel:  https://atemastudio.xyz/#/?status=cancelled
    ```
 4. **Test with their test cards** (4111 1111 1111 1111 for Visa, etc.) — at
    least one full happy path before flipping to live.

@@ -208,7 +208,7 @@ $200/month.
 ## Slide 15 — Where to look
 
 - **Code:** <https://github.com/farajaay/atema-studio>
-- **Live site:** <https://farajaay.github.io/atema-studio>
+- **Live site:** <https://atemastudio.xyz>
 - **Manual:** `docs/MANUAL.md` in repo
 - **P&L model:** `docs/PROFITABILITY.md`
 - **WhatsApp blueprint:** `docs/integrations/whatsapp.md`
