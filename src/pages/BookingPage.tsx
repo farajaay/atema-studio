@@ -20,11 +20,14 @@ import { useAppSettings } from '../hooks/useAppSettings';
 import { computeVat } from '../services/settings';
 import { X, Loader2 } from 'lucide-react';
 import { useTheme, getInitialTheme } from '../hooks/useTheme';
+import { useLang } from '../hooks/useLang';
 import { getBookingPalette } from '../theme/themes';
 import type { ThemeName } from '../theme/themes';
 import {
   normalizeSaudiMobile, validEmail, isFutureOrToday, clampText,
 } from '../utils/validation';
+import SiteHeader from '../components/SiteHeader';
+import SiteFooter from '../components/SiteFooter';
 
 // ── Design tokens — theme-aware, live-mutated on theme change ────────────────
 // T is a module-level object that mirrors the active theme palette. The main
@@ -999,7 +1002,8 @@ export default function BookingPage() {
   const { addons } = useAddonsData();
   const { settings } = useAppSettings();
   const vatEnabled = settings.vat_enabled;
-  const [lang,           setLang]           = useState<Lang>('ar');
+  // Shared lang preference (persists across pages via localStorage + RTL/LTR sync)
+  const { lang, setLang } = useLang();
   // Initial tab can be pre-selected via navigation state (e.g. the homepage
   // promotion modal routes to /book with state.tab === 'custom').
   const initialTab: 'packages' | 'custom' =
@@ -1070,42 +1074,20 @@ export default function BookingPage() {
         fontFamily: isRTL ? "'Tajawal', sans-serif" : "'Inter', sans-serif",
         color: T.coffee, overflowX:'hidden' }}>
 
+      {/* Shared site nav (Home / Portfolio / Journal / Packages / Atelier
+          + lang toggle) — sticky, solid-on-scroll for this action-oriented page. */}
+      <SiteHeader lang={lang} setLang={setLang} solidOnScroll />
+
       {/* ── HERO ── */}
-      <header style={{
+      <section style={{
         background: getBookingPalette(activeTheme).heroGrad,
-        minHeight:'360px', position:'relative', overflow:'hidden',
+        minHeight:'320px', position:'relative', overflow:'hidden',
+        paddingTop: '72px',   // clear the fixed SiteHeader
       }}>
         {/* Grain overlay */}
         <div style={{ position:'absolute', inset:0, opacity:0.03,
           backgroundImage:"url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
           backgroundSize:'180px' }} />
-
-        {/* Nav */}
-        <nav style={{ position:'relative', zIndex:10, display:'flex',
-          alignItems:'center', justifyContent:'space-between',
-          padding: isMobile ? '16px 18px' : '18px 40px' }}>
-          <a href="https://instagram.com/atema.studio" target="_blank" rel="noreferrer"
-            style={{ display:'flex', alignItems:'center', gap:'6px', textDecoration:'none',
-              fontSize:'0.72rem', color:'rgba(61,46,31,0.6)', fontFamily:"'Inter',sans-serif",
-              opacity:0.7, transition:'opacity 0.2s' }}>
-            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-              <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/>
-              <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor"/>
-            </svg>
-            {!isMobile && 'atema.studio'}
-          </a>
-
-          <div className="lang-toggle">
-            <button className={`lang-btn ${lang==='ar'?'active':''}`} onClick={() => setLang('ar')}>AR</button>
-            <button className={`lang-btn ${lang==='en'?'active':''}`} onClick={() => setLang('en')}>EN</button>
-          </div>
-
-          <a href="tel:+966548323496" dir="ltr"
-            style={{ fontSize:'0.72rem', color:'var(--a-text-soft)',
-              textDecoration:'none', fontFamily:"'Inter',sans-serif" }}>
-            054 832 3496
-          </a>
-        </nav>
 
         {/* Hero content */}
         <div style={{ position:'relative', zIndex:10, display:'flex', flexDirection:'column',
@@ -1153,7 +1135,7 @@ export default function BookingPage() {
             {tx(lang,'الباقة · الإضافات · تفاصيلك','Package · Add-ons · Details')}
           </p>
         </div>
-      </header>
+      </section>
 
       {/* ── MAIN CONTENT ── */}
       <section style={{ padding: isMobile?'40px 0 36px':'52px 0 48px' }}>
@@ -1386,38 +1368,8 @@ export default function BookingPage() {
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer style={{ padding: isMobile?'28px 20px':'36px 40px',
-        background:'white', textAlign:'center',
-        borderTop:'1px solid rgba(201,179,147,0.18)' }}>
-        <div className="atema-wordmark" style={{ fontSize:'1.1rem', marginBottom:'6px' }}>
-          ATEMA
-        </div>
-        <p style={{ fontSize:'0.72rem', color: T.taupe, marginBottom:'16px',
-          fontFamily:'Tajawal,sans-serif', letterSpacing:'0.15em' }}>
-          S T U D I O
-        </p>
-        <div style={{ display:'flex', justifyContent:'center', gap: isMobile?'18px':'32px',
-          flexWrap:'wrap', marginBottom:'14px' }}>
-          {[
-            { label:'+966 54 832 3496', href:'tel:+966548323496', ltr: true },
-            { label:'atema.studio', href:'https://instagram.com/atema.studio', ltr: false },
-            { label: tx(lang,'الجبيل — السعودية','Jubail, Saudi Arabia'), href:'#', ltr: false },
-          ].map(({ label, href, ltr }) => (
-            <a key={label} href={href} target={href.startsWith('http')?'_blank':'_self'} rel="noreferrer"
-              style={{ fontSize:'0.78rem', color: T.mocha, textDecoration:'none',
-                fontFamily:"'Inter',sans-serif", opacity:0.75, transition:'opacity 0.2s',
-                direction: ltr ? 'ltr' : undefined,
-                unicodeBidi: ltr ? 'isolate' : undefined,
-                display: 'inline-block' }}>
-              {label}
-            </a>
-          ))}
-        </div>
-        <p style={{ fontSize:'0.7rem', color: T.taupe, fontFamily:'Tajawal,sans-serif' }}>
-          © 2025 ATEMA Studio — {tx(lang,'جميع الحقوق محفوظة','All rights reserved')}
-        </p>
-      </footer>
+      {/* ── FOOTER ── shared SiteFooter, consistent with the other public pages */}
+      <SiteFooter lang={lang} />
 
       {/* ── STICKY BOTTOM BAR (mobile) ── */}
       {isMobile && (
