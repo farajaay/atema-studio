@@ -7,6 +7,7 @@ import { ATEMA_COLORS } from '../config/constants';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { PLTab } from '../components/PLTab';
 import MoodBoardComposer from '../components/MoodBoardComposer';
+import StudioPLDashboard from '../components/StudioPLDashboard';
 import AdminCalendar from '../components/AdminCalendar';
 import AppSettingsPanel from '../components/AppSettingsPanel';
 import { useAppSettings } from '../hooks/useAppSettings';
@@ -15,7 +16,7 @@ import {
   Search, Eye, Trash2, CheckCircle2,
   Clock, XCircle, CircleDollarSign, Users, AlertCircle,
   Loader2, X, Phone, Mail, MapPin, StickyNote, Save, TrendingUp, Layers,
-  Image as ImageIcon, BookOpen, Sparkles
+  Image as ImageIcon, BookOpen, Sparkles, BarChart3
 } from 'lucide-react';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
@@ -295,6 +296,7 @@ export default function AdminDashboard() {
   const [paymentF,   setPaymentF]   = useState<string>('all');
   const [selected,   setSelected]   = useState<Booking | null>(null);
   const [deleteConf, setDeleteConf] = useState<string | null>(null);
+  const [view,       setView]       = useState<'bookings' | 'calendar' | 'pnl'>('bookings');
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/admin', { replace: true });
@@ -398,10 +400,43 @@ export default function AdminDashboard() {
         {/* Global app settings — VAT toggle, seller identity, etc. */}
         <AppSettingsPanel settings={settings} onSave={updateSettings} />
 
-        {/* Monthly calendar — bookings + blocked dates */}
-        <AdminCalendar />
+        {/* View tabs — Bookings / Calendar / P&L */}
+        <div style={{
+          display: 'flex', gap: 8, marginBottom: '20px',
+          flexWrap: 'wrap',
+        }}>
+          {([
+            { key: 'bookings', label: 'الحجوزات',           icon: <CalendarDays size={14} /> },
+            { key: 'calendar', label: 'التقويم',            icon: <CalendarDays size={14} /> },
+            { key: 'pnl',      label: 'الأرباح والخسائر',    icon: <BarChart3 size={14} /> },
+          ] as const).map(t => {
+            const active = view === t.key;
+            return (
+              <button key={t.key} onClick={() => setView(t.key)} style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '9px 18px', borderRadius: 10,
+                border: active ? '1px solid transparent' : '1px solid var(--a-border)',
+                cursor: 'pointer',
+                fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                background: active ? 'var(--a-gold)' : 'var(--a-surface)',
+                color:      active ? '#0B0B0B'       : 'var(--a-text-soft)',
+                boxShadow:  active ? '0 2px 10px rgba(212,175,122,0.35)' : 'none',
+                transition: 'all 0.15s',
+              }}>
+                {t.icon}{t.label}
+              </button>
+            );
+          })}
+        </div>
 
-        {/* Filters bar */}
+        {/* Monthly calendar — bookings + blocked dates */}
+        {view === 'calendar' && <AdminCalendar />}
+
+        {/* Studio-wide P&L dashboard */}
+        {view === 'pnl' && <StudioPLDashboard bookings={bookings} loading={loading} />}
+
+        {/* Filters + table — only when viewing bookings */}
+        {view === 'bookings' && <>
         <div style={{ background: 'var(--a-surface)', borderRadius: '12px', padding: '16px 20px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.05)', marginBottom: '20px',
           display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
@@ -513,6 +548,7 @@ export default function AdminDashboard() {
             ⚠️ وضع العرض — البيانات تجريبية. لتفعيل Supabase أضف VITE_SUPABASE_URL في ملف .env
           </div>
         )}
+        </>}
       </div>
 
       {/* Booking detail modal */}

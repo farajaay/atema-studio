@@ -416,6 +416,75 @@ the boards. Aim for at least 4–6 published items in each of `bride`,
 
 ---
 
+## 13c. Studio-wide P&L dashboard (monthly rollup)
+
+Per-booking P&L (the "P&L" tab inside each booking detail) tells you whether
+*this* booking made money. **Studio-wide P&L** rolls that math across all
+bookings so you can see the whole studio's health at a glance.
+
+### How to open it
+
+**Admin → Dashboard → الأرباح والخسائر** (the third section tab, next to
+*Bookings* and *Calendar*). It uses the same booking data already on the
+page — no extra fetch.
+
+### What you see
+
+- **Period toggle** at the top: **شهري / ربع سنوي / سنوي** (month /
+  quarter / year). Defaults to month. The dashboard always aggregates
+  monthly first, then rolls quarter / year on the fly.
+- **4 KPI cards**: booking count, revenue ex-VAT, true profit, margin %.
+  The margin colour goes red < 0, amber 0–15%, green > 15%.
+- **Bar chart**: two bars per bucket — *gold = revenue ex-VAT*, *green
+  = true profit*. Hover a bar for the precise number.
+- **Bucket table**: each row is one month / quarter / year. Click any
+  row to **expand** and see the per-package breakdown inside that
+  bucket — surfaces "Couture pays my rent, Engagement is loss-leader"
+  in seconds.
+- **Per-package summary** at the bottom: same per-package metrics rolled
+  across the *entire visible scope*. Sorted by revenue, descending.
+
+### Which bookings count?
+
+A booking is included when it has reached commitment:
+
+- `status` is `confirmed` or `completed`, **or**
+- `payment_status` is `paid` or `awaiting_transfer`
+
+**Cancelled** and **refunded** bookings are always excluded.
+
+This rule matches the spirit of contracted revenue — anything the bride
+has signed for or paid against. If you want to see strict cash, filter
+by `paid` only in the Bookings tab and eyeball the totals there.
+
+### Tuning the numbers
+
+The P&L engine reads its defaults from
+`src/services/pl/config.ts` (`DEFAULT_COST_CONFIG`, `PACKAGE_DEFAULTS`).
+Edit that file to change:
+
+- `ownerHourlyRate` — your hourly rate target (currently 150 SAR/hr)
+- `cameraValue` / `cameraLifespanYears` — equipment depreciation
+- `assistantHourlyRate` / `videographerHourlyRateDefault` — team rates
+- `albumA4Cost` / `albumA3Cost` — production costs
+- `expectedBookingsPerYear` — overhead allocation denominator (35 by
+  default; lower this in slow years to allocate more overhead per booking)
+- `PACKAGE_DEFAULTS` — coverage hours, album size, team inclusions per
+  package tier
+
+After editing, run `npm run build` and `npm run deploy` to push.
+
+### What lives where in code
+
+- Engine (per booking): `src/services/pl/engine.ts` (unchanged)
+- Config & package defaults: `src/services/pl/config.ts`
+- Studio-wide aggregator: `src/services/pnl.ts` (monthly aggregation,
+  quarter/year rollup, totalSummary, `isPLRevenueBooking`)
+- Dashboard UI: `src/components/StudioPLDashboard.tsx`
+- Per-booking PLTab (unchanged): `src/components/PLTab.tsx`
+
+---
+
 ## 14. Future enhancements (parked)
 
 - **WhatsApp automation** — see [`docs/integrations/whatsapp.md`](./integrations/whatsapp.md).
