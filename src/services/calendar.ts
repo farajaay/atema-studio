@@ -1,6 +1,17 @@
 // ATEMA STUDIO — Calendar service
-// Booked dates = any booking row whose status is not 'cancelled'
-// Blocked dates = admin-managed rows in `blocked_dates` table
+//
+// Two code paths into "what's booked":
+//
+//   - fetchPublicBookedDates   → reads the `public_booked_dates` view
+//     (event_date + status only). Used by the CUSTOMER DatePicker so we
+//     never leak names or booking refs over the wire.
+//
+//   - fetchAdminBookedDates    → reads the full `bookings` table. Used
+//     by AdminCalendar where the admin needs the booking ref and name
+//     for tooltips. Requires the authenticated Supabase session.
+//
+// The shape of `BookedDate` keeps optional PII fields so the admin path
+// can populate them while the public path leaves them undefined.
 
 import { supabase } from './supabase';
 
@@ -12,16 +23,32 @@ export interface BlockedDate {
 }
 
 export interface BookedDate {
-  date:       string;
-  booking_ref: string;
-  status:     string;
-  customer_name: string;
+  date:          string;
+  status:        string;
+  /** Admin-only — undefined on the public path */
+  booking_ref?:   string;
+  /** Admin-only — undefined on the public path */
+  customer_name?: string;
 }
 
 // ── Fetchers ──────────────────────────────────────────────────────────────────
 
-/** Booked dates within an inclusive [from, to] window (or all if omitted) */
-export async function fetchBookedDates(from?: string, to?: string): Promise<BookedDate[]> {
+/** PUBLIC (anon): event_date + status only. No PII leaves the database. */
+export async function fetchPublicBookedDates(from?: string, to?: string): Promise<BookedDate[]> {
+  if (!supabase) return [];
+  let q = supabase.from('public_booked_dates').select('event_date, status');
+  if (from) q = q.gte('event_date', from);
+  if (to)   q = q.lte('event_date', to);
+  const { data, error } = await q;
+  if (error) { return []; }
+  return (data ?? []).map(r => ({
+    date: r.event_date as string,
+    status: r.status as string,
+  }));
+}
+
+/** ADMIN (authenticated): full booking detail. Do not call from public surfaces. */
+export async function fetchAdminBookedDates(from?: string, to?: string): Promise<BookedDate[]> {
   if (!supabase) return [];
   let q = supabase.from('bookings')
     .select('event_date, booking_ref, status, customer_name')
@@ -29,12 +56,21 @@ export async function fetchBookedDates(from?: string, to?: string): Promise<Book
   if (from) q = q.gte('event_date', from);
   if (to)   q = q.lte('event_date', to);
   const { data, error } = await q;
-  if (error) { console.error('fetchBookedDates:', error.message); return []; }
+  if (error) { return []; }
   return (data ?? []).map(r => ({
-    date: r.event_date, booking_ref: r.booking_ref,
-    status: r.status, customer_name: r.customer_name,
+    date: r.event_date as string,
+    booking_ref: r.booking_ref as string,
+    status: r.status as string,
+    customer_name: r.customer_name as string,
   }));
 }
+
+/**
+ * @deprecated Use fetchPublicBookedDates for customer surfaces and
+ *             fetchAdminBookedDates for admin surfaces. This shim defers
+ *             to the public function so legacy callers don't leak PII.
+ */
+export const fetchBookedDates = fetchPublicBookedDates;
 
 /** Admin-blocked dates */
 export async function fetchBlockedDates(from?: string, to?: string): Promise<BlockedDate[]> {

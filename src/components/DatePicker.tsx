@@ -4,7 +4,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X } from 'lucide-react';
-import { fetchBookedDates, fetchBlockedDates, isoDate } from '../services/calendar';
+// Customer surface — use the public view so no PII crosses the wire.
+import { fetchPublicBookedDates, fetchBlockedDates, isoDate } from '../services/calendar';
 
 type Lang = 'ar' | 'en';
 const tx = (l: Lang, ar: string, en: string) => l === 'ar' ? ar : en;
@@ -57,7 +58,7 @@ export default function DatePicker({ lang, value, onChange, minDate, placeholder
     const start = new Date(cursor.year, cursor.month - 1, 1);
     const end   = new Date(cursor.year, cursor.month + 2, 0);
     Promise.all([
-      fetchBookedDates(isoDate(start), isoDate(end)),
+      fetchPublicBookedDates(isoDate(start), isoDate(end)),
       fetchBlockedDates(isoDate(start), isoDate(end)),
     ]).then(([booked, blocked]) => {
       if (!alive) return;

@@ -485,6 +485,71 @@ After editing, run `npm run build` and `npm run deploy` to push.
 
 ---
 
+## 13d. Security posture — what protects the studio
+
+### What's in the deployed bundle and why it's safe
+
+The `dist/` JavaScript that gets pushed to GitHub Pages contains:
+
+- The **Supabase URL** + **anon public key**. These are public by design.
+  All real protection lives in Row-Level Security policies on the
+  database, not in keeping the key secret.
+- The **business logic** (form validation, package definitions, P&L math).
+  Anyone can read it. We minify + mangle + strip console logs (via terser
+  in `vite.config.ts`) so casual inspection is harder, but it is not
+  encrypted. **Never put a secret in source code.** Real secrets — the
+  service-role key, Moyasar secret key, Anthropic API key, Meta WA
+  tokens — live only in **Supabase Edge Function secrets**.
+
+### Row-Level Security model
+
+Every public table has RLS enabled. Roles:
+
+| Role | What it can do |
+|---|---|
+| `anon` | Read tightly-scoped public views (e.g. `public_booked_dates` — date + status only, **no PII**). Insert bookings/customers with shape validation. Update bookings only to mark a payment intent. |
+| `authenticated` | The admin's Supabase session. Full read/write on all tables. |
+| `service_role` | Used **only** by Edge Functions. Bypasses RLS entirely. Where sensitive operations (e.g. server-side total recomputation, WhatsApp signing) happen. |
+
+The hardening migration `database/migrations-2026-05-rls-hardening.sql`
+replaces the old "`WITH CHECK (true)`" policies with constrained ones:
+
+- Booking inserts require name 2-120 chars, phone 7-25 chars, future
+  event_date, sane subtotal (≤ 200k SAR), and forced initial status
+  `pending` + `unpaid`.
+- Booking updates can only set `payment_method` and step
+  `payment_status` along the allowed lifecycle.
+- The customer-facing `DatePicker` reads from the
+  `public_booked_dates` view, not the `bookings` table — so customer
+  names + booking refs are never sent to anonymous browsers, even in
+  network responses.
+
+### When you'll want to do more
+
+Run `database/migrations-2026-05-rls-hardening.sql` in Supabase SQL
+editor whenever Supabase's security advisor flags `bookings`. After
+deploying the `create-booking` Edge Function, you can run the **Final
+cleanup** block at the bottom of that file to drop anonymous INSERT
+on `bookings` entirely — at that point the only anon access is the
+PII-free view.
+
+### Repo visibility
+
+The GitHub repository is **public**. Making it private requires GitHub
+Pro / Team / Enterprise *if* you want to keep Pages serving from it on
+the same plan. With the Free plan, flipping to private auto-disables
+Pages, which takes the live site down. If you ever want this:
+
+- **Pay $4/mo for GitHub Pro** (Pages from private repos becomes free)
+- **OR** move hosting to Cloudflare Pages / Netlify / Vercel (free
+  tiers support private repos and they're often faster than GH Pages)
+
+Either way, the *deployed* bundle is still inspectable in DevTools, so
+making the repo private is mostly about keeping the *source history* +
+*commit messages* + *docs* private.
+
+---
+
 ## 14. Future enhancements (parked)
 
 - **WhatsApp automation** — see [`docs/integrations/whatsapp.md`](./integrations/whatsapp.md).

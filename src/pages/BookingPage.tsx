@@ -70,26 +70,43 @@ function gradFor(tier: number): string {
   const stops = PKG_GRADIENTS[activeTheme] ?? PKG_GRADIENTS.ivory;
   return stops[Math.max(0, Math.min(stops.length - 1, tier))];
 }
+// Package hero photo mapping. Updated 2026-05-20 to use the curated
+// session photos in /public/photos/ — one strong hero per tier.
+//   Engagement → 60FBEE21 (red ring box, white tulips, sky-blue silk, ghutra — Saudi engagement)
+//   Customise  → 17BB76E6 (Dior Oud Rosewood + tulips + blue dress detail — styling/customise feel)
+//   Classic    → 5B05CBF2 (the classical hall with full gown + veil — classic editorial)
+//   Royal      → IMG_0259 (side profile under chandelier — gilded, regal)
+//   Signature  → 7CC155A1 (pearl-edged veil studio portraits — signature)
+//   Couture    → F41A818D (pearl-and-floral veil + white roses + earring details — couture)
+const PKG_PHOTO = {
+  engagement: '60FBEE21-EB43-4CFA-AEC2-D73D206E5016.JPG',
+  customise:  '17BB76E6-8297-4355-843B-1A1E2264B3C5.JPG',
+  classic:    '5B05CBF2-9106-4FF8-A00A-2D3DAD8693B7.JPG',
+  royal:      'IMG_0259.JPG',
+  signature:  '7CC155A1-8BFC-49B7-ADC2-CF8346A3E535.JPG',
+  couture:    'F41A818D-D3EF-419E-A002-DC76C76BF59D.JPG',
+} as const;
+
 function getVisual(pkg: Package): { gradient: string; photo: string } {
   const n = (pkg.name_ar + ' ' + pkg.name_en).toLowerCase();
   if (n.includes('خطوبة') || n.includes('engagement'))
-    return { gradient: gradFor(0), photo: 'engagement.jpeg' };
+    return { gradient: gradFor(0), photo: PKG_PHOTO.engagement };
   if (n.includes('مخصّص') || n.includes('مخصص') || n.includes('customis'))
-    return { gradient: gradFor(1), photo: 'customise.jpeg' };
+    return { gradient: gradFor(1), photo: PKG_PHOTO.customise };
   if (n.includes('كلاسيك') || n.includes('classic'))
-    return { gradient: gradFor(2), photo: 'classic.jpeg' };
+    return { gradient: gradFor(2), photo: PKG_PHOTO.classic };
   if (n.includes('ملكي') || n.includes('royal'))
-    return { gradient: gradFor(3), photo: 'royal.jpeg' };
+    return { gradient: gradFor(3), photo: PKG_PHOTO.royal };
   if (n.includes('توقيع') || n.includes('signature'))
-    return { gradient: gradFor(4), photo: 'signature.jpeg' };
+    return { gradient: gradFor(4), photo: PKG_PHOTO.signature };
   if (n.includes('couture') || n.includes('كوتور') || n.includes('كوتيور'))
-    return { gradient: gradFor(5), photo: 'couture.jpeg' };
+    return { gradient: gradFor(5), photo: PKG_PHOTO.couture };
   // Price-tier fallback for custom packages
-  if (pkg.price < 2500)  return { gradient: gradFor(0), photo: 'engagement.jpeg' };
-  if (pkg.price < 5000)  return { gradient: gradFor(2), photo: 'classic.jpeg' };
-  if (pkg.price < 8000)  return { gradient: gradFor(3), photo: 'royal.jpeg' };
-  if (pkg.price < 12000) return { gradient: gradFor(4), photo: 'signature.jpeg' };
-  return { gradient: gradFor(5), photo: 'couture.jpeg' };
+  if (pkg.price < 2500)  return { gradient: gradFor(0), photo: PKG_PHOTO.engagement };
+  if (pkg.price < 5000)  return { gradient: gradFor(2), photo: PKG_PHOTO.classic };
+  if (pkg.price < 8000)  return { gradient: gradFor(3), photo: PKG_PHOTO.royal };
+  if (pkg.price < 12000) return { gradient: gradFor(4), photo: PKG_PHOTO.signature };
+  return { gradient: gradFor(5), photo: PKG_PHOTO.couture };
 }
 
 

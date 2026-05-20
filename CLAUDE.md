@@ -176,6 +176,14 @@ atema-studio/
   `Math.random` or `Date.now()`.
 - **Webhook signatures (Meta) verified via HMAC-SHA256** in
   `supabase/functions/_shared/wa.ts`. Do not skip.
+- **Public DatePicker reads `public_booked_dates`, NOT `bookings`.** The
+  view exposes only `event_date` + `status`. Never call
+  `fetchAdminBookedDates` from a customer surface — that path is for
+  AdminCalendar only. See `src/services/calendar.ts` for the fork.
+- **Production bundle is terser-minified, name-mangled, console-stripped,
+  source-map-free.** See `vite.config.ts`. Don't loosen these settings.
+  Anyone can still inspect the bundle; the layer of protection is
+  defence-in-depth, not security.
 
 ### 4.5 Images
 - **Always run `node scripts/optimise-images.mjs`** after dropping a new
@@ -267,6 +275,8 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   - `database/migrations-2026-05-custom-domain.sql` (fixes existing rows)
   - `database/migrations-2026-05-wa.sql` (WhatsApp tables)
   - `database/migrations-2026-05-moodboard.sql` (Mood Board table + RPC)
+  - `database/migrations-2026-05-rls-hardening.sql` (PII view + constrained
+    INSERT/UPDATE policies — silences Supabase security advisor)
   - `database/seed-journal-2026-05.sql` (6 journal posts)
   - `database/seed-portfolio-2026-05-expanded.sql` (23 portfolio items —
     **use this, not the old `seed-portfolio-2026-05.sql`**)

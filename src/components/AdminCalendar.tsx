@@ -4,8 +4,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Ban, Calendar, X, Loader2 } from 'lucide-react';
+// Admin surface — uses the authenticated path so booking_ref + customer_name
+// are included for the tooltip/expanded view.
 import {
-  fetchBookedDates, fetchBlockedDates, blockDate, unblockDate,
+  fetchAdminBookedDates, fetchBlockedDates, blockDate, unblockDate,
   isoDate, monthRange,
 } from '../services/calendar';
 import type { BookedDate, BlockedDate } from '../services/calendar';
@@ -45,7 +47,7 @@ export default function AdminCalendar() {
     setLoading(true);
     const { from, to } = monthRange(cursor.year, cursor.month);
     const [bk, bl] = await Promise.all([
-      fetchBookedDates(from, to),
+      fetchAdminBookedDates(from, to),
       fetchBlockedDates(from, to),
     ]);
     setBooked(bk);
