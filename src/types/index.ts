@@ -57,6 +57,10 @@ export interface CreateBookingRequest {
   subtotal: number;
   vat: number;
   total: number;
+  /** Discount code typed by the bride. Server re-validates via
+   *  redeem_discount_code() and re-computes the discount amount
+   *  authoritatively. Client value is for display only. */
+  discountCode?: string | null;
 }
 
 // ===== BOOKING RESPONSE (FROM SUPABASE) =====

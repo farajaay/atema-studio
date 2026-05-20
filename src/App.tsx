@@ -19,11 +19,12 @@ import PaymentResultPage from './pages/PaymentResultPage';
 // PortfolioManager / AdminDashboard / AdminCalendar / AppSettingsPanel) out
 // of the initial page payload. They stream in only when an admin navigates
 // to one of these routes.
-const AdminLogin       = lazy(() => import('./pages/AdminLogin'));
-const AdminDashboard   = lazy(() => import('./pages/AdminDashboard'));
-const PackagesManager  = lazy(() => import('./pages/PackagesManager'));
-const PortfolioManager = lazy(() => import('./pages/PortfolioManager'));
-const JournalManager   = lazy(() => import('./pages/JournalManager'));
+const AdminLogin           = lazy(() => import('./pages/AdminLogin'));
+const AdminDashboard       = lazy(() => import('./pages/AdminDashboard'));
+const PackagesManager      = lazy(() => import('./pages/PackagesManager'));
+const PortfolioManager     = lazy(() => import('./pages/PortfolioManager'));
+const JournalManager       = lazy(() => import('./pages/JournalManager'));
+const DiscountCodesManager = lazy(() => import('./pages/DiscountCodesManager'));
 
 function AdminFallback() {
   return (
@@ -77,6 +78,8 @@ export default function App() {
         <Suspense fallback={<AdminFallback />}><PortfolioManager /></Suspense>} />
       <Route path="/admin/journal"   element={
         <Suspense fallback={<AdminFallback />}><JournalManager /></Suspense>} />
+      <Route path="/admin/discount-codes" element={
+        <Suspense fallback={<AdminFallback />}><DiscountCodesManager /></Suspense>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

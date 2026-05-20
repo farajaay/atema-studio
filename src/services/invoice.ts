@@ -23,6 +23,15 @@ export interface InvoiceData {
   depositPaid?:    number;
   /** Dynamic seller + VAT config — overrides hardcoded defaults */
   settings?:       AppSettings;
+  /** Discount applied to this booking — when null/undefined, no line shown. */
+  discount?: {
+    code: string;
+    amount: number;
+    kind: 'percent' | 'flat';
+    value: number;
+  } | null;
+  /** Gross (pre-discount) subtotal in SAR. Only shown when a discount is applied. */
+  grossSubtotal?: number;
 }
 
 // ── TLV encoder (per ZATCA spec) ──────────────────────────────────────────────
@@ -242,8 +251,21 @@ export function generateInvoiceHTML(d: InvoiceData): string {
     </table>
 
     <table class="totals">
+      ${d.discount && d.grossSubtotal ? `
+        <tr>
+          <td>الإجمالي الفرعي / Gross subtotal</td>
+          <td>${fmt(d.grossSubtotal)} SAR</td>
+        </tr>
+        <tr>
+          <td>خصم — ${esc(d.discount.code)}
+            (${d.discount.kind === 'percent' ? `${d.discount.value}%` : `${fmt(d.discount.value)} SAR`})
+            / Discount
+          </td>
+          <td style="color:#8C6B4F">−${fmt(d.discount.amount)} SAR</td>
+        </tr>
+      ` : ''}
       ${vatActive
-        ? `<tr><td>الإجمالي قبل الضريبة / Subtotal</td><td>${fmt(d.subtotal)} SAR</td></tr>
+        ? `<tr><td>${d.discount ? 'الإجمالي بعد الخصم' : 'الإجمالي قبل الضريبة'} / Subtotal</td><td>${fmt(d.subtotal)} SAR</td></tr>
            <tr><td>ضريبة القيمة المضافة (15%) / VAT</td><td>${fmt(d.vat)} SAR</td></tr>
            <tr class="grand"><td>الإجمالي شامل الضريبة / Total Incl. VAT</td><td>${fmt(d.total)} SAR</td></tr>`
         : `<tr class="grand"><td>الإجمالي / Total</td><td>${fmt(d.total)} SAR</td></tr>`}

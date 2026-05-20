@@ -18,6 +18,15 @@ export interface ContractData {
   deposit: number;
   remaining: number;
   addons: string[];            // Arabic names of selected addons
+  /** Discount applied to this booking — when null, no discount line is rendered. */
+  discount?: {
+    code: string;
+    amount: number;
+    kind: 'percent' | 'flat';
+    value: number;             // 25 for "25%", 500 for "500 SAR"
+  } | null;
+  /** Gross (pre-discount) subtotal. Only shown when a discount is applied. */
+  grossSubtotal?: number;
 }
 
 function formatDateAr(dateStr: string): string {
@@ -155,6 +164,17 @@ export function generateContractHTML(d: ContractData): string {
 
     <!-- Financials -->
     <h2>الملخص المالي</h2>
+    ${d.discount ? `
+    <div style="background:#FFF8E8;border:1px solid #E8D9A8;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#5C3D1E;line-height:1.7">
+      <div style="font-weight:700;color:#8C6B4F;margin-bottom:4px">خصم مطبّق</div>
+      <div>
+        كود: <span style="font-family:'Inter',monospace;font-weight:700;letter-spacing:1px">${esc(d.discount.code)}</span>
+        &nbsp;·&nbsp;
+        ${d.discount.kind === 'percent' ? `${d.discount.value}٪` : `${fmt(d.discount.value)} ر.س`}
+        &nbsp;·&nbsp;
+        قيمة الخصم: <strong>${fmt(d.discount.amount)} ر.س</strong>
+      </div>
+    </div>` : ''}
     <div class="financial">
       <div class="fin-box">
         <div class="fin-label">المبلغ الإجمالي (شامل VAT)</div>

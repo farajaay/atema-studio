@@ -184,6 +184,12 @@ atema-studio/
   source-map-free.** See `vite.config.ts`. Don't loosen these settings.
   Anyone can still inspect the bundle; the layer of protection is
   defence-in-depth, not security.
+- **Discount codes are admin-only at the table level.** `discount_codes`
+  is `authenticated`-only for SELECT. Anon talks to it via two RPCs:
+  `preview_discount_code()` (read-only forecast) and
+  `redeem_discount_code()` (service-role only, called from the
+  `create-booking` Edge Function). Never expose the table directly from
+  a public surface; never trust client-supplied discount amounts.
 
 ### 4.5 Images
 - **Always run `node scripts/optimise-images.mjs`** after dropping a new
@@ -277,6 +283,8 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   - `database/migrations-2026-05-moodboard.sql` (Mood Board table + RPC)
   - `database/migrations-2026-05-rls-hardening.sql` (PII view + constrained
     INSERT/UPDATE policies — silences Supabase security advisor)
+  - `database/migrations-2026-05-discount-codes.sql` (discount_codes table
+    + 3 booking columns + preview/redeem RPCs + RLS)
   - `database/seed-journal-2026-05.sql` (6 journal posts)
   - `database/seed-portfolio-2026-05-expanded.sql` (23 portfolio items —
     **use this, not the old `seed-portfolio-2026-05.sql`**)

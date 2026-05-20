@@ -55,6 +55,7 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
           city:            payload.city ?? extractCityKey(payload.location),
           location:        payload.location ?? null,
           specialRequests: payload.specialRequests ?? null,
+          discountCode:    payload.discountCode ?? null,
         },
       });
       if (!error && data && typeof data.id === 'string') {

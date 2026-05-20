@@ -16,8 +16,10 @@ import MoyasarForm from '../components/MoyasarForm';
 import PaymentMethodChooser from '../components/PaymentMethodChooser';
 import BankTransferPayment from '../components/BankTransferPayment';
 import DatePicker from '../components/DatePicker';
+import DiscountInput from '../components/DiscountInput';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { computeVat } from '../services/settings';
+import type { DiscountKind } from '../services/discount';
 import { X, Loader2 } from 'lucide-react';
 import { useTheme, getInitialTheme } from '../hooks/useTheme';
 import { useLang } from '../hooks/useLang';
@@ -445,10 +447,26 @@ function AddonRow({ addon, lang, active, qty, onToggle, onQtyChange }: {
 
 // ── Summary Panel ─────────────────────────────────────────────────────────────
 type AddonLine = { id: string; nameAr: string; nameEn: string; price: number };
-function SummaryPanel({ lang, pkg, addonLines, subtotal, vat, total, vatEnabled, onBook }: {
+
+export interface AppliedDiscountState {
+  code: string;
+  amount: number;
+  kind: DiscountKind;
+  value: number;
+}
+
+function SummaryPanel({
+  lang, pkg, addonLines, subtotal, vat, total, vatEnabled, onBook,
+  grossSubtotal, applied, onApplyDiscount, onClearDiscount,
+}: {
   lang: Lang; pkg: Package | undefined; addonLines: AddonLine[];
   subtotal: number; vat: number; total: number; vatEnabled: boolean;
   onBook: () => void;
+  /** Pre-discount subtotal — what the bride types a code against. */
+  grossSubtotal: number;
+  applied: AppliedDiscountState | null;
+  onApplyDiscount: (d: AppliedDiscountState) => void;
+  onClearDiscount: () => void;
 }) {
   return (
     <div className="glass" style={{ borderRadius:'16px', padding:'22px 20px' }}>
@@ -482,15 +500,48 @@ function SummaryPanel({ lang, pkg, addonLines, subtotal, vat, total, vatEnabled,
 
           <div style={{ height:'1px', background:'rgba(201,179,147,0.25)', margin:'14px 0' }} />
 
-          {vatEnabled && (
+          {/* Gross subtotal (always shown when a discount is applied so the
+              bride sees the math; when no discount + VAT off, hidden as before). */}
+          {(applied || vatEnabled) && (
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'6px',
               fontSize:'0.8rem' }}>
               <span style={{ color: T.taupe, fontFamily:'Tajawal,sans-serif' }}>
-                {tx(lang,'المجموع (بدون VAT)','Subtotal (ex VAT)')}
+                {tx(lang,'المجموع الفرعي','Subtotal')}
               </span>
-              <span style={{ color: T.mocha }}>{subtotal.toLocaleString()}</span>
+              <span style={{ color: T.mocha,
+                textDecoration: applied ? 'line-through' : 'none',
+                textDecorationColor: applied ? 'rgba(140,107,79,0.45)' : undefined,
+              }}>
+                {grossSubtotal.toLocaleString()}
+              </span>
             </div>
           )}
+
+          {/* Discount input — sits between subtotal and VAT */}
+          <DiscountInput
+            lang={lang}
+            subtotal={grossSubtotal}
+            applied={applied}
+            onApplied={onApplyDiscount}
+            onCleared={onClearDiscount}
+            ink={T.coffee}
+            gold={T.gold}
+            muted={T.taupe}
+            fieldBg="rgba(255,255,255,0.55)"
+          />
+
+          {applied && (
+            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'6px',
+              fontSize:'0.8rem' }}>
+              <span style={{ color: T.taupe, fontFamily:'Tajawal,sans-serif' }}>
+                {tx(lang,'بعد الخصم','After discount')}
+              </span>
+              <span style={{ color: T.mocha, fontWeight: 600 }}>
+                {subtotal.toLocaleString()}
+              </span>
+            </div>
+          )}
+
           {vatEnabled && (
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'12px',
               fontSize:'0.8rem' }}>
@@ -624,13 +675,17 @@ function LegalPopup({ title, htmlContent, onClose }: {
 }
 
 // ── Booking Form Modal ────────────────────────────────────────────────────────
-function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal, vatEnabled, settings, onClose }: {
+function BookingFormModal({
+  lang, pkg, total, activeAddons, addonLines, addTotal, vatEnabled, settings,
+  appliedDiscount, onClose,
+}: {
   lang: Lang; pkg: Package | undefined; total: number;
   activeAddons: Set<string>;
   addonLines: AddonLine[];
   addTotal: number;
   vatEnabled: boolean;
   settings: import('../services/settings').AppSettings;
+  appliedDiscount: AppliedDiscountState | null;
   onClose: () => void;
 }) {
   const [form,      setForm]      = useState({ name:'', phone:'', email:'', date:'', time:'', city:'', venue:'', notes:'' });
@@ -690,7 +745,11 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
     submittingRef.current = true;
 
     const cityFee  = CITIES.find(c => c.value === form.city)?.fee ?? 0;
-    const subtotal = (pkg?.price ?? 0) + addTotal + cityFee;
+    const grossSub = (pkg?.price ?? 0) + addTotal + cityFee;
+    const discAmt  = appliedDiscount
+      ? Math.min(appliedDiscount.amount, grossSub)
+      : 0;
+    const subtotal = Math.max(0, grossSub - discAmt);
     const vat      = computeVat(subtotal, vatEnabled);
     const fullTotal = subtotal + vat;
     const deposit   = Math.round(fullTotal * 0.5); // 50% deposit
@@ -713,6 +772,7 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
         location:        cleanVenue || form.city,
         specialRequests: cleanNotes,
         subtotal, vat, total: fullTotal,
+        discountCode:    appliedDiscount?.code ?? null,
       });
       setBooked({ id: response.id, ref: response.bookingRef, deposit, total: fullTotal });
 
@@ -732,6 +792,13 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
         subtotal, vat, total: fullTotal, deposit,
         remaining:      fullTotal - deposit,
         addons:         addonLines.map(l => lang === 'ar' ? l.nameAr : l.nameEn),
+        discount:       appliedDiscount && discAmt > 0 ? {
+          code:   appliedDiscount.code,
+          amount: discAmt,
+          kind:   appliedDiscount.kind,
+          value:  appliedDiscount.value,
+        } : null,
+        grossSubtotal:  grossSub,
       });
       setContractHTML(cHTML);
       saveContract(response.id, response.bookingRef, cHTML);
@@ -755,6 +822,13 @@ function BookingFormModal({ lang, pkg, total, activeAddons, addonLines, addTotal
         paymentMethod:  'pending',
         depositPaid:    0,
         settings,
+        discount:       appliedDiscount && discAmt > 0 ? {
+          code:   appliedDiscount.code,
+          amount: discAmt,
+          kind:   appliedDiscount.kind,
+          value:  appliedDiscount.value,
+        } : null,
+        grossSubtotal:  grossSub,
       });
       setInvoiceHTML(iHTML);
       saveInvoice(response.id, response.bookingRef, invNumber, iHTML, fullTotal);
@@ -1033,6 +1107,7 @@ export default function BookingPage() {
   const [hourQtys,       setHourQtys]       = useState<Record<string, number>>({});
   const [showForm,       setShowForm]       = useState(false);
   const [stickyShow,     setStickyShow]     = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscountState | null>(null);
 
   const activePackages = packages.filter(p => p.active);
 
@@ -1050,7 +1125,13 @@ export default function BookingPage() {
     if (isHourAddon(a)) return s + a.price * (hourQtys[a.id] ?? 0);
     return activeAddons.has(a.id) ? s + a.price : s;
   }, 0);
-  const subtotal = (pkg?.price ?? 0) + addTotal;
+  const grossSubtotal = (pkg?.price ?? 0) + addTotal;
+  // Re-validate the applied discount when the basket changes — if the new
+  // subtotal drops below min_subtotal, the discount is invalidated.
+  const discountAmount = appliedDiscount
+    ? Math.min(appliedDiscount.amount, grossSubtotal)
+    : 0;
+  const subtotal = Math.max(0, grossSubtotal - discountAmount);
   const vat      = computeVat(subtotal, vatEnabled);
   const total    = subtotal + vat;
 
@@ -1068,7 +1149,11 @@ export default function BookingPage() {
 
   // ── Custom tab totals ──────────────────────────────────────────────────────
   const basePkg        = [...activePackages].sort((a, b) => a.price - b.price)[0];
-  const customSubtotal = (basePkg?.price ?? 0) + addTotal;
+  const customGrossSubtotal = (basePkg?.price ?? 0) + addTotal;
+  const customDiscountAmount = appliedDiscount
+    ? Math.min(appliedDiscount.amount, customGrossSubtotal)
+    : 0;
+  const customSubtotal = Math.max(0, customGrossSubtotal - customDiscountAmount);
   const customVat      = computeVat(customSubtotal, vatEnabled);
   const customTotal    = customSubtotal + customVat;
 
@@ -1238,6 +1323,10 @@ export default function BookingPage() {
               <div style={{ width:'300px', flexShrink:0, position:'sticky', top:'20px' }}>
                 <SummaryPanel lang={lang} pkg={pkg} addonLines={addonLines}
                   subtotal={subtotal} vat={vat} total={total} vatEnabled={vatEnabled}
+                  grossSubtotal={grossSubtotal}
+                  applied={appliedDiscount}
+                  onApplyDiscount={setAppliedDiscount}
+                  onClearDiscount={() => setAppliedDiscount(null)}
                   onBook={() => setShowForm(true)} />
               </div>
             )}
@@ -1326,6 +1415,10 @@ export default function BookingPage() {
                 <div style={{ width:'300px', flexShrink:0, position:'sticky', top:'20px' }}>
                   <SummaryPanel lang={lang} pkg={basePkg} addonLines={addonLines}
                     subtotal={customSubtotal} vat={customVat} total={customTotal} vatEnabled={vatEnabled}
+                    grossSubtotal={customGrossSubtotal}
+                    applied={appliedDiscount}
+                    onApplyDiscount={setAppliedDiscount}
+                    onClearDiscount={() => setAppliedDiscount(null)}
                     onBook={() => setShowForm(true)} />
                 </div>
               )}
@@ -1440,6 +1533,7 @@ export default function BookingPage() {
           activeAddons={activeAddonSet}
           addonLines={addonLines} addTotal={addTotal}
           vatEnabled={vatEnabled} settings={settings}
+          appliedDiscount={appliedDiscount}
           onClose={() => setShowForm(false)} />
       )}
     </div>

@@ -147,7 +147,35 @@ serve(async (req) => {
   }
 
   const cityFee = CITY_FEES[String(body.city ?? '')] ?? 0;
-  const subtotal = pkg.price + addonsTotal + cityFee;
+  const grossSubtotal = pkg.price + addonsTotal + cityFee;
+
+  // ── Discount redemption (atomic, single source of truth) ──────────────
+  // The client may supply discountCode; we validate + redeem via the
+  // redeem_discount_code() RPC. This bumps used_count in the same txn,
+  // preventing two simultaneous brides from both consuming the last
+  // available seat of a max_uses-capped code.
+  let discountCode: string | null = null;
+  let discountAmount = 0;
+  let discountKind: 'percent' | 'flat' | null = null;
+  if (typeof body.discountCode === 'string' && body.discountCode.trim()) {
+    const codeRaw = String(body.discountCode).trim().toUpperCase();
+    const { data: red, error: redErr } = await supabase
+      .rpc('redeem_discount_code', { p_code: codeRaw, p_subtotal: grossSubtotal });
+    if (redErr) {
+      console.error('redeem RPC error:', redErr);
+      return fail('discount_redeem_failed', 500, redErr.message);
+    }
+    const row = Array.isArray(red) ? red[0] : red;
+    const reason = row?.reason as string | undefined;
+    if (reason && reason !== 'ok') {
+      return fail('discount_' + reason, 422);
+    }
+    discountAmount = Math.max(0, Math.min(Number(row?.applied_amount ?? 0), grossSubtotal));
+    discountKind   = (row?.applied_kind as 'percent' | 'flat' | null) ?? null;
+    discountCode   = codeRaw;
+  }
+
+  const subtotal = Math.max(0, grossSubtotal - discountAmount);
 
   const { data: settings } = await supabase
     .from('app_settings').select('vat_enabled').limit(1).single();
@@ -174,6 +202,9 @@ serve(async (req) => {
       vat_enabled: vatEnabled,
       status:         'pending',
       payment_status: 'unpaid',
+      discount_code:   discountCode,
+      discount_amount: discountAmount,
+      discount_kind:   discountKind,
     }])
     .select('id, booking_ref, status, created_at, event_date, total')
     .single();
@@ -206,6 +237,10 @@ serve(async (req) => {
       eventDate:  booking.event_date,
       total:      booking.total,
       subtotal, vat,   // server-recomputed values, echoed back
+      grossSubtotal,
+      discountCode,
+      discountAmount,
+      discountKind,
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );

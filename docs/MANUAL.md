@@ -550,6 +550,95 @@ making the repo private is mostly about keeping the *source history* +
 
 ---
 
+## 13e. Discount codes
+
+Discount codes let Fatima run seasonal promotions (Ramadan, National Day),
+hand custom codes to influencer partners, and offer goodwill discounts
+during rescheduling — all with one mechanism. Full design lives in
+[`docs/integrations/discount-codes.md`](./integrations/discount-codes.md).
+
+### How brides apply a code
+
+In the booking summary panel (right side on desktop, sticky on mobile),
+above the running total, there's a **كود خصم؟** input. The bride types
+the code and taps **تطبيق**. We validate it server-side and either show:
+
+- `RAMADAN25 · خصم 25% · −١٬٩٠٠` (success, with strike-through over the
+  gross subtotal and a new total below)
+- A red helper line for any failure (expired, not found, fully redeemed,
+  below the minimum subtotal, etc.)
+
+The actual redemption + atomic increment of `used_count` happens later
+inside the `create-booking` Edge Function — the input field is only a
+preview.
+
+### How Fatima manages codes
+
+Admin → top nav → **الأكواد** (or `/admin/discount-codes`).
+
+A list of every code with usage count + status. Click **+ كود جديد** or
+the edit icon on a row to open the editor. Fields:
+
+| Field | Notes |
+|---|---|
+| Code | Auto-uppercased. 2–32 chars. Only A–Z, 0–9, `-`, `_`. Must be unique. |
+| Description | Internal label (not shown to brides). |
+| Type | **نسبة مئوية** (percent) or **مبلغ ثابت** (flat SAR). |
+| Value | The percent (1–100) or flat SAR amount. |
+| Max discount | Optional cap on percent codes (e.g. "25% off, capped at 1500 SAR"). |
+| Min subtotal | Optional floor — code rejected if booking is below this. |
+| Valid from / to | Optional window. Blank = unbounded. |
+| Max uses | Optional global cap. Blank = unlimited. |
+| Active | When off, the code is invisible to brides but historical bookings keep their record. |
+
+**Pause** a code instead of deleting it. Codes with `used_count > 0`
+cannot be deleted (the bookings still reference them); pause via the
+icon next to the edit button.
+
+### Where it shows up
+
+- **Booking page summary** — bride sees `−1,900 ر.س` line + new total.
+- **Contract** — a highlighted "خصم مطبّق" box above the financial
+  summary with the code and amount.
+- **Invoice (ZATCA Phase-1)** — a discount row between gross subtotal
+  and VAT. VAT is computed on the **discounted** subtotal, per ZATCA
+  treatment. The QR code's `tag 4` (total incl VAT) and `tag 5` (VAT
+  amount) reflect the discounted figures.
+- **Admin booking modal** — a small gold-bordered banner under customer
+  info showing which code was applied + the amount.
+- **Studio-wide P&L** — automatically reflects discounts as lower
+  `subtotal` (the column already stores the net figure post-discount).
+  No special handling needed.
+
+### Activation steps
+
+1. **Run** `database/migrations-2026-05-discount-codes.sql` in Supabase
+   SQL editor. This creates the `discount_codes` table, three new
+   columns on `bookings`, the `preview_discount_code()` and
+   `redeem_discount_code()` RPCs, and the RLS policies.
+2. **Deploy** the updated `create-booking` Edge Function:
+   ```
+   supabase functions deploy create-booking
+   ```
+3. **Create your first code** at `/admin/discount-codes`. Try `TEST10`
+   with `max_uses = 1` to test the flow end-to-end.
+
+### Security model
+
+- Brides cannot list valid codes (RLS blocks anon SELECT on
+  `discount_codes`).
+- Brides cannot forge a discount amount in the booking insert: the
+  `create-booking` Edge Function ignores client-supplied discount
+  values and asks `redeem_discount_code()` for the authoritative
+  amount.
+- Two brides redeeming the last seat of a `max_uses = 50` code at the
+  same instant cannot both succeed: the RPC row-locks + increments in
+  one transaction.
+- `used_count` is `service_role`-only writable. Nothing in the public
+  bundle can decrement or reset it.
+
+---
+
 ## 14. Future enhancements (parked)
 
 - **WhatsApp automation** — see [`docs/integrations/whatsapp.md`](./integrations/whatsapp.md).

@@ -16,7 +16,7 @@ import {
   Search, Eye, Trash2, CheckCircle2,
   Clock, XCircle, CircleDollarSign, Users, AlertCircle,
   Loader2, X, Phone, Mail, MapPin, StickyNote, Save, TrendingUp, Layers,
-  Image as ImageIcon, BookOpen, Sparkles, BarChart3
+  Image as ImageIcon, BookOpen, Sparkles, BarChart3, Tag
 } from 'lucide-react';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
@@ -172,6 +172,29 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
             {row(<CalendarDays size={14} />, 'التاريخ',       `${booking.event_date} الساعة ${booking.event_time}`)}
             {row(<Package size={14} />,  'الباقة',            booking.package_name || `باقة رقم ${booking.package_id}`)}
           </div>
+
+          {/* Discount applied — only when this booking used a code */}
+          {booking.discount_code && (booking.discount_amount ?? 0) > 0 && (
+            <div style={{
+              background: '#FFF8E8', border: '1px solid #E8D9A8',
+              borderRadius: '10px', padding: '12px 16px', marginBottom: '20px',
+              display: 'flex', alignItems: 'center', gap: '10px',
+              fontSize: '13px', color: '#5C3D1E',
+            }}>
+              <Tag size={15} color="#8C6B4F" />
+              <div>
+                <span style={{ fontWeight: 700, letterSpacing: 1, fontFamily: "'Inter', monospace" }}>
+                  {booking.discount_code}
+                </span>
+                <span style={{ marginInlineStart: 10, color: 'var(--a-text-soft)' }}>
+                  {booking.discount_kind === 'percent' ? 'خصم نسبة' : 'خصم مبلغ'}
+                </span>
+                <span style={{ marginInlineStart: 10, fontWeight: 700, color: ATEMA_COLORS.deepBronze }}>
+                  −{(booking.discount_amount ?? 0).toLocaleString()} ر.س
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Financials */}
           <div style={{ background: 'var(--a-surface-alt)', borderRadius: '10px', padding: '16px 18px', marginBottom: '20px' }}>
@@ -366,6 +389,12 @@ export default function AdminDashboard() {
               border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
               fontSize: '13px', fontFamily: 'inherit', color: 'var(--a-text)', fontWeight: 600 }}>
             <BookOpen size={14} />{!isMobile && 'اليوميات'}
+          </button>
+          <button onClick={() => navigate('/admin/discount-codes')}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'var(--a-surface-alt)',
+              border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
+              fontSize: '13px', fontFamily: 'inherit', color: 'var(--a-text)', fontWeight: 600 }}>
+            <Tag size={14} />{!isMobile && 'الأكواد'}
           </button>
           <button onClick={fetchBookings} style={{ background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--a-text-muted)', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px' }}>

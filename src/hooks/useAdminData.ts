@@ -21,6 +21,10 @@ export interface Booking {
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   payment_status: 'unpaid' | 'paid' | 'refunded';
   created_at: string;
+  /** Discount fields (added 2026-05-21) — present when a code was applied. */
+  discount_code?:   string | null;
+  discount_amount?: number | null;
+  discount_kind?:   'percent' | 'flat' | null;
 }
 
 // Demo data shown when Supabase is not configured
