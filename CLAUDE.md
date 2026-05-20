@@ -34,6 +34,9 @@ React 19 + Vite + TS  →  Supabase (Postgres + Edge Functions)  →  GH Pages
                                 (lifecycle reminders +
                                  receipt auto-extraction
                                  via Claude Vision)
+                                       ↓
+                                Mood Board ritual page
+                                (admin-composed, /#/board/<token>)
 ```
 
 - **Theming:** two themes (`Couture Noir` default, `Atelier Ivory`) via CSS
@@ -67,6 +70,7 @@ and answers most "how does X work" questions.**
 | Payment gateway readiness (Moyasar live + transfer flow) | [`docs/integrations/payments.md`](./docs/integrations/payments.md) |
 | WhatsApp Cloud API blueprint (legacy reference) | [`docs/integrations/whatsapp.md`](./docs/integrations/whatsapp.md) |
 | **WhatsApp lifecycle reminders + receipt vision — IMPLEMENTED** | [`docs/integrations/wa-platform.md`](./docs/integrations/wa-platform.md) |
+| **Mood Board composer & public page — IMPLEMENTED** | [`docs/MANUAL.md`](./docs/MANUAL.md) §13b |
 | First-time Supabase wiring | [`BACKEND_SETUP.md`](./BACKEND_SETUP.md) |
 | Quick-start (npm scripts, dev/build/deploy) | [`README.md`](./README.md) |
 
@@ -101,9 +105,11 @@ atema-studio/
 │   ├── migrations-2026-05-branding.sql     branding columns
 │   ├── migrations-2026-05-custom-domain.sql /atema-studio/photos/ → /photos/
 │   ├── migrations-2026-05-wa.sql           wa_messages + wa_reminders_sent
+│   ├── migrations-2026-05-moodboard.sql    mood_boards table + viewed RPC
 │   ├── seed-packages-2026-05.sql           6 packages + 11 addons (UPSERT)
 │   ├── seed-journal-2026-05.sql            6 bilingual journal posts
-│   └── seed-portfolio-2026-05.sql          7 portfolio items (bride-hero lead)
+│   ├── seed-portfolio-2026-05.sql          (superseded) 7 portfolio items
+│   └── seed-portfolio-2026-05-expanded.sql 23 portfolio items, bride/couture/editorial
 ├── supabase/functions/
 │   ├── _shared/wa.ts          Meta Cloud API wrapper, HMAC verify
 │   ├── create-booking/        server-side total recompute (Patch C-3)
@@ -118,9 +124,9 @@ atema-studio/
 │   └── photos/                optimised JPEG + WebP pairs
 └── src/
     ├── App.tsx                HashRouter + React.lazy admin routes
-    ├── components/            SiteHeader, PromotionModal, MoyasarForm, …
-    ├── pages/                 BookingPage, AboutPage, AdminDashboard, …
-    ├── services/              supabase, booking, contract, invoice, moyasar
+    ├── components/            SiteHeader, PromotionModal, MoodBoardComposer, …
+    ├── pages/                 BookingPage, AboutPage, MoodBoardPage, AdminDashboard, …
+    ├── services/              supabase, booking, contract, invoice, moyasar, moodboard
     ├── theme/themes.ts        getBookingPalette(name) + theme tokens
     ├── utils/validation.ts    normalizeSaudiMobile, validEmail, …
     └── hooks/                 useLang, useBreakpoint, useAdminAuth, …
@@ -192,6 +198,25 @@ atema-studio/
 - `npm run deploy` publishes `dist/` to `gh-pages`. Don't push there manually.
 - **Never** force-push `master` or `gh-pages` without an explicit user OK.
 
+### 4.8 Mood Board (post-booking ritual)
+- After a booking is paid or `awaiting_transfer`, the admin booking modal
+  exposes a **3rd tab — "لوحة المزاج"** — where Fatima composes a private
+  editorial board for the bride.
+- The composer auto-selects 6 portfolio images keyed to `(package category
+  × season)` and drafts a bilingual title + caption in the Atelier voice.
+  Each slot is swappable from the full portfolio pool; copy is editable.
+- The board lives at `/#/board/<token>` (public, noir theme). The token is
+  32 chars of `crypto.getRandomValues` Crockford base32 (160 bits) — the
+  only secret guarding the page.
+- `viewed_at` is recorded via a `SECURITY DEFINER` RPC
+  (`mark_mood_board_viewed`), so anon can update that single column on
+  that single row, nothing else. Don't loosen RLS to allow anonymous
+  UPDATEs.
+- The composer phones home to `portfolio_items` via
+  `src/services/moodboard.ts`. Keep that service the single source of
+  truth for any future board logic (AI accent images, multi-board per
+  booking, etc.). See `docs/MANUAL.md` §13b.
+
 ---
 
 ## 5. The booking flow (one-breath summary)
@@ -217,6 +242,11 @@ Landing  →  Promo modal  →  /book
                               └─ Transfer → BankTransferPayment
                                           (copy IBAN, WA receipt,
                                            DL contract + tax invoice)
+                                    ↓
+                              (paid / awaiting_transfer)
+                                    ↓
+                              Admin composes Mood Board
+                              (optional ritual — /#/board/<token>)
 ```
 
 Payment status lifecycle: `unpaid` → `awaiting_transfer` → `paid`.
@@ -233,11 +263,13 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   CNAME `www → farajaay.github.io`.
 - GitHub Pages settings: confirm custom domain, enforce HTTPS once DNS
   propagates.
-- Run pending seeds in Supabase SQL editor:
-  - `database/seed-portfolio-2026-05.sql`
+- Run pending SQL in Supabase SQL editor (each is idempotent — safe to re-run):
   - `database/migrations-2026-05-custom-domain.sql` (fixes existing rows)
-  - `database/seed-journal-2026-05.sql` if not done yet
-  - `database/migrations-2026-05-wa.sql` for WhatsApp tables
+  - `database/migrations-2026-05-wa.sql` (WhatsApp tables)
+  - `database/migrations-2026-05-moodboard.sql` (Mood Board table + RPC)
+  - `database/seed-journal-2026-05.sql` (6 journal posts)
+  - `database/seed-portfolio-2026-05-expanded.sql` (23 portfolio items —
+    **use this, not the old `seed-portfolio-2026-05.sql`**)
 - Meta Business verification + permanent access token.
 - Submit 6 WA templates to Meta (copy from `docs/integrations/wa-platform.md` §6).
 - Supabase secrets: `META_WA_*`, `ANTHROPIC_API_KEY`, `OWNER_WA_NUMBER`,
@@ -256,15 +288,26 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   until Fatima registers)
 
 ### Design parking lot (not built — discuss before starting)
-- AI Concierge bilingual conversational booking
-- AI Mood Board (post-booking)
-- Voice-note transcription
-- `/admin/conversations` live monitor UI
-- Customer reminder opt-out checkbox at booking time
+**Pre-discussed order from last session:**
+1. **Studio-wide P&L dashboard (monthly aggregate rollup)** — next when
+   owner is ready. Currently only per-booking P&L exists. Big shape calls
+   before building: route (`/admin/pnl` vs new tab), time bucket
+   (month-only vs month+quarter+year), per-tier breakdown depth.
+2. **/policy public page** (T&C + refund + PDPL) — required for Moyasar
+   live activation. ~2 hr build, lifts existing TC_CONTENT / PDPL_CONTENT
+   constants out of `BookingPage.tsx` popups into a standalone page.
+
+**Still parked, not yet ordered:**
+- AI Concierge bilingual conversational booking (recommend WA pilot first)
+- Voice-note transcription (high value for KSA WA volume)
 - Refund-deposit button in admin booking modal
-- Studio-wide P&L dashboard (monthly aggregate)
-- Tap Payments as a secondary gateway (cheaper Mada fees)
-- `/policy` public page (required for Moyasar live activation)
+- Customer reminder opt-out checkbox at booking time
+- `/admin/conversations` live monitor UI (only when WA volume justifies)
+- Tap Payments as a secondary gateway (only when Mada volume justifies)
+
+**Done in recent sessions (do not re-build):**
+- ✅ Mood Board (post-booking ritual page) — shipped commit `dc1655b`
+- ✅ Expanded portfolio (23 items) — shipped commit `0a99efc`
 
 Full tracker: [`docs/bugs.md`](./docs/bugs.md).
 
@@ -300,4 +343,5 @@ the canonical voice samples.
 
 ---
 
-*Last updated: 2026-05 (Phase 5 — Couture Noir + custom domain + WA lifecycle)*
+*Last updated: 2026-05-20 (Phase 5 — Couture Noir + custom domain + WA
+lifecycle + Mood Board + 23-photo portfolio)*
