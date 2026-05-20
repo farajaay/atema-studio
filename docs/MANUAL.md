@@ -352,6 +352,70 @@ step. Production URL: <https://atemastudio.xyz>.
 
 ---
 
+## 13b. Mood Board (post-booking editorial surface)
+
+After a booking is paid (or marked *awaiting transfer*), Fatima can compose a
+**Mood Board** — a private, editorial 6-image page shared with the bride via
+WhatsApp. It transforms the gap between *booking confirmed* and *event day*
+into a felt ritual: *"this is how we already see your day."*
+
+### How to compose one
+
+1. Open **Admin → Dashboard**, click any booking to open the detail modal.
+2. Switch to the **لوحة المزاج** (Mood Board) tab — the third tab next to
+   Details and P&L.
+3. The composer auto-fills:
+   - **6 images** chosen from your published portfolio, filtered by the
+     bride's package category + event season
+   - **Bilingual title + caption** drafted in the Atelier voice
+4. Edit anything:
+   - Click any image slot → swap from the full portfolio pool
+   - Click **إعادة الاختيار تلقائيًا** to reshuffle the 6
+   - Edit the four text fields (title AR/EN, caption AR/EN)
+5. Click **حفظ** → the board is saved with a private URL
+6. Click **معاينة** to open it in a new tab (`/#/board/<token>`)
+7. Click **إرسال عبر واتساب** to open a pre-filled WhatsApp message to the
+   bride containing the link
+
+### What the bride sees
+
+A noir-themed editorial page at `/#/board/<token>` with:
+- Hero with bilingual title + a thin gold rule
+- 2×3 image grid (1×6 on mobile) with FadeUp reveals + `<picture>` WebP +
+  JPEG fallback
+- "A Letter from the Atelier" — your caption in Amiri italic Arabic +
+  Cormorant italic English
+- Signature: **FATIMA · ATEMA STUDIO**
+
+### Privacy & lifecycle
+
+- The board's URL contains a 32-character random token (160 bits of
+  entropy) — unguessable, the only secret
+- First open silently marks `viewed_at` so you can see in the composer
+  whether she's opened it
+- The composer shows two badges next to her name: `✓ تم الإرسال` once
+  you've clicked the WA button, and `👁 تم العرض` once she opens the page
+- If the booking is deleted, the board cascades with it
+- Boards are per-booking (one per booking) — re-opening the composer
+  edits the existing one
+
+### Building the portfolio pool
+
+The composer can only pick from images you've published in
+**Admin → Portfolio Manager**. The richer that library, the more varied
+the boards. Aim for at least 4–6 published items in each of `bride`,
+`couture`, and `editorial` so the auto-selection has room to breathe.
+
+### Where it lives in code
+
+- DB: `database/migrations-2026-05-moodboard.sql` (`mood_boards` table +
+  `mark_mood_board_viewed` RPC)
+- Service: `src/services/moodboard.ts`
+- Admin composer: `src/components/MoodBoardComposer.tsx`
+- Public page: `src/pages/MoodBoardPage.tsx`
+
+---
+
 ## 14. Future enhancements (parked)
 
 - **WhatsApp automation** — see [`docs/integrations/whatsapp.md`](./integrations/whatsapp.md).

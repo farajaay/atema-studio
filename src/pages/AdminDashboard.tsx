@@ -6,6 +6,7 @@ import type { Booking } from '../hooks/useAdminData';
 import { ATEMA_COLORS } from '../config/constants';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { PLTab } from '../components/PLTab';
+import MoodBoardComposer from '../components/MoodBoardComposer';
 import AdminCalendar from '../components/AdminCalendar';
 import AppSettingsPanel from '../components/AppSettingsPanel';
 import { useAppSettings } from '../hooks/useAppSettings';
@@ -14,7 +15,7 @@ import {
   Search, Eye, Trash2, CheckCircle2,
   Clock, XCircle, CircleDollarSign, Users, AlertCircle,
   Loader2, X, Phone, Mail, MapPin, StickyNote, Save, TrendingUp, Layers,
-  Image as ImageIcon, BookOpen
+  Image as ImageIcon, BookOpen, Sparkles
 } from 'lucide-react';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
@@ -79,7 +80,7 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
   booking: Booking; onClose: () => void; onSave: (id: string, updates: Partial<Booking>) => Promise<boolean>;
   globalVatEnabled: boolean;
 }) {
-  const [tab, setTab]         = useState<'details' | 'pl'>('details');
+  const [tab, setTab]         = useState<'details' | 'pl' | 'mood'>('details');
   const [status, setStatus]   = useState<Booking['status']>(booking.status);
   const [payment, setPayment] = useState<Booking['payment_status']>(booking.payment_status);
   const [notes, setNotes]     = useState(booking.special_requests || '');
@@ -143,6 +144,7 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
           {([
             { key: 'details', label: 'التفاصيل',       icon: <Package size={14} /> },
             { key: 'pl',      label: 'الأرباح والخسائر', icon: <TrendingUp size={14} /> },
+            { key: 'mood',    label: 'لوحة المزاج',     icon: <Sparkles size={14} /> },
           ] as const).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '12px 16px', border: 'none',
@@ -157,6 +159,7 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
 
         <div style={{ padding: '24px' }}>
           {tab === 'pl' && <PLTab booking={booking} />}
+          {tab === 'mood' && <MoodBoardComposer booking={booking} />}
           {tab === 'details' && <>
           {/* Customer Info */}
           <div style={{ background: ATEMA_COLORS.softIvory, borderRadius: '10px', padding: '16px 18px', marginBottom: '20px' }}>
