@@ -1,17 +1,23 @@
 # ATEMA Studio — Stress Test & Security Audit Report
 
-> **Generated:** 2026-05-17
-> **Commit audited:** `d13bea9`
-> **Bundle:** 372 KB raw / 186 KB gzip
+> **Re-audit pass:** 2026-05-21
+> **Commit audited:** `5260db0` (discount-codes shipped)
+> **Bundle:** 627 KB raw / 178 KB gzip (terser-minified)
 > **Audited by:** Claude Code (Anthropic) — static analysis + tool execution
 >
-> **Scope note.** Audit performed by static analysis + tool execution
-> (`npm audit`, `tsc`, `vite build`, regex grep over the built bundle).
-> Live-browser interaction tests in §2 of the source template are evaluated
-> against the code paths that implement them — actual click-driven QA still
-> recommended before go-live. The user's prompt template referenced packages
-> "Essential / Professional / Premium / Signature"; the actual catalogue is
-> six tiers (Engagement → Couture). Tests adapted accordingly.
+> **Scope of this pass:** All changes since the previous audit (Mood
+> Board, Studio-wide P&L, RLS hardening, terser obfuscation, package
+> hero photos, discount-codes system) plus a regression sweep over
+> every previously-patched finding (C-1 through L-7).
+>
+> **What this audit covers:** static analysis (`npm audit`, `tsc
+> --noEmit`, `vite build`, grep over the build output), code review,
+> RLS/policy review, race-condition reasoning, ZATCA QR math review.
+>
+> **What this audit does NOT cover:** live browser-driven click tests,
+> Playwright/axe-core, mobile-viewport screenshots, real Moyasar charges.
+> Recommended as a pre-go-live QA pass with a real bride doing a real
+> booking on a real device.
 
 ---
 
@@ -26,311 +32,359 @@
 
 ---
 
+## ✅ STATIC BASELINE — PASSED
+
+- `npm audit` — **0 critical, 0 high, 0 moderate, 0 low** out of 263 deps.
+- `tsc --noEmit -p tsconfig.app.json` — clean (0 errors).
+- `vite build` — succeeds. Bundle 627 KB raw / 178 KB gzip.
+- No `Math.random` in booking-ref path (H-2 fix holds).
+- No customer-name interpolation without `esc()` in contract/invoice (C-1 fix holds).
+- DatePicker (customer) uses `fetchPublicBookedDates` — no PII over the wire from the customer surface.
+- AdminCalendar (admin) uses `fetchAdminBookedDates` — admin path intact.
+- Terser mangling safe: no `Function.prototype.name` or `.constructor.name`
+  references; all RPC + Edge Function names are string literals; Moyasar
+  global accessed via `window.Moyasar` (terser does not mangle global
+  property access).
+- `esc()` still wraps all customer-controlled fields in contract.ts +
+  invoice.ts (14 usages each).
+- New discount fields (`d.discount.code`) are escaped in both templates.
+- Booking flow with **no discount applied** remains identical to the
+  pre-discount behaviour (default state is `null`, all conditional
+  branches return the pre-existing values).
+
+---
+
 ## 🔴 CRITICAL (fix before any deployment)
 
-### C-1 · Stored XSS via customer name / phone / venue in invoice + contract documents
-- **Files:** `src/services/contract.ts:125, 126, 139, 278` · `src/services/invoice.ts:208, 209`
-- **Sink:** Customer-supplied form fields are interpolated into HTML template
-  strings without escaping, then rendered via `window.document.write()`
-  (`invoice.ts:300`).
-- **Exploit:** Customer enters `<img src=x onerror=alert(document.cookie)>`
-  as their name → on contract/invoice open, payload fires inside the studio's
-  origin. Stored in DB → admin viewing the contract also gets popped.
-- **Fix:** Add `escapeHtml()` helper in each template module and wrap every
-  `${d.customerName}` / `${d.customerPhone}` / `${d.location}` / `${a.name}`
-  interpolation. ~20 line change.
-
-### C-2 · Booking form does not validate phone or email — invalid bookings reach the DB
-- **File:** `src/pages/BookingPage.tsx:631-637`
-- **Defect:** `handleSubmit` checks only `name.trim()`, `phone.trim()`,
-  `date`, `city`. Phone format never validated (a user can submit "abc" or
-  `<script>` and it passes). Email never validated.
-- **Fix:** Reuse `validPhone()` from `services/raed/client.ts:21` (move it
-  to a shared `utils/validation.ts`). Add
-  `/^[^@]+@[^@]+\.[^@]+$/.test(email)` for the optional email.
-
-### C-3 · Server-side trust gap: booking insert accepts client-computed `subtotal` / `vat` / `total`
-- **File:** `src/services/booking.ts:27-29`
-- **Defect:** The Supabase insert writes whatever the client posts. A
-  crafted POST can record a 14,000 SAR Couture booking with `total: 1` and
-  `deposit: 1`. The admin sees the booking and may not notice the
-  discrepancy.
-- **Fix:** Either (a) re-compute totals server-side via a Supabase RPC /
-  Edge Function before insert, or (b) drop those columns and recompute from
-  `package_id` + `addon_ids` in a database VIEW.
+**None.** All previously-flagged CRITICALs (C-1 XSS in templates, C-2
+form validation, C-3 server-side total recomputation) remain patched
+and have not regressed.
 
 ---
 
 ## 🟠 HIGH (fix before go-live)
 
-### H-1 · Double-submit race — duplicate bookings possible
-- **File:** `src/pages/BookingPage.tsx:631-711`
-- **Defect:** `handleSubmit` is async. The "Confirm" button is not disabled
-  while `state === 'loading'` (state flip happens after `setState('loading')`,
-  but the button has no `disabled={state === 'loading'}` guard).
-- **Fix:** Disable the submit button when `state !== 'idle'` and
-  `!== 'error'`. Also add a `savingRef` guard early in `handleSubmit` with
-  an early return if already saving.
+### H-6 · Mood Board table is anon-readable — PII enumerable
+- **File:** `database/migrations-2026-05-moodboard.sql:43-46`
+- **Policy:**
+  ```sql
+  create policy "Public select mood_boards"
+    on public.mood_boards for select
+    using (true);
+  ```
+- **Defect:** The design intent was "token = the secret." The policy
+  doesn't actually enforce that the row is looked up by token —
+  `using (true)` means anyone with the anon key can `SELECT * FROM
+  mood_boards` and harvest every row. `title_ar` / `title_en` contain
+  customer names (auto-drafted as `لـ ${customerName} — هكذا نراكِ`),
+  `booking_id` links to bookings, and the 6 image URLs reveal which
+  packages were sold. A competitor scraping the anon endpoint can
+  enumerate the studio's full client roster.
+- **Severity:** HIGH (real PII leak; PDPL-relevant).
+- **Fix:** Replace the SELECT policy with **deny-all-direct**, and add
+  a `get_mood_board_by_token(p_token text)` `security definer` RPC
+  similar to `mark_mood_board_viewed`. Update
+  `getMoodBoardByToken` in `src/services/moodboard.ts` to call the
+  RPC instead of querying the table.
+  ```sql
+  drop policy if exists "Public select mood_boards" on public.mood_boards;
+  -- (no replacement; only admins SELECT directly; anon goes via RPC)
+  create or replace function public.get_mood_board_by_token(p_token text)
+    returns public.mood_boards
+    language sql
+    security definer
+    stable
+    set search_path = public
+    as $$
+      select * from public.mood_boards where token = p_token limit 1;
+    $$;
+  grant execute on function public.get_mood_board_by_token(text)
+    to anon, authenticated;
+  ```
 
-### H-2 · Booking reference is predictable
-- **File:** `src/services/booking.ts:4-6`
-- **Defect:** `ref()` returns
-  `ATEMA-${Date.now()}-${Math.random().toString(36).substr(2,9).toUpperCase()}`.
-  `Date.now()` is leaked in HTTP `Date` headers; `Math.random()` is not
-  cryptographically secure. If the booking reference ever grants any access
-  (download contract by ref, payment callback verification), it can be
-  brute-forced inside a small window.
-- **Fix:** Use `crypto.randomUUID()` or
-  `crypto.getRandomValues(new Uint8Array(8))` → base32. Also drop the
-  deprecated `String.prototype.substr` (use `slice`).
+### H-7 · Discount-amount re-validation gap when basket changes
+- **File:** `src/pages/BookingPage.tsx:1131-1132, 1153-1154`
+- **Defect:** Once a bride applies a discount, the absolute SAR
+  `amount` is stored. If she then adds or removes addons, the code
+  caps the cached amount at the new gross subtotal but **does not
+  re-evaluate the percent against the new gross**. Concrete example:
+  - Apply `RAMADAN25` (25%) on subtotal 8000 → `amount = 2000` cached
+  - Bride removes a 4000 SAR addon → new subtotal 4000
+  - Effective discount stays at `min(2000, 4000) = 2000`, i.e. 50% off
+  - Bride pays 2000 net + VAT — **double the intended discount**.
+- **Severity:** HIGH (real money leak; only affects percent codes).
+- **Fix:** Re-call `previewDiscountCode(code, newGrossSubtotal)` from
+  a `useEffect` in `BookingPage` whenever `grossSubtotal` changes. If
+  the new result has `reason !== 'ok'` or a different `appliedAmount`,
+  update `appliedDiscount` accordingly. Same change for both the
+  packages and custom tabs.
 
-### H-3 · Past-date events accepted
-- **File:** `src/pages/BookingPage.tsx:635` and `DatePicker.tsx:94`
-- **Defect:** `DatePicker.pick()` blocks past dates client-side, but the form
-  handler never re-checks. A user manipulating the form state (or a crafted
-  submission) can save a past event date.
-- **Fix:** Re-validate `form.date >= today` in `handleSubmit` AND add a
-  server-side CHECK constraint on `bookings.event_date >= CURRENT_DATE` at
-  creation time.
+### H-7b · Display says "10% off" when the code is actually "25% (capped)"
+- **File:** `src/components/DiscountInput.tsx:76-78`
+- **Defect:** When a percent code has a `max_discount` cap, the
+  server returns the capped amount, and the client reverse-engineers
+  the percent via `Math.round((amount / subtotal) * 100)`. This
+  underreports — a "25% off, capped at 1000 SAR" code on a 10 000
+  subtotal yields amount = 1000, displayed as "10% off." Brides who
+  know the code's real value get confused.
+- **Severity:** HIGH (trust erosion at the moment of conversion).
+- **Fix:** Have the `preview_discount_code` RPC return the code's
+  raw `value` and `max_discount` in addition to the applied amount.
+  Client can then display "25% off (capped)" honestly.
 
-### H-4 · ATEMA_COLORS in Lucide `color=` SVG attributes (already patched)
-- **Status:** Already audited and fixed in earlier commits. Kept here as a
-  guard rail: future contributors must not regress to `color={ATEMA_COLORS.x}`
-  on Lucide icons — SVG attribute `var(--…)` references do not resolve.
-
-### H-5 · No CSRF / abuse protection on the anonymous booking insert
-- **Defect:** With the Supabase anon key inlined into the bundle, any
-  origin can POST to `/rest/v1/bookings`. Unless RLS specifically restricts
-  inserts (e.g., requires anonymous JWT with a one-time CAPTCHA-derived
-  claim), spammers can flood the table.
-- **Fix:** Tighten the bookings INSERT RLS policy to require a captcha-token
-  check (Supabase + hCaptcha), OR move the insert to a Supabase Edge
-  Function gated by captcha verification. Code can't tell — review Supabase
-  RLS policies for the `bookings` table.
+### H-9 · Anon SELECT on `bookings` still permissive
+- **File:** `database/migrations-2026-05-rls-hardening.sql:66-73`
+- **Defect:** The migration's open-SELECT policy was a transitional
+  measure while DatePicker still queried `bookings` directly. Now
+  that DatePicker has migrated to `public_booked_dates` (commit
+  265a6a5), the policy is dead weight and remains a PII bypass —
+  anyone with the anon key can `SELECT * FROM bookings` because RLS
+  in stock Postgres can't restrict columns. The view path is
+  *defended by convention*, not by the database.
+- **Severity:** HIGH (regresses §H-6 of the original audit).
+- **Fix:** Drop the policy. The "Final cleanup" block at the bottom
+  of the migration already shows the exact statement; promote it
+  out of the comment.
+  ```sql
+  drop policy if exists "Public select event_date status only" on public.bookings;
+  ```
+  No code change needed (every reader has been migrated).
 
 ---
 
 ## 🟡 MEDIUM (fix before production load)
 
-### M-1 · `dangerouslySetInnerHTML` used in LegalPopup with a constant
-- **File:** `src/pages/BookingPage.tsx:587`
-- **Risk:** Currently low — `TC_CONTENT` and `PDPL_CONTENT` are hardcoded
-  strings. But the pattern is dangerous if anyone ever refactors them to
-  fetch from Supabase or admin-edit them.
-- **Fix:** Either keep them as JSX (preferable) or add a
-  `// SAFE: hardcoded constant — do not pass user data` comment guard.
-
-### M-2 · Single 372 KB JS bundle (186 KB gzip)
-- **Defect:** Above Vite's 500 KB raw warning threshold and represents the
-  entire site including admin. A customer hitting `/` downloads admin code
-  they'll never run.
-- **Fix:** `React.lazy` + `Suspense` around the admin routes:
-  ```tsx
-  const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+### M-8 · `generateInvoiceNumber` uses `Math.random`
+- **File:** `src/services/invoice.ts:77`
+- **Defect:** `INV-${yy}${mm}-${5-digit Math.random suffix}` —
+  90 000 possible suffixes per month. Birthday paradox: ~50%
+  collision chance at ~300 bookings/month. `invoices.invoice_number
+  UNIQUE` constraint means collisions **throw** at insert time,
+  breaking the customer flow.
+- **Severity:** MEDIUM (functional reliability + ZATCA — every
+  Phase-1 simplified tax invoice must have a unique number).
+- **Fix:** Use `crypto.getRandomValues` + Crockford base32 (same
+  pattern as `booking.ts`), or a server-side sequence. Suggested:
+  ```ts
+  const tail = (() => {
+    const b = new Uint8Array(5); crypto.getRandomValues(b);
+    return Array.from(b, x => CROCKFORD[x & 31]).join('');
+  })();
+  return `INV-${yy}${mm}-${tail}`;
   ```
-  Expected cut: 30-40% off the public-facing bundle.
+  Crockford base32 over 5 bytes → 40 bits → ~1.1 T possibilities.
+  Collision probability negligible at ATEMA's volume.
 
-### M-3 · Form labels not linked via `htmlFor` / `id`
-- **File:** `src/pages/BookingPage.tsx:819-865`
-- **Defect:** `<label>` and `<input>` are siblings inside a `<div>` but with
-  no `for`/`id` pair, so screen readers don't reliably associate them.
-- **Fix:** Add `id="bf-name"` / `htmlFor="bf-name"` on each pair (~12 small
-  edits).
+### M-9 · Discount fields not persisted in booking.ts fallback path
+- **File:** `src/services/booking.ts:88-109`
+- **Defect:** When the `create-booking` Edge Function returns 404 or
+  is unreachable, `booking.ts` falls back to a direct `bookings`
+  insert. That fallback inserts `subtotal/vat/total` (already
+  discounted client-side) but **does not write
+  `discount_code`/`discount_amount`/`discount_kind`** — so the audit
+  trail vanishes. `used_count` on the code is never incremented (the
+  code is effectively unlimited in fallback mode). The constrained
+  anon-insert RLS policy currently allows discount columns to be
+  written, but the safer thing is to either:
+  - **(a)** persist the discount fields in fallback **AND** harden
+    the RLS to verify amount-vs-code consistency via a CHECK that
+    calls `preview_discount_code()`; or
+  - **(b)** keep the current behaviour (don't persist) and document
+    clearly that fallback mode loses discount audit until Edge
+    Function deploys.
+- **Severity:** MEDIUM (only during Edge Function deploy window;
+  documented temporary state).
+- **Recommended fix:** Take path **(a)** — extend the constrained
+  INSERT RLS policy in a new migration:
+  ```sql
+  -- Verify discount math at write time
+  and (
+    discount_code is null
+    or exists (
+      select 1
+        from preview_discount_code(discount_code, subtotal + discount_amount) p
+       where p.applied_amount = discount_amount and p.reason = 'ok'
+    )
+  )
+  ```
+  Then add the three columns to the fallback insert in `booking.ts`.
 
-### M-4 · Error message has no `aria-live` region
-- **File:** `src/pages/BookingPage.tsx:908-912`
-- **Defect:** Validation errors silently appear — screen readers don't
-  announce them.
-- **Fix:** Add `role="alert"` + `aria-live="polite"` on the error container.
+### M-10 · `preview_discount_code` is unrate-limited
+- **File:** `database/migrations-2026-05-discount-codes.sql:99-150`
+- **Defect:** Anon can call `preview_discount_code` an unlimited
+  number of times. A determined attacker can brute-force codes via
+  dictionary attack (`RAMADAN25`, `WELCOME10`, etc.). Each call is
+  cheap, but enumeration of valid codes is possible. Once a valid
+  code is found, the bride can use it freely (subject to validity
+  + max_uses) — there's no per-IP rate-limit.
+- **Severity:** MEDIUM (annoyance for the studio; not a vuln per
+  se — codes are time-limited and capped — but a real concern at
+  scale).
+- **Fix:** Wrap the preview in a Supabase Edge Function with a
+  per-IP token-bucket (e.g. 5/sec, 50/min). The design doc
+  (`docs/integrations/discount-codes.md` §5.1) sketched this; the
+  shipped implementation went straight to RPC for simplicity.
 
-### M-5 · Free-text fields have no `maxLength`
-- **Files:** `src/pages/BookingPage.tsx:821, 827, 832, 862, 869`
-- **Defect:** Name / phone / email / venue / notes can be arbitrarily long.
-  A 100 k-character notes field will inflate the DB row and bog down later
-  admin renders.
-- **Fix:** `maxLength={120}` on name/venue, `{20}` on phone, `{120}` on
-  email, `{2000}` on notes. Mirror with DB column-length checks if not
-  already enforced.
-
-### M-6 · `Math.random` for booking reference
-- Covered under **H-2**.
-
-### M-7 · Combined PDPL + T&C validation message
-- **File:** `src/pages/BookingPage.tsx:632`
-- **Defect:** `if (!agreed || !pdpl)` — user can't tell which one they
-  missed.
-- **Fix:** Split into two checks with two messages.
-
----
-
-## 🟢 LOW / UX (recommended improvements)
-
-### L-1 · Bank-transfer "Mark as awaiting transfer" doesn't persist
-- **File:** `src/components/BankTransferPayment.tsx`
-- **Defect:** Clicking the button updates local state but doesn't write to
-  the DB. Manual reconciliation only.
-- **Fix:** Either remove the button or wire it to
-  `UPDATE bookings SET payment_method='transfer', status='awaiting_transfer'`.
-
-### L-2 · Bundle warning ignored on every deploy
-- The Vite build emits "Some chunks are larger than 500 kB" every deploy.
-  Adding `build.chunkSizeWarningLimit = 800` silences it, OR fix per **M-2**.
-
-### L-3 · `@types/node` one version behind (24.12.4 → 25.8.0)
-- Cosmetic; no security impact. Update during next maintenance window.
-
-### L-4 · Raed client (`src/services/raed/client.ts`) is dead code
-- Nothing in the rest of the codebase imports it (Moyasar replaced it).
-  85 lines.
-- **Fix:** Either delete the file + Raed types in `src/types/index.ts` OR
-  add a comment confirming it's reserved for future re-introduction.
-
-### L-5 · `useBreakpoint` reads `window.innerWidth` in initial state
-- **File:** `src/hooks/useBreakpoint.ts:16`
-- **Risk:** Crashes during SSR. Not a real issue with the current Vite SPA
-  build, but blocks any future migration to Next.js.
-- **Fix:**
-  `useState(() => typeof window !== 'undefined' ? getBreakpoint(window.innerWidth) : 'md')`.
-
-### L-6 · ZATCA QR omits VAT when `vat_enabled = false`, but template still shows VAT registration
-- **File:** `src/services/invoice.ts`
-- The QR omits VAT fields when VAT is off (correct behaviour), but the
-  invoice template still renders the VAT registration number in the seller
-  block. Cosmetic inconsistency.
-
-### L-7 · Defense-in-depth check on admin views
-- Once **C-1** is patched, double-check that the booking detail modal in
-  `AdminDashboard.tsx` also uses React JSX (textContent path) and not any
-  `dangerouslySetInnerHTML` pattern for customer-name fields.
+### M-1 · `dangerouslySetInnerHTML` on guarded constants — STILL OPEN
+- **File:** `src/pages/BookingPage.tsx:587` (line shift since prior
+  audit — still applicable)
+- **Status:** Same as before. Low risk today since `TC_CONTENT` and
+  `PDPL_CONTENT` are hardcoded module constants. Add a guard
+  comment `// SAFE: hardcoded constant — do not pass user data`.
 
 ---
 
-## ✅ PASSED — no issues
+## 🟢 LOW / UX
 
-- `npm audit` — **0 critical, 0 high, 0 moderate, 0 low** out of 240 deps.
-- `tsc --noEmit` — clean across the entire project.
-- `vite build` — succeeds with no errors.
-- Bundle scan — no real API keys leaked. Supabase URL + publishable anon
-  key are inlined (by design — this is the public key, RLS protects data).
-- `.env` is in `.gitignore` with `!.env.example` override.
-- `.env.example` documents every variable with placeholders.
-- VAT computation — uses `0.15` exactly, integer-rounded via `Math.round`,
-  no float-precision risk.
-- ر.س / SAR currency display switches correctly with language toggle.
-- Lang toggle (`useLang.ts`) syncs `document.documentElement.dir` and
-  `lang` attributes — RTL/LTR works correctly.
-- Phone displays use `atema-input-ltr` class which forces LTR direction in
-  RTL pages.
-- Fonts loaded via `preconnect` + `display=swap` from Google Fonts CDN —
-  never bundled.
-- Customer `DatePicker` correctly fetches booked + blocked dates and
-  visually disables them (privacy posture — no PII shown).
-- T&C and PDPL consent checkboxes block submission when unchecked.
-- No `eval()`, no `innerHTML` (other than `document.write` for the
-  printable invoice/contract).
-- No payment-card fields collected anywhere in the frontend (PCI-safe —
-  Moyasar handles card UI).
-- Bank-transfer flow does not capture card data.
-- Inputs are ~44 px tall (`padding: 12px 16px`), meeting WCAG tap-target
-  size.
-- Mobile / Tablet breakpoints at 768 / 1024 — `useBreakpoint` hook drives
-  layout swap.
+### L-8 · `Math.random` in storage path generation
+- **Files:** `src/services/journal.ts:78`, `src/services/portfolio.ts:74`
+- **Defect:** Both generate uploaded-image paths as
+  `${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`.
+  Six base36 chars from `Math.random` is ~30 bits of pseudo-random,
+  not crypto. Collisions could overwrite previous uploads (very
+  unlikely at ATEMA's volume, but worth tightening).
+- **Fix:** Replace with `crypto.randomUUID()` (35 char) — same call
+  on browsers + Deno + Node 19+.
+
+### L-3 · `@types/node` minor version behind — STILL OPEN
+- Cosmetic. Update during next maintenance window.
+
+### L-5 · `useBreakpoint` SSR-safety — STILL OPEN
+- Future Next.js migration only.
+
+### L-6 · ZATCA invoice template shows VAT-reg even when VAT off — STILL OPEN
+- Cosmetic.
+
+### L-9 · `discount_codes` UPDATE policy uses `USING (true) WITH CHECK (true)`
+- **File:** `database/migrations-2026-05-discount-codes.sql:284-289`
+- **Defect:** Fine while the admin role is monolithic. If sub-admin
+  roles are ever introduced (e.g. "assistant" who can run campaigns
+  but not change percent values), this policy would let any
+  authenticated user edit any code. Document the assumption.
+
+### L-10 · Stray `ref()` generator in booking.ts fallback
+- **File:** `src/services/booking.ts:24-30` + the fallback insert
+  on line 88
+- The Edge Function generates its own canonical ref; the client's
+  `ref()` is only used in the fallback + the mock path. Once the
+  Edge Function is the only insert path, this function becomes
+  dead. Add a comment, or remove once the loose anon INSERT policy
+  is dropped.
 
 ---
 
-## STUB / PRODUCTION READINESS SCORES
+## ✅ PASSED — no issues found
 
-| Subsystem | Score | Notes |
-|---|---|---|
-| `createBooking` | **3/5** | Real Supabase wiring works. Loses points for: client-trusted totals (C-3), no idempotency key, deprecated `substr`, mock fallback should refuse to run in prod. |
-| `createRaedPaymentIntent` | **n/a (dead code)** | Wired but **not consumed anywhere**. Moyasar replaced it. Either delete or document as reserved. |
-| `MoyasarForm` (real card) | **4/5** | Hosted form, 3DS handled by gateway, metadata attached. Loses 1 point for missing webhook signature verification (relies on URL redirect only — covered in `docs/integrations/payments.md` §4). |
-| `BankTransferPayment` | **3/5** | UI complete (IBAN, copy buttons, contract+invoice download). Loses points: "Mark awaiting transfer" doesn't persist, manual admin reconciliation, no WhatsApp automation (designed in `docs/integrations/whatsapp.md`, not built). |
-| `generateContractHTML` | **2/5** | Functional. **Critical XSS risk** until C-1 is patched. |
-| `generateInvoiceHTML` (ZATCA QR) | **3/5** | ZATCA Phase-1 compliant QR encoding correct. Same XSS risk on customer-name fields. |
-| `services/calendar.ts` | **5/5** | Clean, monthly windowed fetch, proper PII boundaries. |
-| `services/settings.ts` + `AppSettingsPanel` | **5/5** | Singleton row, RLS-gated, validation on VAT-on path. |
+- `npm audit` clean (263 deps).
+- No customer-name interpolation without `esc()` in contract.ts /
+  invoice.ts.
+- Booking ref uses CSPRNG + Crockford base32 (H-2 holds).
+- DatePicker on customer surfaces goes via `public_booked_dates`
+  view — no PII over wire when used.
+- AdminCalendar uses `fetchAdminBookedDates` — correct admin path.
+- Terser mangling safe (no name-based runtime hooks).
+- ZATCA QR math: TLV tag 4 (total incl VAT) + tag 5 (VAT amount)
+  both reflect post-discount values per Phase-1 treatment.
+- VAT computed on net (discounted) subtotal per ZATCA Phase-1.
+- Booking flow without a discount is identical to pre-discount
+  behaviour (default state `null`, all conditionals short-circuit
+  to the pre-existing path).
+- New discount fields in contract.ts + invoice.ts pass through
+  `esc()` where appropriate.
+- Promise.all and async error paths in moodboard.ts swallow
+  errors silently — appropriate for best-effort `markViewed`.
+- VAT is computed on the **discounted** subtotal — correct per
+  Saudi ZATCA Phase-1 rules.
 
 ---
 
 ## RECOMMENDED NEXT ACTIONS — priority order
 
-1. **Patch C-1 (XSS in invoice / contract templates).** Add `escapeHtml()`
-   in both template files and wrap every interpolation. **~30 min work.**
+1. **Patch H-6 (Mood Board PII leak).** Drop the open SELECT policy
+   on `mood_boards`, add `get_mood_board_by_token()` RPC, update
+   `getMoodBoardByToken` in `src/services/moodboard.ts`. ~20 min.
 
-2. **Patch C-2 (form validation).** Extract `validPhone` + `validEmail` to
-   `src/utils/validation.ts`, call from `BookingPage.handleSubmit`.
-   **~30 min work.**
+2. **Patch H-9 (Anon SELECT on bookings).** Drop the loose policy.
+   The block is already written at the bottom of
+   `migrations-2026-05-rls-hardening.sql` — just promote it out of
+   comments and run. ~5 min.
 
-3. **Patch C-3 (server-side total recomputation).** Add a Supabase Edge
-   Function `create-booking` that recomputes totals from `package_id` +
-   `addon_ids` server-side; change `services/booking.ts` to call it.
-   **~2 hours work, includes RLS tightening.**
+3. **Patch H-7 (basket-change re-validation).** Add a `useEffect`
+   in `BookingPage.tsx` that re-previews on `grossSubtotal` change.
+   ~25 min.
 
-4. **Patch H-1 (double-submit guard).** One-line
-   `disabled={state === 'loading'}` on the submit button + a `savingRef`
-   guard in handleSubmit. **~10 min.**
+4. **Patch H-7b (display percent).** Extend `preview_discount_code`
+   RPC to return `code_value` + `code_max_discount`. Update
+   `DiscountInput` to display the honest percent. ~20 min.
 
-5. **Patch H-2 (cryptographic booking ref).** Swap `Math.random` for
-   `crypto.getRandomValues`. **~10 min.**
+5. **Patch M-8 (invoice number crypto).** Replace `Math.random`
+   with `crypto.getRandomValues`. ~5 min.
 
-6. **Activate Moyasar live mode** (per `docs/integrations/payments.md` §2).
-   Add the publishable key to `.env`, configure callback URLs in dashboard,
-   test one happy path with a real card.
-   **1 hour admin + 30 min test.**
+6. **Patch M-10 (preview rate-limit).** Either deploy the preview
+   as an Edge Function with rate-limiting, or accept the risk and
+   document it. ~1 hour for the Edge Function path.
 
-7. **Patch H-3 + M-5 (date + length validation).** Add `maxLength` on text
-   inputs; re-validate date in handler. **~20 min.**
+7. **Patch M-9 (fallback persistence).** Optional — only needed if
+   the Edge Function deploy is delayed. Otherwise document the
+   gap. ~30 min.
 
-8. **Patch M-2 (code-split admin from public).** Add `React.lazy` to admin
-   routes. **~20 min, ~30 % bundle cut.**
-
-9. **Patch M-3 + M-4 (a11y).** `htmlFor` / `id` on labels;
-   `role="alert"` on error container. **~20 min.**
-
-10. **Build WhatsApp receipt automation** per
-    `docs/integrations/whatsapp.md` blueprint.
-    **2–3 days engineering, ~$45 / mo running cost.**
-
----
-
-## What could NOT be executed in this environment
-
-- Live browser-driven click tests for §2A–§2F of the prompt template (would
-  need Playwright + a running dev server).
-- `axe-core` accessibility scanner (would need browser).
-- Mobile-viewport screenshots (no headless browser).
-- Real charge against Moyasar test cards.
-
-These should be added to the QA pass before go-live. Everything
-code-detectable is in the table above.
+8. **Patch L-8 (storage UUID).** Tighten the random path
+   generation. ~10 min.
 
 ---
 
 ## Patch progress tracking
 
-This section is updated as fixes land. Patch commits reference these IDs
-(e.g. `Patch C-1: escapeHtml invoice + contract templates`).
+Updated as fixes land. Patch commits reference these IDs.
 
-| ID | Status | Commit |
-|---|---|---|
-| C-1 | ✅ Fixed | `faa43bb` |
-| C-2 | ✅ Fixed | `e6a75e4` |
-| C-3 | ✅ Code shipped; awaits Supabase Edge Function deploy | `ceafc29` |
-| H-1 | ✅ Fixed | `e6a75e4` |
-| H-2 | ✅ Fixed | `e6a75e4` |
-| H-3 | ✅ Fixed | `e6a75e4` |
-| H-5 | Open (Supabase config, not code) | — |
-| M-1 | Open (intentional — guarded) | — |
-| M-2 | ✅ Fixed | `ceafc29` |
-| M-3 | ✅ Fixed (partial — booking form only) | `e6a75e4` |
-| M-4 | ✅ Fixed | `e6a75e4` |
-| M-5 | ✅ Fixed | `e6a75e4` |
-| M-7 | ✅ Fixed | `e6a75e4` |
-| L-1 | ✅ Already correct on audit re-read | n/a |
-| L-2 | ✅ Fixed | `ceafc29` |
-| L-3 | Open (cosmetic — `@types/node` minor) | — |
-| L-4 | ✅ Fixed | `ceafc29` |
-| L-5 | Open (SSR future-proofing only) | — |
-| L-6 | Open (cosmetic — VAT reg in seller block) | — |
-| L-7 | ✅ Verified clean in AdminDashboard | n/a |
+| ID | Origin | Status | Commit |
+|---|---|---|---|
+| C-1 | 2026-05-17 | ✅ Holds (re-verified 2026-05-21) | `faa43bb` |
+| C-2 | 2026-05-17 | ✅ Holds | `e6a75e4` |
+| C-3 | 2026-05-17 | ✅ Code shipped; awaits Edge deploy | `ceafc29` |
+| H-1 | 2026-05-17 | ✅ Holds | `e6a75e4` |
+| H-2 | 2026-05-17 | ✅ Holds | `e6a75e4` |
+| H-3 | 2026-05-17 | ✅ Holds | `e6a75e4` |
+| H-5 | 2026-05-17 | ⚠ Partially patched, see H-9 | RLS migration |
+| H-6 | **2026-05-21 (NEW)** | Open — mood board PII leak | — |
+| H-7 | **2026-05-21 (NEW)** | Open — discount basket re-eval | — |
+| H-7b | **2026-05-21 (NEW)** | Open — discount display | — |
+| H-9 | **2026-05-21 (NEW)** | Open — anon SELECT cleanup | — |
+| M-1 | 2026-05-17 | Open (intentional — guarded) | — |
+| M-2 | 2026-05-17 | ✅ Fixed | `ceafc29` |
+| M-3 | 2026-05-17 | ✅ Fixed (partial) | `e6a75e4` |
+| M-4 | 2026-05-17 | ✅ Fixed | `e6a75e4` |
+| M-5 | 2026-05-17 | ✅ Fixed | `e6a75e4` |
+| M-7 | 2026-05-17 | ✅ Fixed | `e6a75e4` |
+| M-8 | **2026-05-21 (NEW)** | Open — invoice number crypto | — |
+| M-9 | **2026-05-21 (NEW)** | Open — fallback persistence | — |
+| M-10 | **2026-05-21 (NEW)** | Open — preview rate-limit | — |
+| L-1 | 2026-05-17 | ✅ Already correct | n/a |
+| L-2 | 2026-05-17 | ✅ Fixed | `ceafc29` |
+| L-3 | 2026-05-17 | Open (cosmetic) | — |
+| L-4 | 2026-05-17 | ✅ Fixed | `ceafc29` |
+| L-5 | 2026-05-17 | Open (SSR future-proofing) | — |
+| L-6 | 2026-05-17 | Open (cosmetic) | — |
+| L-7 | 2026-05-17 | ✅ Verified clean | n/a |
+| L-8 | **2026-05-21 (NEW)** | Open — storage UUID | — |
+| L-9 | **2026-05-21 (NEW)** | Open — admin policy doc | — |
+| L-10 | **2026-05-21 (NEW)** | Open — stray ref() generator | — |
+
+---
+
+## Summary of this pass
+
+**Re-verified all previous CRITICAL and HIGH fixes — none regressed.**
+The Mood Board, P&L dashboard, package photo upgrade, terser
+obfuscation, and discount-codes shipments introduced **four new HIGH
+findings** (`H-6` Mood Board PII; `H-7` discount basket re-eval; `H-7b`
+discount display when capped; `H-9` loose anon SELECT on bookings now
+removable), **three new MEDIUM findings** (`M-8` invoice number crypto;
+`M-9` fallback discount persistence; `M-10` preview rate-limit), and
+**three new LOW findings** (`L-8` storage UUID; `L-9` admin policy doc;
+`L-10` stray ref generator). No CRITICALs introduced.
+
+The two most consequential items are **H-6** (real PII leak — fix
+first) and **H-7** (money leak on percent codes when basket shrinks).
+Both are ~20-30 min of work each. Recommended to land before any
+real campaign is launched.
