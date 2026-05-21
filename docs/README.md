@@ -10,6 +10,7 @@ works, what it costs, and how to extend it.
 | [`PRESENTATION.md`](./PRESENTATION.md) | Owner | One-slide-per-section walkthrough Fatima can flip through with a client or investor |
 | [`integrations/whatsapp.md`](./integrations/whatsapp.md) | Developer / no-code automator | Full design + process map for auto-confirming bank-transfer receipts via WhatsApp |
 | [`integrations/payments.md`](./integrations/payments.md) | Owner + developers | Moyasar status, Tap comparison, activation checklist |
+| [`marketing-proposal-2026-05/`](./marketing-proposal-2026-05/) | Owner | Bilingual (Arabic/English) Saudi-market marketing audit + growth playbook with live-site screenshots and a reproducible photo-adequacy report |
 
 ## Reading order, by role
 
