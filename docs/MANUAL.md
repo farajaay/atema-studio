@@ -639,6 +639,61 @@ icon next to the edit button.
 
 ---
 
+## 13f. Audit-pass patches (2026-05-21)
+
+A re-audit after the discount-codes ship surfaced four HIGH findings
+and several MEDIUMs (full list in `docs/bugs.md`). All HIGHs and
+MEDIUMs were patched in a single sweep on 2026-05-21:
+
+| Patch | What it fixes |
+|---|---|
+| **H-6** | Mood Board table was anon-readable. Now locked down — anon access goes through `get_mood_board_by_token()` RPC which returns only the row matching the supplied token. |
+| **H-9** | Loose `using (true)` anon SELECT on `bookings` (a leftover from before the DatePicker migration to the public view) is dropped. |
+| **H-7** | Discount amount now re-validates server-side whenever the bride changes her basket. Percent codes can no longer become "50% off" by shrinking the basket. |
+| **H-7b** | Discount input now displays the code's honest raw value + "capped at X" when applicable. Percent codes with a `max_discount` cap no longer mis-report. |
+| **M-8** | Invoice number suffix is now CSPRNG + Crockford base32 (~1.1 T possibilities) instead of `Math.random` over 90k. No more birthday-paradox collisions. |
+| **M-9** | The booking-insert RLS policy now verifies discount math via `preview_discount_code()` — so the fallback path (direct insert when the Edge Function is down) can safely persist discount fields without trusting client values. |
+| **M-10** | `preview_discount_code` is now wrapped in a rate-limited Edge Function (`discount-preview`) with per-IP token-bucket (5/sec, 60/5min). Brute-force code enumeration is blocked. |
+| **L-8** | Storage paths for journal + portfolio uploads now use `crypto.randomUUID()` instead of `Math.random` (eliminates any chance of collision-overwriting). |
+
+### Activation steps
+
+1. Run `database/migrations-2026-05-audit-patches.sql` in Supabase
+   SQL editor. Idempotent.
+2. Deploy the new + updated Edge Functions:
+   ```
+   supabase functions deploy discount-preview create-booking
+   ```
+3. (Already shipped) Code changes are live with this commit.
+
+## 15. Package hero photos & object positioning
+
+Each package card renders a hero photo above the card body. The
+mapping + cropping are tuned in `src/pages/BookingPage.tsx`:
+
+```ts
+const PKG_PHOTO: Record<string, PkgPhoto> = {
+  engagement: { file: 'B6B52466-...JPG',  position: 'top left' },
+  customise:  { file: 'IMG_5506.JPG',      position: 'center 25%' },
+  classic:    { file: 'IMG_5620.JPG',      position: 'center 25%' },
+  royal:      { file: 'IMG_5607.JPG',      position: 'center 28%' },
+  signature:  { file: 'IMG_5525.JPG',      position: 'center 22%' },
+  couture:    { file: 'IMG_5623.JPG',      position: 'center 22%' },
+};
+```
+
+- The card crops at 200 px tall (the modal at 220 px). `object-fit:
+  cover` is set globally in `index.html` under `.pkg-photo`.
+- `position` is CSS `object-position`. For face-in-upper-third
+  portraits, `center 22%` to `center 28%` keeps the face just below
+  the badge area. Adjust per photo if needed.
+- To swap a photo: drop a new file into `public/photos/`, run
+  `node scripts/optimise-images.mjs` to produce WebP + JPEG pairs,
+  then edit the filename in `PKG_PHOTO`. The price-tier fallback at
+  the bottom of `getVisual()` covers custom packages.
+
+---
+
 ## 14. Future enhancements (parked)
 
 - **WhatsApp automation** — see [`docs/integrations/whatsapp.md`](./integrations/whatsapp.md).

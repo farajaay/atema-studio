@@ -216,12 +216,17 @@ export async function getMoodBoardForBooking(bookingId: string): Promise<MoodBoa
 
 export async function getMoodBoardByToken(token: string): Promise<MoodBoard | null> {
   if (!supabase) return null;
-  const { data } = await supabase
-    .from('mood_boards')
-    .select('*')
-    .eq('token', token)
-    .maybeSingle();
-  return (data as MoodBoard | null) ?? null;
+  // Patch H-6: anon SELECT on mood_boards is now disabled at the database.
+  // Public access goes through this SECURITY DEFINER RPC, which returns a
+  // single row scoped to the supplied token. Anon cannot enumerate all
+  // boards by listing the table.
+  const { data, error } = await supabase
+    .rpc('get_mood_board_by_token', { p_token: token });
+  if (error || !data) return null;
+  // The RPC returns the row directly (composite type). Some Supabase
+  // clients wrap it in an array; handle both.
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row as MoodBoard | null) ?? null;
 }
 
 export async function markMoodBoardViewed(token: string): Promise<void> {

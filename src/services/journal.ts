@@ -75,7 +75,9 @@ export async function deleteJournalPost(id: string): Promise<boolean> {
 export async function uploadJournalCover(file: File): Promise<string | null> {
   if (!supabase) return null;
   const ext  = file.name.split('.').pop() ?? 'jpg';
-  const path = `${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+  // Patch L-8: crypto.randomUUID (122 bits) replaces Math.random — eliminates
+  // any chance of collision-overwriting a previously-uploaded image.
+  const path = `${Date.now()}-${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from('journal').upload(path, file, {
     cacheControl: '3600', upsert: false,
   });

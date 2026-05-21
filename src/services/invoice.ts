@@ -70,12 +70,21 @@ export function generateZatcaQR(d: { sellerName: string; vatNumber: string; time
 }
 
 // ── Invoice number generator ──────────────────────────────────────────────────
+// Patch M-8: cryptographically-random Crockford base32 suffix (40 bits =
+// ~1.1 T possibilities) replaces the previous 5-digit Math.random — that
+// version birthday-collided at ~300 bookings/month and broke the customer
+// flow when `invoices.invoice_number UNIQUE` threw. Same Crockford
+// alphabet as src/services/booking.ts so refs read consistently.
+const INV_CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 export function generateInvoiceNumber(): string {
   const d = new Date();
   const yy = String(d.getFullYear()).slice(2);
   const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const seq = Math.floor(Math.random() * 90000 + 10000);
-  return `INV-${yy}${mm}-${seq}`;
+  const bytes = new Uint8Array(5);
+  crypto.getRandomValues(bytes);
+  let tail = '';
+  for (let i = 0; i < bytes.length; i++) tail += INV_CROCKFORD[bytes[i] & 31];
+  return `INV-${yy}${mm}-${tail}`;
 }
 
 // ── Invoice HTML generator ────────────────────────────────────────────────────

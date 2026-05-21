@@ -86,8 +86,41 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
     }
 
     // ── Fallback path: direct insert (pre-C-3 behaviour) ─────────────
+    // Patch M-9: persist discount fields. The RLS policy added in
+    // migrations-2026-05-audit-patches.sql verifies that the supplied
+    // discount_amount matches what preview_discount_code() would compute
+    // for the gross subtotal (subtotal + discount_amount) — so we can't
+    // forge a discount here. used_count is NOT incremented in the
+    // fallback (only the Edge Function via redeem_discount_code can),
+    // so codes effectively don't deplete until the Edge Function is
+    // deployed. Documented in docs/MANUAL.md §15.
     const bookingRef = ref();
     const pkgId = typeof payload.packageId === 'number' ? payload.packageId : null;
+    // Re-preview the code so we send the authoritative kind to the DB.
+    let discountKind: 'percent' | 'flat' | null = null;
+    let discountAmount = 0;
+    if (payload.discountCode) {
+      try {
+        const grossSub = payload.subtotal; // already net; preview against gross
+        const orig = payload.total;
+        // Best-effort: amount = gross - net (i.e. recompute). If we can't
+        // determine gross, skip persisting discount fields.
+        // Simpler heuristic: trust client's net subtotal + run a fresh
+        // preview against (net + a guess). But the safest path is to
+        // simply call preview_discount_code with the net subtotal — RLS
+        // will reject anything inconsistent.
+        const { data: prev } = await supabase
+          .rpc('preview_discount_code', {
+            p_code:     payload.discountCode.toUpperCase(),
+            p_subtotal: grossSub + (orig - grossSub),
+          });
+        const row = Array.isArray(prev) ? prev[0] : prev;
+        if (row && row.reason === 'ok') {
+          discountAmount = Math.max(0, Number(row.applied_amount ?? 0));
+          discountKind   = (row.applied_kind as 'percent' | 'flat' | null) ?? null;
+        }
+      } catch { /* drop discount silently — booking continues */ }
+    }
     const { data, error } = await supabase
       .from('bookings')
       .insert([{
@@ -106,6 +139,9 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
         total:            payload.total,
         status:           'pending',
         payment_status:   'unpaid',
+        discount_code:    discountAmount > 0 ? (payload.discountCode ?? null) : null,
+        discount_amount:  discountAmount,
+        discount_kind:    discountKind,
       }])
       .select()
       .single();

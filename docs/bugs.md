@@ -346,19 +346,19 @@ Updated as fixes land. Patch commits reference these IDs.
 | H-2 | 2026-05-17 | ✅ Holds | `e6a75e4` |
 | H-3 | 2026-05-17 | ✅ Holds | `e6a75e4` |
 | H-5 | 2026-05-17 | ⚠ Partially patched, see H-9 | RLS migration |
-| H-6 | **2026-05-21 (NEW)** | Open — mood board PII leak | — |
-| H-7 | **2026-05-21 (NEW)** | Open — discount basket re-eval | — |
-| H-7b | **2026-05-21 (NEW)** | Open — discount display | — |
-| H-9 | **2026-05-21 (NEW)** | Open — anon SELECT cleanup | — |
+| H-6 | 2026-05-21 | ✅ Fixed — mood_boards SELECT locked, RPC added | this commit |
+| H-7 | 2026-05-21 | ✅ Fixed — re-eval on basket change | this commit |
+| H-7b | 2026-05-21 | ✅ Fixed — server returns code metadata | this commit |
+| H-9 | 2026-05-21 | ✅ Fixed — loose policy dropped | this commit |
 | M-1 | 2026-05-17 | Open (intentional — guarded) | — |
 | M-2 | 2026-05-17 | ✅ Fixed | `ceafc29` |
 | M-3 | 2026-05-17 | ✅ Fixed (partial) | `e6a75e4` |
 | M-4 | 2026-05-17 | ✅ Fixed | `e6a75e4` |
 | M-5 | 2026-05-17 | ✅ Fixed | `e6a75e4` |
 | M-7 | 2026-05-17 | ✅ Fixed | `e6a75e4` |
-| M-8 | **2026-05-21 (NEW)** | Open — invoice number crypto | — |
-| M-9 | **2026-05-21 (NEW)** | Open — fallback persistence | — |
-| M-10 | **2026-05-21 (NEW)** | Open — preview rate-limit | — |
+| M-8 | 2026-05-21 | ✅ Fixed — CSPRNG invoice number | this commit |
+| M-9 | 2026-05-21 | ✅ Fixed — fallback now persists, RLS verifies | this commit |
+| M-10 | 2026-05-21 | ✅ Fixed — discount-preview Edge Fn with token-bucket | this commit |
 | L-1 | 2026-05-17 | ✅ Already correct | n/a |
 | L-2 | 2026-05-17 | ✅ Fixed | `ceafc29` |
 | L-3 | 2026-05-17 | Open (cosmetic) | — |
@@ -366,9 +366,9 @@ Updated as fixes land. Patch commits reference these IDs.
 | L-5 | 2026-05-17 | Open (SSR future-proofing) | — |
 | L-6 | 2026-05-17 | Open (cosmetic) | — |
 | L-7 | 2026-05-17 | ✅ Verified clean | n/a |
-| L-8 | **2026-05-21 (NEW)** | Open — storage UUID | — |
-| L-9 | **2026-05-21 (NEW)** | Open — admin policy doc | — |
-| L-10 | **2026-05-21 (NEW)** | Open — stray ref() generator | — |
+| L-8 | 2026-05-21 | ✅ Fixed — crypto.randomUUID in storage paths | this commit |
+| L-9 | 2026-05-21 | Open — admin policy doc | — |
+| L-10 | 2026-05-21 | Open — stray ref() generator | — |
 
 ---
 

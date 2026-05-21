@@ -20,6 +20,7 @@ import DiscountInput from '../components/DiscountInput';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { computeVat } from '../services/settings';
 import type { DiscountKind } from '../services/discount';
+import { previewDiscountCode } from '../services/discount';
 import { X, Loader2 } from 'lucide-react';
 import { useTheme, getInitialTheme } from '../hooks/useTheme';
 import { useLang } from '../hooks/useLang';
@@ -72,43 +73,53 @@ function gradFor(tier: number): string {
   const stops = PKG_GRADIENTS[activeTheme] ?? PKG_GRADIENTS.ivory;
   return stops[Math.max(0, Math.min(stops.length - 1, tier))];
 }
-// Package hero photo mapping. Updated 2026-05-20 to use the curated
-// session photos in /public/photos/ — one strong hero per tier.
-//   Engagement → 60FBEE21 (red ring box, white tulips, sky-blue silk, ghutra — Saudi engagement)
-//   Customise  → 17BB76E6 (Dior Oud Rosewood + tulips + blue dress detail — styling/customise feel)
-//   Classic    → 5B05CBF2 (the classical hall with full gown + veil — classic editorial)
-//   Royal      → IMG_0259 (side profile under chandelier — gilded, regal)
-//   Signature  → 7CC155A1 (pearl-edged veil studio portraits — signature)
-//   Couture    → F41A818D (pearl-and-floral veil + white roses + earring details — couture)
-const PKG_PHOTO = {
-  engagement: '60FBEE21-EB43-4CFA-AEC2-D73D206E5016.JPG',
-  customise:  '17BB76E6-8297-4355-843B-1A1E2264B3C5.JPG',
-  classic:    '5B05CBF2-9106-4FF8-A00A-2D3DAD8693B7.JPG',
-  royal:      'IMG_0259.JPG',
-  signature:  '7CC155A1-8BFC-49B7-ADC2-CF8346A3E535.JPG',
-  couture:    'F41A818D-D3EF-419E-A002-DC76C76BF59D.JPG',
-} as const;
+// Package hero photo mapping. Updated 2026-05-21: replaced 4-quadrant
+// collages with single-frame portraits where stronger ones exist, and
+// added per-photo object-position so faces aren't cropped off when the
+// card crops at center.
+//
+// • engagement — keep B6B52466 (Saudi engagement story: sky-blue + tulips
+//   + groom in ghutra) for the on-brand cultural beat. object-position
+//   pulls toward top-left so the bride's hands and tulips dominate.
+// • customise  — IMG_5506: a smiling, approachable portrait. Customise
+//   is the most personal tier; a real face speaks louder than styling.
+// • classic    — IMG_5620: pearl-crown veil, downward gaze, bouquet —
+//   the most "classical bride" of the set.
+// • royal      — IMG_5607: pearl-crown side profile with foreground
+//   roses — opulence-whispered romance.
+// • signature  — IMG_5525: contemplative portrait, hand on chin —
+//   "her own seal." Editorial restraint.
+// • couture    — IMG_5623: joyful, full editorial polish, pearl crown.
+//
+// object_position is the CSS `object-position` value passed to <img>. It
+// shifts what gets shown when the cover-crop trims the photo. For
+// face-in-upper-third portraits, `center 25%` keeps the face visible.
+interface PkgPhoto { file: string; position: string; }
+const PKG_PHOTO: Record<string, PkgPhoto> = {
+  engagement: { file: 'B6B52466-B962-4C33-804E-135D26C25236.JPG', position: 'top left' },
+  customise:  { file: 'IMG_5506.JPG',                              position: 'center 25%' },
+  classic:    { file: 'IMG_5620.JPG',                              position: 'center 25%' },
+  royal:      { file: 'IMG_5607.JPG',                              position: 'center 28%' },
+  signature:  { file: 'IMG_5525.JPG',                              position: 'center 22%' },
+  couture:    { file: 'IMG_5623.JPG',                              position: 'center 22%' },
+};
 
-function getVisual(pkg: Package): { gradient: string; photo: string } {
+function getVisual(pkg: Package): { gradient: string; photo: string; position: string } {
   const n = (pkg.name_ar + ' ' + pkg.name_en).toLowerCase();
-  if (n.includes('خطوبة') || n.includes('engagement'))
-    return { gradient: gradFor(0), photo: PKG_PHOTO.engagement };
-  if (n.includes('مخصّص') || n.includes('مخصص') || n.includes('customis'))
-    return { gradient: gradFor(1), photo: PKG_PHOTO.customise };
-  if (n.includes('كلاسيك') || n.includes('classic'))
-    return { gradient: gradFor(2), photo: PKG_PHOTO.classic };
-  if (n.includes('ملكي') || n.includes('royal'))
-    return { gradient: gradFor(3), photo: PKG_PHOTO.royal };
-  if (n.includes('توقيع') || n.includes('signature'))
-    return { gradient: gradFor(4), photo: PKG_PHOTO.signature };
-  if (n.includes('couture') || n.includes('كوتور') || n.includes('كوتيور'))
-    return { gradient: gradFor(5), photo: PKG_PHOTO.couture };
+  const pick = (tier: number, p: PkgPhoto) => ({ gradient: gradFor(tier), photo: p.file, position: p.position });
+
+  if (n.includes('خطوبة') || n.includes('engagement'))                     return pick(0, PKG_PHOTO.engagement);
+  if (n.includes('مخصّص') || n.includes('مخصص') || n.includes('customis')) return pick(1, PKG_PHOTO.customise);
+  if (n.includes('كلاسيك') || n.includes('classic'))                       return pick(2, PKG_PHOTO.classic);
+  if (n.includes('ملكي')   || n.includes('royal'))                         return pick(3, PKG_PHOTO.royal);
+  if (n.includes('توقيع')  || n.includes('signature'))                     return pick(4, PKG_PHOTO.signature);
+  if (n.includes('couture')|| n.includes('كوتور') || n.includes('كوتيور')) return pick(5, PKG_PHOTO.couture);
   // Price-tier fallback for custom packages
-  if (pkg.price < 2500)  return { gradient: gradFor(0), photo: PKG_PHOTO.engagement };
-  if (pkg.price < 5000)  return { gradient: gradFor(2), photo: PKG_PHOTO.classic };
-  if (pkg.price < 8000)  return { gradient: gradFor(3), photo: PKG_PHOTO.royal };
-  if (pkg.price < 12000) return { gradient: gradFor(4), photo: PKG_PHOTO.signature };
-  return { gradient: gradFor(5), photo: PKG_PHOTO.couture };
+  if (pkg.price < 2500)  return pick(0, PKG_PHOTO.engagement);
+  if (pkg.price < 5000)  return pick(2, PKG_PHOTO.classic);
+  if (pkg.price < 8000)  return pick(3, PKG_PHOTO.royal);
+  if (pkg.price < 12000) return pick(4, PKG_PHOTO.signature);
+  return pick(5, PKG_PHOTO.couture);
 }
 
 
@@ -157,7 +168,8 @@ function PkgCard({ pkg, lang, selected, onSelect, onDetails }: {
               loading="lazy"
               decoding="async"
               width={400} height={200}
-              style={{ position:'absolute', inset:0, width:'100%', height:'100%' }}
+              style={{ position:'absolute', inset:0, width:'100%', height:'100%',
+                objectPosition: visual.position }}
               onError={() => setPhotoOk(false)} />
           </picture>
         )}
@@ -273,7 +285,8 @@ function PkgDetailsModal({ pkg, lang, selected, onSelect, onClose }: {
                 srcSet={`${BASE}photos/${visual.photo.replace(/\.[^.]+$/, '.webp')}`} />
               <img src={`${BASE}photos/${visual.photo}`} alt={pkg.name_ar}
                 decoding="async"
-                style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}
+                style={{ position:'absolute', inset:0, width:'100%', height:'100%',
+                  objectFit:'cover', objectPosition: visual.position }}
                 onError={() => setPhotoOk(false)} />
             </picture>
           )}
@@ -453,6 +466,10 @@ export interface AppliedDiscountState {
   amount: number;
   kind: DiscountKind;
   value: number;
+  /** Patch H-7b: optional cap for percent codes. */
+  maxDiscount?: number | null;
+  /** Patch H-7b: true when applied amount equals the cap. */
+  capped?: boolean;
 }
 
 function SummaryPanel({
@@ -1156,6 +1173,51 @@ export default function BookingPage() {
   const customSubtotal = Math.max(0, customGrossSubtotal - customDiscountAmount);
   const customVat      = computeVat(customSubtotal, vatEnabled);
   const customTotal    = customSubtotal + customVat;
+
+  // ── Patch H-7: re-validate the applied discount whenever the basket
+  // changes. Without this, a percent code applied on a larger subtotal
+  // keeps its cached absolute SAR amount, so shrinking the basket
+  // converts e.g. 25% off into 50%+ off. The preview RPC is cheap and
+  // anon-allowed. We use the active tab's gross subtotal as the source.
+  const activeGrossForReval = activeTab === 'packages' ? grossSubtotal : customGrossSubtotal;
+  useEffect(() => {
+    if (!appliedDiscount) return;
+    if (activeGrossForReval <= 0) return;
+    let cancelled = false;
+    (async () => {
+      const r = await previewDiscountCode(appliedDiscount.code, activeGrossForReval);
+      if (cancelled) return;
+      if (r.reason !== 'ok' || r.appliedAmount <= 0 || !r.appliedKind) {
+        // Code is no longer valid for this basket — clear it (DiscountInput
+        // will re-surface, the bride can re-apply or pick another).
+        setAppliedDiscount(null);
+        return;
+      }
+      // Only update if anything changed (avoid a render loop).
+      if (
+        r.appliedAmount    !== appliedDiscount.amount
+        || r.codeValue      !== appliedDiscount.value
+        || r.codeMaxDiscount !== (appliedDiscount.maxDiscount ?? null)
+      ) {
+        const capped = r.appliedKind === 'percent'
+          && r.codeMaxDiscount != null
+          && r.appliedAmount >= r.codeMaxDiscount;
+        setAppliedDiscount({
+          code:        appliedDiscount.code,
+          amount:      r.appliedAmount,
+          kind:        r.appliedKind,
+          value:       r.codeValue ?? appliedDiscount.value,
+          maxDiscount: r.codeMaxDiscount,
+          capped,
+        });
+      }
+    })();
+    return () => { cancelled = true; };
+  // We intentionally exclude `appliedDiscount` from deps to avoid loops —
+  // the basket-change signal lives in activeGrossForReval. Re-eval also
+  // fires when the bride switches between packages and custom tabs.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeGrossForReval, appliedDiscount?.code]);
 
   // Active pkg + totals for the currently visible tab (used by modal & sticky bar)
   const activePkg      = activeTab === 'packages' ? pkg   : basePkg;

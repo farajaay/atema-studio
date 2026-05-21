@@ -33,6 +33,11 @@ export interface DiscountPreview {
   appliedAmount: number;   // SAR off subtotal
   appliedKind:   DiscountKind | null;
   reason:        DiscountReason;
+  /** Patch H-7b: raw `value` from discount_codes (percent: 1..100,
+   *  flat: SAR amount). Null when reason !== 'ok' AND no code metadata. */
+  codeValue:        number | null;
+  /** Patch H-7b: optional max-discount cap for percent codes. Null otherwise. */
+  codeMaxDiscount:  number | null;
 }
 
 export interface DiscountCode {
@@ -60,29 +65,61 @@ export async function previewDiscountCode(
   code: string,
   subtotal: number,
 ): Promise<DiscountPreview> {
-  if (!code || !code.trim()) {
-    return { appliedAmount: 0, appliedKind: null, reason: 'empty' };
-  }
+  const empty: DiscountPreview = {
+    appliedAmount: 0, appliedKind: null, reason: 'empty',
+    codeValue: null, codeMaxDiscount: null,
+  };
+  if (!code || !code.trim()) return empty;
   if (!supabase) {
     // Demo / offline mode: pretend any 4-char+ uppercase code is "10% off".
     if (code.trim().length >= 4) {
       const amount = Math.floor(subtotal * 0.1);
-      return { appliedAmount: amount, appliedKind: 'percent', reason: 'ok' };
+      return {
+        appliedAmount: amount, appliedKind: 'percent', reason: 'ok',
+        codeValue: 10, codeMaxDiscount: null,
+      };
     }
-    return { appliedAmount: 0, appliedKind: null, reason: 'not_found' };
+    return { ...empty, reason: 'not_found' };
   }
+  // Patch M-10: route through the rate-limited Edge Function. Falls back
+  // to the RPC directly if the function is not deployed (404), preserving
+  // the previous behaviour during the rollout window.
+  const normalised = code.trim().toUpperCase();
+  const subInt = Math.round(subtotal);
+  try {
+    const { data, error } = await supabase.functions.invoke('discount-preview', {
+      body: { code: normalised, subtotal: subInt },
+    });
+    if (!error && data && typeof data === 'object') {
+      const row = data as Record<string, unknown>;
+      // Server rate-limited us → surface as not_found (same UX as below_min etc.)
+      if (typeof row.error === 'string' && row.error === 'rate_limited') {
+        return { ...empty, reason: 'not_found' };
+      }
+      return {
+        appliedAmount:   Number(row.applied_amount ?? 0),
+        appliedKind:     (row.applied_kind as DiscountKind | null) ?? null,
+        reason:          (row.reason as DiscountReason) ?? 'not_found',
+        codeValue:       row.code_value        != null ? Number(row.code_value)        : null,
+        codeMaxDiscount: row.code_max_discount != null ? Number(row.code_max_discount) : null,
+      };
+    }
+    // 404 / not deployed → fall through to RPC.
+  } catch { /* same fall-through */ }
+
   const { data, error } = await supabase.rpc('preview_discount_code', {
-    p_code: code.trim().toUpperCase(),
-    p_subtotal: Math.round(subtotal),
+    p_code: normalised, p_subtotal: subInt,
   });
   if (error || !data || data.length === 0) {
-    return { appliedAmount: 0, appliedKind: null, reason: 'not_found' };
+    return { ...empty, reason: 'not_found' };
   }
   const row = Array.isArray(data) ? data[0] : data;
   return {
-    appliedAmount: Number(row.applied_amount ?? 0),
-    appliedKind:   (row.applied_kind as DiscountKind | null) ?? null,
-    reason:        (row.reason as DiscountReason) ?? 'not_found',
+    appliedAmount:   Number(row.applied_amount ?? 0),
+    appliedKind:     (row.applied_kind as DiscountKind | null) ?? null,
+    reason:          (row.reason as DiscountReason) ?? 'not_found',
+    codeValue:       row.code_value        != null ? Number(row.code_value)        : null,
+    codeMaxDiscount: row.code_max_discount != null ? Number(row.code_max_discount) : null,
   };
 }
 

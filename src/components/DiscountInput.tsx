@@ -26,6 +26,12 @@ interface AppliedDiscount {
   amount: number;       // SAR
   kind: DiscountKind;
   value: number;        // 25 for percent code 25, 500 for flat 500-SAR code
+  /** Patch H-7b: when the percent code is capped at a max, server returns
+   *  it so the UI can say "capped at X" instead of misreporting the percent. */
+  maxDiscount?: number | null;
+  /** Patch H-7b: true when the applied amount equals the cap (i.e. the
+   *  percent would have produced more). Cosmetic flag for the success pill. */
+  capped?: boolean;
 }
 
 interface Props {
@@ -63,19 +69,23 @@ export default function DiscountInput({
     try {
       const result = await previewDiscountCode(trimmed, subtotal);
       if (result.reason === 'ok' && result.appliedAmount > 0 && result.appliedKind) {
-        // Look up the raw value (percent or flat) by reverse-engineering:
-        // percent → infer from (amount * 100 / subtotal); flat → amount.
-        // We could also fetch the code row, but exposing /discount_codes/ to
-        // anon defeats the security model. The display string only needs the
-        // KIND (so "25% off" vs "500 SAR off") and the AMOUNT — both of which
-        // we already have. We store amount + kind and derive the display.
+        // Patch H-7b: the RPC now returns the code's raw value + cap so we
+        // can display them honestly. Fall back to reverse-engineering only
+        // when the server didn't supply them (demo/offline mode).
+        const rawValue = result.codeValue
+          ?? (result.appliedKind === 'percent'
+                ? Math.round((result.appliedAmount / subtotal) * 100)
+                : result.appliedAmount);
+        const capped = result.appliedKind === 'percent'
+          && result.codeMaxDiscount != null
+          && result.appliedAmount >= result.codeMaxDiscount;
         onApplied({
-          code: trimmed,
-          amount: result.appliedAmount,
-          kind: result.appliedKind,
-          value: result.appliedKind === 'percent'
-            ? Math.round((result.appliedAmount / subtotal) * 100)
-            : result.appliedAmount,
+          code:         trimmed,
+          amount:       result.appliedAmount,
+          kind:         result.appliedKind,
+          value:        rawValue,
+          maxDiscount:  result.codeMaxDiscount,
+          capped,
         });
         setInput('');
         setReason('ok');
@@ -124,6 +134,14 @@ export default function DiscountInput({
           </span>
           <span style={{ color: muted, marginInlineStart: 8 }}>
             {formatDiscountKindDescription(applied.kind, applied.value, lang)}
+            {applied.capped && applied.maxDiscount != null && (
+              <span style={{ marginInlineStart: 4, fontStyle: 'italic', fontSize: '0.72rem' }}>
+                {tx(
+                  `(بحد أقصى ${applied.maxDiscount.toLocaleString()} ر.س)`,
+                  `(capped at ${applied.maxDiscount.toLocaleString()} SAR)`,
+                )}
+              </span>
+            )}
           </span>
           <span style={{ color: gold, fontWeight: 700, marginInlineStart: 8 }}>
             −{applied.amount.toLocaleString()}
