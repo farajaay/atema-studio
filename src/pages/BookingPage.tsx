@@ -1554,52 +1554,103 @@ export default function BookingPage() {
             <div style={{ display:'flex', gap:'24px', alignItems:'flex-start' }}>
               <div style={{ flex:1, minWidth:0 }}>
 
-                {/* Base package card */}
-                {basePkg && (
-                  <div style={{ background:'var(--a-surface)', borderRadius:'14px', padding:'20px 22px',
+                {/* Base package card — Design Your Package starts from the
+                    lowest-priced active package (Engagement Session by
+                    default). Customers were confused when the card said
+                    "Base Package" but the summary said "Engagement Session"
+                    — they're the same row, just labelled twice. The card
+                    now shows both: the editorial "Base Package" eyebrow
+                    and the actual package name + photo for clarity. */}
+                {basePkg && (() => {
+                  const baseVisual = getVisual(basePkg);
+                  return (
+                  <div style={{ background:'var(--a-surface)', borderRadius:'14px',
                     border:'1px solid var(--a-border-strong)',
-                    boxShadow:'0 2px 14px rgba(0,0,0,0.18)', marginBottom:'24px' }}>
-                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between',
-                      gap:'12px', flexWrap:'wrap' }}>
-                      <div>
-                        <div style={{ fontFamily:"'Amiri',serif", fontSize:'1.2rem', color: T.coffee }}>
-                          {tx(lang,'الباقة الأساسية','Base Package')}
-                        </div>
-                        {basePkg.duration_hours > 0 && (
-                          <div style={{ fontSize:'0.72rem', color: T.taupe,
-                            fontFamily:'Tajawal,sans-serif', marginTop:'3px' }}>
-                            {lang==='ar' ? `${basePkg.duration_hours} ساعات تصوير` : `${basePkg.duration_hours}h session`}
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ textAlign: lang==='ar'?'left':'right' }}>
-                        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'1.8rem',
-                          color: T.gold, lineHeight:1 }}>
-                          {basePkg.price.toLocaleString()}
-                        </div>
-                        <div style={{ fontSize:'0.72rem', color: T.taupe,
-                          fontFamily:'Tajawal,sans-serif' }}>
-                          {vatEnabled
-                            ? (lang==='ar'?'ر.س بدون VAT':'SAR excl. VAT')
-                            : (lang==='ar'?'ر.س':'SAR')}
-                        </div>
+                    boxShadow:'0 2px 14px rgba(0,0,0,0.18)', marginBottom:'24px',
+                    overflow:'hidden' }}>
+
+                    {/* Photo header — same getVisual() helper used by PkgCard */}
+                    <div style={{ position:'relative', height:'180px', overflow:'hidden',
+                      background: baseVisual.gradient }}>
+                      <picture>
+                        <source type="image/webp"
+                          srcSet={`${BASE}photos/${baseVisual.photo.replace(/\.[^.]+$/, '.webp')}`} />
+                        <img src={`${BASE}photos/${baseVisual.photo}`} alt={basePkg.name_ar}
+                          loading="lazy" decoding="async"
+                          width={800} height={180}
+                          style={{ position:'absolute', inset:0, width:'100%', height:'100%',
+                            objectFit:'cover',
+                            objectPosition: baseVisual.position }} />
+                      </picture>
+                      {/* soft bottom overlay so the eyebrow chip sits on calm ink */}
+                      <div style={{ position:'absolute', inset:0,
+                        background:'linear-gradient(to bottom, transparent 30%, rgba(20,15,10,0.62) 100%)' }} />
+                      {/* Eyebrow chip — clarifies this IS the starting tier */}
+                      <div style={{ position:'absolute', bottom:'14px',
+                        ...(lang === 'ar' ? { right:'16px' } : { left:'16px' }),
+                        fontFamily:"'Cinzel', serif",
+                        fontSize:'0.62rem', letterSpacing:'0.32em', textTransform:'uppercase',
+                        color:'#EFE3D1', background:'rgba(11,11,11,0.55)',
+                        backdropFilter:'blur(6px)',
+                        border:'1px solid rgba(212,175,122,0.45)',
+                        borderRadius:'999px', padding:'4px 12px' }}>
+                        {tx(lang,'الباقة الأساسية','Base Package')}
                       </div>
                     </div>
-                    {getLocalizedFeatures(basePkg, lang).length > 0 && (
-                      <ul style={{ listStyle:'none', padding:0, margin:'14px 0 0',
-                        display:'flex', flexDirection:'column', gap:'5px' }}>
-                        {getLocalizedFeatures(basePkg, lang).map((f, i) => (
-                          <li key={i} style={{ display:'flex', alignItems:'flex-start', gap:'8px',
-                            fontSize:'0.8rem', color: T.mocha }}>
-                            <span style={{ width:'4px', height:'4px', borderRadius:'50%',
-                              background: T.sand, marginTop:'7px', flexShrink:0 }} />
-                            {f}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+
+                    {/* Body */}
+                    <div style={{ padding:'18px 22px 20px' }}>
+                      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between',
+                        gap:'12px', flexWrap:'wrap' }}>
+                        <div>
+                          {/* Real package name — matches what the summary
+                              shows + what gets written to the booking. */}
+                          <div style={{ fontFamily:"'Amiri',serif", fontSize:'1.2rem',
+                            color: T.coffee, lineHeight:1.25 }}>
+                            {basePkg.name_ar}
+                          </div>
+                          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontWeight:300,
+                            fontSize:'0.82rem', letterSpacing:'0.06em', color: T.taupe,
+                            marginTop:'2px' }}>
+                            {basePkg.name_en}
+                          </div>
+                          {basePkg.duration_hours > 0 && (
+                            <div style={{ fontSize:'0.72rem', color: T.taupe,
+                              fontFamily:'Tajawal,sans-serif', marginTop:'6px' }}>
+                              {lang==='ar' ? `${basePkg.duration_hours} ساعات تصوير` : `${basePkg.duration_hours}h session`}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ textAlign: lang==='ar'?'left':'right' }}>
+                          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'1.8rem',
+                            color: T.gold, lineHeight:1 }}>
+                            {basePkg.price.toLocaleString()}
+                          </div>
+                          <div style={{ fontSize:'0.72rem', color: T.taupe,
+                            fontFamily:'Tajawal,sans-serif' }}>
+                            {vatEnabled
+                              ? (lang==='ar'?'ر.س بدون VAT':'SAR excl. VAT')
+                              : (lang==='ar'?'ر.س':'SAR')}
+                          </div>
+                        </div>
+                      </div>
+                      {getLocalizedFeatures(basePkg, lang).length > 0 && (
+                        <ul style={{ listStyle:'none', padding:0, margin:'14px 0 0',
+                          display:'flex', flexDirection:'column', gap:'5px' }}>
+                          {getLocalizedFeatures(basePkg, lang).map((f, i) => (
+                            <li key={i} style={{ display:'flex', alignItems:'flex-start', gap:'8px',
+                              fontSize:'0.8rem', color: T.mocha }}>
+                              <span style={{ width:'4px', height:'4px', borderRadius:'50%',
+                                background: T.sand, marginTop:'7px', flexShrink:0 }} />
+                              {f}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* Mobile total for custom tab */}
                 {isMobile && (

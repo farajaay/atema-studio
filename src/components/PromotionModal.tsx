@@ -10,10 +10,13 @@ import { X } from 'lucide-react';
 
 const STORAGE_KEY            = 'atema:promo-dismissed';
 const BASE                   = import.meta.env.BASE_URL;
+// File names match the actual case-sensitive entries in /public/photos/.
+// The GitHub Pages / Vercel filesystem is case-sensitive; the JPEG sources
+// are uppercase .JPG (the original DSLR export). Lowercase ".jpg" 404s.
 const PROMO_DESKTOP_WEBP     = `${BASE}photos/Promotion.webp`;
-const PROMO_DESKTOP_JPEG     = `${BASE}photos/Promotion.jpg`;
+const PROMO_DESKTOP_JPEG     = `${BASE}photos/Promotion.JPG`;
 const PROMO_MOBILE_WEBP      = `${BASE}photos/Promotion_Mobile.webp`;
-const PROMO_MOBILE_JPEG      = `${BASE}photos/Promotion_Mobile.jpg`;
+const PROMO_MOBILE_JPEG      = `${BASE}photos/Promotion_Mobile.JPG`;
 const MOBILE_BREAKPOINT      = '(max-width: 767px)';
 const REVEAL_DELAY_MS        = 700;
 
