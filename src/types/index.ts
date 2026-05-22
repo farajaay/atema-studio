@@ -38,6 +38,16 @@ export interface BookingFormData {
 }
 
 // ===== BOOKING REQUEST (TO SUPABASE) =====
+export type EventType =
+  | 'wedding'
+  | 'engagement'
+  | 'portrait'
+  | 'corporate'
+  | 'product'
+  | 'real_estate'
+  | 'industrial'
+  | 'other';
+
 export interface CreateBookingRequest {
   customerId?: string;
   packageId: number | string;
@@ -52,6 +62,25 @@ export interface CreateBookingRequest {
   city?: string;
   location: string;
   specialRequests?: string;
+
+  /** ── Shoot-logistics (audit append, 2026-05) ─────────────────────────
+   *  Captured so the studio can quote staffing and prep without a callback.
+   *  All optional from the client's perspective — server may default. */
+  eventType?: EventType;
+  /** Approximate attendee count — drives second-photographer recommendation. */
+  guestCount?: number | null;
+  /** Optional must-have shot list ("bride with grandmother", "ring close-up"…). */
+  shotList?: string;
+
+  /** ── Consent snapshots captured at booking time (audit append) ──────
+   *  Persisted alongside the booking so we have an immutable record of
+   *  what the customer agreed to, even if profile flags change later. */
+  tcAccepted?: boolean;
+  pdplConsent?: boolean;
+  /** Separate, explicit, revocable. PDPL-compliant — NEVER bundle with the
+   *  general PDPL consent above. */
+  whatsappOptIn?: boolean;
+
   /** subtotal / vat / total are echoed to the server but the Edge Function
    *  (Patch C-3) recomputes them from packages + addons and ignores these. */
   subtotal: number;

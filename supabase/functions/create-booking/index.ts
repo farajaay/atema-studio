@@ -128,6 +128,25 @@ serve(async (req) => {
     ? body.addOnIds.filter((x: unknown) => typeof x === 'string').slice(0, 50)
     : [];
 
+  // ── Shoot-logistics + consent (audit append, 2026-05) ──────────────────
+  const EVENT_TYPES = new Set([
+    'wedding', 'engagement', 'portrait', 'corporate',
+    'product', 'real_estate', 'industrial', 'other',
+  ]);
+  const eventType = EVENT_TYPES.has(String(body.eventType ?? ''))
+    ? String(body.eventType)
+    : null;
+  // Reasonable upper bound — anything north of 5000 attendees is clearly
+  // junk for a private photography booking and should be flagged.
+  const guestCount = (() => {
+    const n = Number(body.guestCount);
+    return Number.isInteger(n) && n >= 0 && n <= 5000 ? n : null;
+  })();
+  const shotList     = clampText(body.shotList, 2000);
+  const tcAccepted   = body.tcAccepted    === true;
+  const pdplConsent  = body.pdplConsent   === true;
+  const whatsappOptIn = body.whatsappOptIn === true;
+
   // ── Server-side recompute ─────────────────────────────────────────────
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 
@@ -205,6 +224,15 @@ serve(async (req) => {
       discount_code:   discountCode,
       discount_amount: discountAmount,
       discount_kind:   discountKind,
+      // Audit append (2026-05) — shoot logistics + consent snapshots.
+      // Schema added by database-alteration-v2.sql.
+      event_type:               eventType,
+      guest_count:              guestCount,
+      shot_list:                shotList || null,
+      tc_accepted:              tcAccepted,
+      tc_accepted_at:           tcAccepted ? new Date().toISOString() : null,
+      pdpl_consent_snapshot:    pdplConsent,
+      whatsapp_opt_in_snapshot: whatsappOptIn,
     }])
     .select('id, booking_ref, status, created_at, event_date, total')
     .single();

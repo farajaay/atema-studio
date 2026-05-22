@@ -10,6 +10,7 @@ import type { Package } from '../hooks/usePackagesData';
 import { useAddonsData } from '../hooks/useAddonsData';
 import type { Addon } from '../hooks/useAddonsData';
 import { createBooking } from '../services/booking';
+import type { CreateBookingRequest } from '../types';
 import { generateContractHTML, saveContract } from '../services/contract';
 import { generateInvoiceHTML, generateInvoiceNumber, saveInvoice } from '../services/invoice';
 import MoyasarForm from '../components/MoyasarForm';
@@ -660,9 +661,17 @@ function BookingFormModal({
   appliedDiscount: AppliedDiscountState | null;
   onClose: () => void;
 }) {
-  const [form,      setForm]      = useState({ name:'', phone:'', email:'', date:'', time:'', city:'', venue:'', notes:'' });
+  const [form,      setForm]      = useState({
+    name:'', phone:'', email:'', date:'', time:'', city:'', venue:'', notes:'',
+    // Shoot-logistics (audit append, 2026-05). Empty string = "not set" so
+    // the existing { name, phone… } pattern stays uniform; payload converts.
+    eventType: '', guestCount: '', shotList: '',
+  });
   const [agreed,    setAgreed]    = useState(false);
   const [pdpl,      setPdpl]      = useState(false);
+  // Separate, revocable WhatsApp opt-in. PDPL-compliant — must NOT be
+  // bundled with general consent. Defaults to false (opt-in by choice).
+  const [waOptIn,   setWaOptIn]   = useState(false);
   const [popup,     setPopup]     = useState<'terms'|'privacy'|null>(null);
   const [state,     setState]     = useState<'idle'|'loading'|'choose'|'card'|'transfer'|'error'>('idle');
   const [errMsg,    setErrMsg]    = useState('');
@@ -695,6 +704,9 @@ function BookingFormModal({
     if (!form.phone.trim()) { setErrMsg(tx(lang,'الرجاء إدخال رقم الجوال','Please enter your phone')); return; }
     if (!form.date)         { setErrMsg(tx(lang,'الرجاء تحديد تاريخ المناسبة','Please select event date')); return; }
     if (!form.city)         { setErrMsg(tx(lang,'الرجاء اختيار المدينة','Please select city')); return; }
+    // Audit append (2026-05): event_type is required so the studio can
+    // prep correct staffing without a follow-up call.
+    if (!form.eventType)    { setErrMsg(tx(lang,'الرجاء اختيار نوع المناسبة','Please select event type')); return; }
 
     // ── Field format (Patch C-2) ───────────────────────────────────────
     const normPhone = normalizeSaudiMobile(form.phone);
@@ -741,6 +753,17 @@ function BookingFormModal({
     const cleanVenue  = clampText(form.venue, 200);
     const cleanNotes  = clampText(form.notes, 2000);
 
+    // Audit append: parse + clean shoot-logistics fields
+    const guestCountNum = form.guestCount.trim() === ''
+      ? null
+      : Number.parseInt(form.guestCount, 10);
+    const guestCountClean: number | null = (
+      guestCountNum !== null && Number.isFinite(guestCountNum) &&
+      guestCountNum >= 0 && guestCountNum <= 5000
+    ) ? guestCountNum : null;
+    const cleanShotList = clampText(form.shotList, 2000);
+    const eventTypeClean = form.eventType.trim() || undefined;
+
     try {
       const response = await createBooking({
         customerName:    name,
@@ -755,6 +778,13 @@ function BookingFormModal({
         specialRequests: cleanNotes,
         subtotal, vat, total: fullTotal,
         discountCode:    appliedDiscount?.code ?? null,
+        // ── Audit append (2026-05) ───────────────────────────────────
+        eventType:       eventTypeClean as CreateBookingRequest['eventType'],
+        guestCount:      guestCountClean,
+        shotList:        cleanShotList,
+        tcAccepted:      agreed,
+        pdplConsent:     pdpl,
+        whatsappOptIn:   waOptIn,
       });
       setBooked({ id: response.id, ref: response.bookingRef, deposit, total: fullTotal });
 
@@ -975,6 +1005,38 @@ function BookingFormModal({
                     ))}
                   </select>
                 </div>
+
+                {/* ── Audit append (2026-05): shoot logistics ────────────────
+                    event_type lightly personalises the studio's prep — a
+                    wedding needs different staffing/timing than a portrait
+                    or a product shoot. */}
+                <div style={grp}>
+                  <label style={lbl} htmlFor="bf-event-type">
+                    {tx(lang,'نوع المناسبة *','Event Type *')}
+                  </label>
+                  <select id="bf-event-type" className="atema-input" value={form.eventType}
+                    onChange={e => set('eventType', e.target.value)}>
+                    <option value="">{tx(lang,'اختاري نوع المناسبة','Select event type')}</option>
+                    <option value="wedding">{tx(lang,'حفل زفاف','Wedding')}</option>
+                    <option value="engagement">{tx(lang,'خطوبة / ملكة','Engagement')}</option>
+                    <option value="portrait">{tx(lang,'جلسة شخصية','Portrait Session')}</option>
+                    <option value="corporate">{tx(lang,'فعالية شركات','Corporate Event')}</option>
+                    <option value="product">{tx(lang,'تصوير منتجات','Product Shoot')}</option>
+                    <option value="real_estate">{tx(lang,'عقاري','Real Estate')}</option>
+                    <option value="industrial">{tx(lang,'صناعي','Industrial')}</option>
+                    <option value="other">{tx(lang,'أخرى','Other')}</option>
+                  </select>
+                </div>
+
+                <div style={grp}>
+                  <label style={lbl} htmlFor="bf-guests">
+                    {tx(lang,'العدد التقريبي للضيوف','Approximate Guest Count')}
+                  </label>
+                  <input id="bf-guests" className="atema-input atema-input-ltr" type="number"
+                    inputMode="numeric" min={0} max={5000} value={form.guestCount}
+                    onChange={e => set('guestCount', e.target.value)}
+                    placeholder={tx(lang,'مثلاً 200','e.g. 200')} />
+                </div>
               </div>
 
               <div style={{ marginBottom:'14px' }}>
@@ -983,6 +1045,22 @@ function BookingFormModal({
                   maxLength={200}
                   onChange={e => set('venue', e.target.value)}
                   placeholder={tx(lang,'اسم القاعة والعنوان','Venue name and address')} />
+              </div>
+
+              {/* ── Audit append (2026-05): optional must-have shot list ───
+                  Helps the photographer pre-script the day — bride with
+                  grandmother, ring close-up, first-look, etc. */}
+              <div style={{ marginBottom:'14px' }}>
+                <label style={lbl} htmlFor="bf-shotlist">
+                  {tx(lang,'لقطات مرغوبة (اختياري)','Must-Have Shots (optional)')}
+                </label>
+                <textarea id="bf-shotlist" className="atema-input" rows={2} value={form.shotList}
+                  maxLength={2000}
+                  onChange={e => set('shotList', e.target.value)}
+                  placeholder={tx(lang,
+                    'مثل: العروس مع جدتها، لقطة قريبة للخاتم، عائلة العريس...',
+                    'e.g. bride with grandmother, ring close-up, groom\'s family group...')}
+                  style={{ resize:'vertical' }} />
               </div>
 
               <div style={{ marginBottom:'18px' }}>
@@ -1023,6 +1101,23 @@ function BookingFormModal({
                         textDecoration:'underline', lineHeight:1.7 }}>
                       {tx(lang,'سياسة الخصوصية وحماية البيانات (PDPL)','Privacy & Data Protection (PDPL)')}
                     </button>
+                  </span>
+                </label>
+
+                {/* ── Audit append (2026-05): separate WhatsApp opt-in ─────
+                    PDPL requires marketing consent to be explicit and
+                    revocable. Bundling it with general consent (above)
+                    would be a compliance bug. Default unchecked — bride
+                    must opt in deliberately. */}
+                <label className="check-row" style={{ alignItems:'flex-start' }}>
+                  <input type="checkbox" checked={waOptIn}
+                    onChange={e => setWaOptIn(e.target.checked)}
+                    style={{ marginTop:'3px', flexShrink:0 }} />
+                  <span style={{ fontSize:'0.78rem', color: T.mocha, lineHeight:1.7 }}>
+                    {tx(lang,
+                      'أوافق على استلام تذكيرات وتحديثات الحجز عبر واتساب (اختياري — يمكن إيقافه في أي وقت)',
+                      'I agree to receive booking reminders and updates via WhatsApp (optional — can be revoked at any time)'
+                    )}
                   </span>
                 </label>
               </div>

@@ -56,6 +56,13 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
           location:        payload.location ?? null,
           specialRequests: payload.specialRequests ?? null,
           discountCode:    payload.discountCode ?? null,
+          // Audit append (2026-05) — see CreateBookingRequest for rationale.
+          eventType:       payload.eventType ?? null,
+          guestCount:      typeof payload.guestCount === 'number' ? payload.guestCount : null,
+          shotList:        payload.shotList ?? null,
+          tcAccepted:      !!payload.tcAccepted,
+          pdplConsent:     !!payload.pdplConsent,
+          whatsappOptIn:   !!payload.whatsappOptIn,
         },
       });
       if (!error && data && typeof data.id === 'string') {
@@ -142,6 +149,17 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
         discount_code:    discountAmount > 0 ? (payload.discountCode ?? null) : null,
         discount_amount:  discountAmount,
         discount_kind:    discountKind,
+        // Audit append (2026-05): shoot-logistics + consent snapshots.
+        // These columns are added by database-alteration-v2.sql. PostgREST
+        // WILL reject the insert if any of them is missing on the live DB,
+        // so make sure that migration has been applied before deploying
+        // this client.
+        event_type:               payload.eventType ?? null,
+        guest_count:              typeof payload.guestCount === 'number' ? payload.guestCount : null,
+        shot_list:                payload.shotList ?? null,
+        tc_accepted:              !!payload.tcAccepted,
+        pdpl_consent_snapshot:    !!payload.pdplConsent,
+        whatsapp_opt_in_snapshot: !!payload.whatsappOptIn,
       }])
       .select()
       .single();
