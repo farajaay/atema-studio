@@ -11,6 +11,7 @@ import JournalPage      from './pages/JournalPage';
 import JournalPostPage  from './pages/JournalPostPage';
 import AboutPage        from './pages/AboutPage';
 import MoodBoardPage    from './pages/MoodBoardPage';
+import PolicyPage       from './pages/PolicyPage';
 import PaymentResultPage from './pages/PaymentResultPage';
 
 // ─── Admin routes (lazy — keep the public bundle lean) ──────────────────────
@@ -65,6 +66,7 @@ export default function App() {
       <Route path="/journal"         element={<JournalPage />} />
       <Route path="/journal/:slug"   element={<JournalPostPage />} />
       <Route path="/about"           element={<AboutPage />} />
+      <Route path="/policy"          element={<PolicyPage />} />
       <Route path="/board/:token"    element={<MoodBoardPage />} />
 
       {/* Admin — lazy */}

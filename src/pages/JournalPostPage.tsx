@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router-dom';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
 import FadeUp from '../components/FadeUp';
+import ShareToWhatsApp from '../components/ShareToWhatsApp';
 import { useLang } from '../hooks/useLang';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { fetchJournalPost } from '../services/journal';
@@ -150,7 +151,7 @@ export default function JournalPostPage() {
             </FadeUp>
           </section>
 
-          {/* Closing ornament + back link */}
+          {/* Closing ornament + share + back link */}
           <section style={{
             padding: isMobile ? '20px 24px 100px' : '40px 60px 140px',
             textAlign: 'center',
@@ -158,7 +159,15 @@ export default function JournalPostPage() {
             <FadeUp>
               <div className="ornament"><span>ATEMA</span></div>
             </FadeUp>
-            <FadeUp delay={140}>
+            <FadeUp delay={120}>
+              <div style={{ marginBottom: 24 }}>
+                <ShareToWhatsApp
+                  lang={lang}
+                  text={tx(lang, post.title_ar, post.title_en)}
+                />
+              </div>
+            </FadeUp>
+            <FadeUp delay={220}>
               <Link to="/journal" style={{ textDecoration: 'none' }}>
                 <button className="btn-ghost" style={{
                   display: 'inline-flex', alignItems: 'center', gap: 10,
@@ -169,6 +178,31 @@ export default function JournalPostPage() {
               </Link>
             </FadeUp>
           </section>
+
+          {/* BlogPosting structured data — eligible for Google Discover and
+              the Top Stories module. Validate at validator.schema.org. */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'BlogPosting',
+              headline: tx(lang, post.title_ar, post.title_en),
+              inLanguage: lang === 'ar' ? 'ar-SA' : 'en',
+              datePublished: post.published_at,
+              image: post.cover_url ? [post.cover_url] : undefined,
+              description: tx(lang, post.excerpt_ar, post.excerpt_en),
+              author: { '@type': 'Organization', name: 'ATEMA STUDIO' },
+              publisher: {
+                '@type': 'Organization',
+                name: 'ATEMA STUDIO',
+                logo: { '@type': 'ImageObject', url: 'https://atemastudio.xyz/favicon.svg' },
+              },
+              mainEntityOfPage: {
+                '@type': 'WebPage',
+                '@id': `https://atemastudio.xyz/#/journal/${slug}`,
+              },
+            })}}
+          />
         </article>
       )}
 

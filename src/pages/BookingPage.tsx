@@ -600,55 +600,10 @@ function SummaryPanel({
 }
 
 // ── T&C / Privacy Popup ───────────────────────────────────────────────────────
-const TC_CONTENT = `
-<h3 style="font-family:'Amiri',serif;font-size:1.05rem;color:#8C6B4F;margin:0 0 14px">شروط الدفع</h3>
-<ul style="padding-right:18px;margin:0 0 16px;font-size:0.82rem;line-height:1.9;color:#4A3728">
-  <li>الدفعة الأولى (٥٠٪) واجبة الأداء لتأكيد الحجز وإلزامه — لا يُعدّ الحجز نافذاً قبل استلامها.</li>
-  <li>الدفعة الثانية تُسدَّد قبل المناسبة بيوم واحد على الأقل.</li>
-  <li>التحويل إلى: بنك الراجحي — فاطمة بوحسن — رقم الحساب: 329608010885626 أو عبر سداد.</li>
-  <li>الأسعار شاملة ضريبة القيمة المضافة ١٥٪.</li>
-</ul>
-<h3 style="font-family:'Amiri',serif;font-size:1.05rem;color:#8C6B4F;margin:0 0 14px">الإلغاء والتأجيل</h3>
-<div style="background:#fff8f0;border-right:3px solid #8C6B4F;padding:10px 14px;border-radius:0 6px 6px 0;font-size:0.82rem;color:#5c3d1e;font-weight:600;margin:0 0 12px">
-  الدفعة الأولى (٥٠٪) غير قابلة للاسترداد في جميع الأحوال دون استثناء.
-</div>
-<ul style="padding-right:18px;margin:0 0 16px;font-size:0.82rem;line-height:1.9;color:#4A3728">
-  <li>إلغاء قبل ١٤ يوماً أو أكثر: تُستردّ الدفعة الثانية إن كانت مسددة.</li>
-  <li>إلغاء خلال أقل من ١٤ يوماً: لا يُستردّ أي مبلغ.</li>
-  <li>الغياب دون إشعار يُعدّ إلغاءً ولا يُستردّ أي مبلغ.</li>
-  <li>يُسمح بتأجيل مرة واحدة فقط خلال ٣٠ يوماً وبإشعار لا يقل عن ٧ أيام.</li>
-</ul>
-<h3 style="font-family:'Amiri',serif;font-size:1.05rem;color:#8C6B4F;margin:0 0 14px">مواعيد التسليم</h3>
-<ul style="padding-right:18px;margin:0 0 16px;font-size:0.82rem;line-height:1.9;color:#4A3728">
-  <li>الصور المعدّلة: ١٢٠–١٨٠ يوماً من تاريخ المناسبة.</li>
-  <li>الفيديو السينمائي: ١٢٠ يوماً من تاريخ المناسبة.</li>
-  <li>الألبوم المطبوع: بعد اختيار الصور واعتمادها.</li>
-</ul>
-<h3 style="font-family:'Amiri',serif;font-size:1.05rem;color:#8C6B4F;margin:0 0 14px">الملكية الفكرية</h3>
-<ul style="padding-right:18px;margin:0 0 8px;font-size:0.82rem;line-height:1.9;color:#4A3728">
-  <li>تحتفظ ATEMA Studio بكامل حقوق الملكية الفكرية لجميع الصور والفيديوهات.</li>
-  <li>يُمنح الطرف الثاني ترخيص استخدام شخصي غير حصري للأغراض الشخصية فقط.</li>
-  <li>لا يحق نشر الصور الخام (غير المعدّلة) أو تداولها.</li>
-</ul>
-`;
-
-const PDPL_CONTENT = `
-<h3 style="font-family:'Amiri',serif;font-size:1.05rem;color:#8C6B4F;margin:0 0 14px">سياسة حماية البيانات الشخصية (PDPL)</h3>
-<p style="font-size:0.82rem;line-height:1.9;color:#4A3728;margin:0 0 14px">
-  تلتزم ATEMA Studio بمعالجة بياناتك الشخصية وفق نظام حماية البيانات الشخصية السعودي (م/٢٠):
-</p>
-<ul style="padding-right:18px;margin:0 0 16px;font-size:0.82rem;line-height:1.9;color:#4A3728">
-  <li><strong>الغرض من الجمع:</strong> تُستخدم بياناتك حصراً لتنفيذ عقد الخدمة والتواصل المتعلق بحجزك.</li>
-  <li><strong>المشاركة:</strong> لا تُشارَك بياناتك مع أطراف ثالثة إلا بما يقتضيه النظام.</li>
-  <li><strong>مدة الاحتفاظ:</strong> تُحتفظ بالبيانات ٣ سنوات من تاريخ المناسبة ثم تُحذف آمنياً.</li>
-  <li><strong>حقوقك:</strong> لكِ في أي وقت حق الاطلاع على بياناتك، وطلب تصحيحها أو حذفها عبر التواصل على: 0548323496.</li>
-  <li><strong>الصور:</strong> تحتفظ ATEMA Studio بحق عرض الصور لأغراض تسويقية ما لم تُبدي العميلة رغبتها في الخصوصية الكاملة كتابةً قبل المناسبة.</li>
-  <li><strong>الأمان:</strong> تُطبَّق إجراءات تقنية وتنظيمية لحماية بياناتك من الوصول غير المصرح به.</li>
-</ul>
-<p style="font-size:0.78rem;color:#8C6B4F;border-top:1px solid #E8D9C5;padding-top:12px;margin:0">
-  للاستفسار عن بياناتك: atema.studio · 0548323496 · جبيل، المملكة العربية السعودية
-</p>
-`;
+// Copy moved to src/content/legal.ts so /policy and this in-flow popup share
+// the same source. The popup still renders Arabic only (the booking flow is
+// Arabic-first) — the English copy is rendered on /policy.
+import { TC_CONTENT_AR as TC_CONTENT, PDPL_CONTENT_AR as PDPL_CONTENT } from '../content/legal';
 
 function LegalPopup({ title, htmlContent, onClose }: {
   title: string; htmlContent: string; onClose: () => void;

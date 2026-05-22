@@ -1,6 +1,8 @@
 // ATEMA STUDIO — Editorial home page.
-// Cinematic hero → Experience scroll-story → Packages teaser → Journal preview → Portfolio preview.
+// Cinematic hero → portfolio strip + trust band (first-paint visible) →
+// Experience scroll-story → Packages teaser → Journal preview → Portfolio preview.
 
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
@@ -8,12 +10,36 @@ import FadeUp from '../components/FadeUp';
 import PromotionModal from '../components/PromotionModal';
 import { useLang } from '../hooks/useLang';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { fetchPortfolio } from '../services/portfolio';
+import type { PortfolioItem } from '../services/portfolio';
+import { ShieldCheck, Users, MapPin, CreditCard } from 'lucide-react';
 
 const tx = (l: 'ar' | 'en', ar: string, en: string) => l === 'ar' ? ar : en;
+
+// Static fallback so the strip is never empty on first paint — overridden by
+// the live Supabase fetch when it lands. Files exist in /public/photos/ and
+// are already paired with WebP variants.
+const FALLBACK_THUMBS = [
+  'IMG_5620.JPG', 'IMG_5607.JPG', 'IMG_5525.JPG',
+  'IMG_5506.JPG', 'IMG_5623.JPG', 'B6B52466-B962-4C33-804E-135D26C25236.JPG',
+];
 
 export default function HomePage() {
   const { lang, setLang } = useLang();
   const { isMobile } = useBreakpoint();
+
+  // 6 portfolio thumbs to fill the first-scroll void below the hero. We start
+  // from the static fallback (no flash), then upgrade to the live Supabase
+  // picks once they arrive.
+  const [thumbs, setThumbs] = useState<string[]>(
+    FALLBACK_THUMBS.map(f => `/photos/${f}`),
+  );
+  useEffect(() => {
+    fetchPortfolio().then((items: PortfolioItem[]) => {
+      const urls = items.slice(0, 6).map(i => i.image_url).filter(Boolean);
+      if (urls.length >= 3) setThumbs(urls);
+    });
+  }, []);
 
   return (
     <div style={{ background: 'var(--a-bg)', color: 'var(--a-text)', minHeight: '100vh' }}>
@@ -90,6 +116,90 @@ export default function HomePage() {
           writingMode: 'vertical-rl',
         }}>
           SCROLL
+        </div>
+      </section>
+
+      {/* ── Portfolio strip — first content past the hero ────────────────
+          Intentionally NOT wrapped in FadeUp: the previous version had a
+          ~3-viewport black void between hero and content because every
+          section gated on IntersectionObserver. This strip is visible from
+          first paint, so a slow phone, a robot, or a noscript fallback all
+          see imagery immediately. */}
+      <section style={{
+        padding: isMobile ? '60px 16px 0' : '90px 60px 0',
+        background: 'var(--a-bg)',
+      }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)',
+            gap: isMobile ? 6 : 10,
+          }}>
+            {thumbs.slice(0, 6).map((src, i) => (
+              <Link key={i} to="/portfolio" style={{ display: 'block', textDecoration: 'none' }}>
+                <picture>
+                  <source type="image/webp"
+                    srcSet={src.replace(/\.[^.]+$/, '.webp')} />
+                  <img
+                    src={src}
+                    alt={tx(lang, 'لقطة من المعرض', 'A frame from the portfolio')}
+                    loading={i < 3 ? 'eager' : 'lazy'}
+                    decoding="async"
+                    style={{
+                      width: '100%',
+                      aspectRatio: '3 / 4',
+                      objectFit: 'cover',
+                      borderRadius: 4,
+                      border: '1px solid var(--a-border)',
+                      display: 'block',
+                    }}
+                  />
+                </picture>
+              </Link>
+            ))}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: isMobile ? 18 : 26 }}>
+            <Link to="/portfolio" style={{
+              fontFamily: "'Cinzel', serif", fontSize: '0.7rem',
+              letterSpacing: '0.3em', textTransform: 'uppercase',
+              color: 'var(--a-gold)', textDecoration: 'none',
+            }}>
+              {tx(lang, 'كل الأعمال ←', 'View all work →')}
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Trust strip — Saudi-buyer credibility cues at a glance ──────── */}
+      <section style={{
+        padding: isMobile ? '40px 20px 0' : '60px 60px 0',
+        background: 'var(--a-bg)',
+      }}>
+        <div style={{
+          maxWidth: 1100, margin: '0 auto',
+          border: '1px solid var(--a-border)',
+          background: 'var(--a-surface)',
+          padding: isMobile ? '22px 18px' : '28px 36px',
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+          gap: isMobile ? 18 : 22,
+        }}>
+          {[
+            { Icon: Users,       ar: 'فريق نسائي بالكامل', en: 'All-female team' },
+            { Icon: MapPin,      ar: 'الجبيل والشرقية',    en: 'Jubail & Eastern Province' },
+            { Icon: ShieldCheck, ar: 'مسجَّل ضريبياً (زاتكا)', en: 'ZATCA-registered' },
+            { Icon: CreditCard,  ar: 'مدى · Apple Pay · تحويل', en: 'Mada · Apple Pay · transfer' },
+          ].map(({ Icon, ar, en }) => (
+            <div key={en} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              color: 'var(--a-text-soft)',
+              fontFamily: lang === 'ar' ? "'Tajawal', sans-serif" : "'Montserrat', sans-serif",
+              fontSize: '0.82rem', fontWeight: 400, lineHeight: 1.4,
+            }}>
+              <Icon size={18} color="#D4AF7A" style={{ flexShrink: 0 }} />
+              <span>{tx(lang, ar, en)}</span>
+            </div>
+          ))}
         </div>
       </section>
 

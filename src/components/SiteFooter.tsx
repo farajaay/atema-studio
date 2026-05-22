@@ -28,6 +28,7 @@ export default function SiteFooter({ lang }: Props) {
           ['/journal',    'اليوميات',  'Journal'],
           ['/book',       'الباقات',   'Packages'],
           ['/about',      'الاستوديو', 'Atelier'],
+          ['/policy',     'السياسات',  'Policy'],
         ] as const).map(([to, ar, en]) => (
           <Link key={to} to={to} style={{
             fontFamily: "'Cinzel', serif", fontSize: '0.7rem',
