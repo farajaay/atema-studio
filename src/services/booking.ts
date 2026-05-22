@@ -44,6 +44,51 @@ function ref(): string {
  *  the user must never see an indefinite spinner. */
 const EDGE_FN_TIMEOUT_MS = 12_000;
 
+/** PostgREST error messages for "this column doesn't exist on the table".
+ *  We use these to auto-strip unknown columns and retry the insert. */
+const COLUMN_NOT_FOUND_RE =
+  /Could not find the ['"`]?([\w]+)['"`]? column|column ['"`]?([\w]+)['"`]? of relation .* does not exist|column ['"`]?([\w]+)['"`]? does not exist/i;
+
+/** Insert a row into `bookings`, auto-stripping any column the live
+ *  schema doesn't recognise and retrying. Caps at 8 retries to bound
+ *  recovery time; anything beyond is a real error and surfaces. */
+async function resilientInsert(
+  client: NonNullable<typeof supabase>,
+  row: Record<string, unknown>,
+): Promise<{ data: { id: string; booking_ref?: string; status?: string; created_at?: string; event_date?: string; total?: number } | null; error: { message: string } | null }> {
+  let attempt: Record<string, unknown> = { ...row };
+  const dropped: string[] = [];
+  for (let i = 0; i < 8; i++) {
+    const { data, error } = await client
+      .from('bookings')
+      .insert([attempt])
+      .select()
+      .single();
+    if (!error) {
+      if (dropped.length > 0) {
+        console.warn(
+          `[createBooking] succeeded after stripping unknown columns: ${dropped.join(', ')}. ` +
+          'Apply the pending migrations (database-alteration-v2.sql + ' +
+          'migrations-2026-05-discount-codes.sql + migrations-2026-05-repair-audit.sql) ' +
+          'to persist these fields going forward.',
+        );
+      }
+      return { data: data as { id: string; booking_ref?: string }, error: null };
+    }
+    const match = error.message?.match(COLUMN_NOT_FOUND_RE);
+    const missingCol = match?.[1] || match?.[2] || match?.[3];
+    if (!missingCol || !(missingCol in attempt)) {
+      // Not a column-not-found we can recover from. Surface as-is.
+      return { data: null, error };
+    }
+    dropped.push(missingCol);
+    const { [missingCol]: _omit, ...rest } = attempt;
+    void _omit;
+    attempt = rest;
+  }
+  return { data: null, error: { message: 'resilient insert exceeded retry limit' } };
+}
+
 /** Wrap any promise with a timeout. Resolves with `null` (not rejects) so
  *  the caller can distinguish "timed out" from "errored". */
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | { __timeout: true }> {
@@ -166,9 +211,11 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
         }
       } catch { /* drop discount silently — booking continues */ }
     }
-    // Canonical insert payload — every column the live schema has had since
-    // pre-audit, plus the audit-appended ones if they exist.
-    const legacyRow: Record<string, unknown> = {
+    // Canonical insert payload — every column we'd ideally write. If the
+    // live DB is missing any of them (audit columns not migrated,
+    // discount columns not migrated, etc.), the resilient inserter
+    // below auto-strips the missing one and retries.
+    const fullRow: Record<string, unknown> = {
       booking_ref:      bookingRef,
       package_id:       pkgId,
       addon_ids:        payload.addOnIds ?? [],
@@ -184,13 +231,11 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
       total:            payload.total,
       status:           'pending',
       payment_status:   'unpaid',
+      // Discount columns — added by migrations-2026-05-discount-codes.sql
       discount_code:    discountAmount > 0 ? (payload.discountCode ?? null) : null,
       discount_amount:  discountAmount,
       discount_kind:    discountKind,
-    };
-    const auditRow: Record<string, unknown> = {
-      ...legacyRow,
-      // Audit append (2026-05): shoot-logistics + consent snapshots.
+      // Audit columns — added by database-alteration-v2.sql
       event_type:               payload.eventType ?? null,
       guest_count:              typeof payload.guestCount === 'number' ? payload.guestCount : null,
       shot_list:                payload.shotList ?? null,
@@ -199,40 +244,23 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
       whatsapp_opt_in_snapshot: !!payload.whatsappOptIn,
     };
 
-    // Try with audit columns first. If PostgreSQL rejects an unknown
-    // column (the audit migration hasn't been applied to this DB yet),
-    // retry with the legacy shape so the booking still completes.
-    let { data, error } = await supabase
-      .from('bookings')
-      .insert([auditRow])
-      .select()
-      .single();
+    // Resilient insert: PostgREST surfaces "Could not find the 'X' column"
+    // when a write references a column the live schema doesn't have.
+    // We strip the offending column and retry, up to 8 times, so the
+    // booking still completes even if migrations are partially applied.
+    const { data, error } = await resilientInsert(supabase, fullRow);
 
-    const COLUMN_NOT_FOUND_RE = /column .* does not exist|Could not find the .* column/i;
-    if (error && COLUMN_NOT_FOUND_RE.test(error.message ?? '')) {
-      console.warn(
-        '[createBooking] audit columns missing on this DB — retrying with legacy schema. ' +
-        'Apply database-alteration-v2.sql + migrations-2026-05-repair-audit.sql to enable them.',
-        error.message,
-      );
-      ({ data, error } = await supabase
-        .from('bookings')
-        .insert([legacyRow])
-        .select()
-        .single());
-    }
-
-    if (error) {
+    if (error || !data) {
       console.error('Booking insert error:', error);
-      throw new Error(error.message);
+      throw new Error(error?.message ?? 'booking_insert_failed');
     }
     return {
       id:         data.id,
-      bookingRef: data.booking_ref ?? bookingRef,
-      status:     data.status,
-      createdAt:  data.created_at,
-      eventDate:  data.event_date,
-      total:      data.total,
+      bookingRef: data.booking_ref     ?? bookingRef,
+      status:     (data.status         ?? 'pending') as BookingResponse['status'],
+      createdAt:  data.created_at      ?? new Date().toISOString(),
+      eventDate:  data.event_date      ?? payload.eventDate,
+      total:      data.total           ?? payload.total,
     };
   }
 

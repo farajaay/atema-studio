@@ -205,8 +205,11 @@ serve(async (req) => {
   // ── Insert ────────────────────────────────────────────────────────────
   const ref = bookingRef();
 
-  // Canonical legacy row. Has worked since pre-audit.
-  const legacyRow: Record<string, unknown> = {
+  // Canonical full row — every column we'd ideally write. If the live
+  // schema is missing any (audit / discount / vat_enabled migrations
+  // not yet applied), the resilient inserter below strips them and
+  // retries so the booking still completes.
+  const fullRow: Record<string, unknown> = {
     booking_ref: ref,
     package_id:  pkgId,
     addon_ids:   addOnIds,
@@ -221,13 +224,11 @@ serve(async (req) => {
     vat_enabled: vatEnabled,
     status:         'pending',
     payment_status: 'unpaid',
+    // Discount columns (migrations-2026-05-discount-codes.sql)
     discount_code:   discountCode,
     discount_amount: discountAmount,
     discount_kind:   discountKind,
-  };
-  // Audit-appended fields. Inserted on top of legacy IF the columns exist.
-  const auditRow: Record<string, unknown> = {
-    ...legacyRow,
+    // Audit columns (database-alteration-v2.sql)
     event_type:               eventType,
     guest_count:              guestCount,
     shot_list:                shotList || null,
@@ -237,23 +238,31 @@ serve(async (req) => {
     whatsapp_opt_in_snapshot: whatsappOptIn,
   };
 
-  // Try with audit columns first. If a column doesn't exist on this DB
-  // (the audit migration hasn't been applied yet), drop them and retry
-  // with the legacy shape so the booking still completes.
-  let { data: booking, error: insErr } = await supabase
-    .from('bookings')
-    .insert([auditRow])
-    .select('id, booking_ref, status, created_at, event_date, total')
-    .single();
+  // Resilient insert: auto-strip any column PostgREST says doesn't
+  // exist, retry. Caps at 8 retries to bound recovery time.
+  const COLUMN_NOT_FOUND_RE =
+    /Could not find the ['"`]?([\w]+)['"`]? column|column ['"`]?([\w]+)['"`]? of relation .* does not exist|column ['"`]?([\w]+)['"`]? does not exist/i;
 
-  const COLUMN_NOT_FOUND_RE = /column .* does not exist|Could not find the .* column/i;
-  if (insErr && COLUMN_NOT_FOUND_RE.test(insErr.message ?? '')) {
-    console.warn('[create-booking] audit columns missing on this DB — retrying with legacy schema.', insErr.message);
+  let attempt: Record<string, unknown> = { ...fullRow };
+  const dropped: string[] = [];
+  let booking: any = null;
+  let insErr: any = null;
+  for (let i = 0; i < 8; i++) {
     ({ data: booking, error: insErr } = await supabase
       .from('bookings')
-      .insert([legacyRow])
+      .insert([attempt])
       .select('id, booking_ref, status, created_at, event_date, total')
       .single());
+    if (!insErr) break;
+    const msg = (insErr as { message?: string }).message ?? '';
+    const m = msg.match(COLUMN_NOT_FOUND_RE);
+    const missing = m?.[1] || m?.[2] || m?.[3];
+    if (!missing || !(missing in attempt)) break;
+    dropped.push(missing);
+    delete (attempt as Record<string, unknown>)[missing];
+  }
+  if (dropped.length > 0 && !insErr) {
+    console.warn(`[create-booking] succeeded after stripping unknown columns: ${dropped.join(', ')}.`);
   }
 
   if (insErr || !booking) {
