@@ -268,10 +268,13 @@ grant execute on function public.redeem_discount_code(text, integer)
 
 alter table public.discount_codes enable row level security;
 
-drop policy if exists "Admins read discount codes"   on public.discount_codes;
-drop policy if exists "Admins insert discount codes" on public.discount_codes;
-drop policy if exists "Admins update discount codes" on public.discount_codes;
-drop policy if exists "Admins delete discount codes" on public.discount_codes;
+drop policy if exists "Admins read discount codes"          on public.discount_codes;
+drop policy if exists "Admins insert discount codes"        on public.discount_codes;
+drop policy if exists "Admins update discount codes"        on public.discount_codes;
+-- Both names dropped: the original migration created "delete unused" but
+-- only listed "delete" here, so re-runs tripped 42710 on the next CREATE.
+drop policy if exists "Admins delete discount codes"        on public.discount_codes;
+drop policy if exists "Admins delete unused discount codes" on public.discount_codes;
 
 create policy "Admins read discount codes"
   on public.discount_codes for select
