@@ -29,28 +29,38 @@
 -- holder of the anon key SELECT * from mood_boards and harvest customer
 -- names (auto-drafted into title_ar). Drop the open policy; add a
 -- security-definer RPC that returns a single row matched by token.
+--
+-- Wrapped in a DO block guarded on the existence of `public.mood_boards`
+-- so this migration is safe to run before migrations-2026-05-moodboard.sql
+-- (the H-6 block will be skipped with a notice; everything else still
+-- applies). Re-run the full migration after the moodboard table exists
+-- to actually install the policy + RPC.
 
-drop policy if exists "Public select mood_boards" on public.mood_boards;
+do $h6$
+begin
+  if to_regclass('public.mood_boards') is null then
+    raise notice 'H-6 skipped: public.mood_boards does not exist yet. Run migrations-2026-05-moodboard.sql first, then re-run this migration.';
+  else
+    execute $$drop policy if exists "Public select mood_boards" on public.mood_boards$$;
+    execute $$drop policy if exists "Authenticated select mood_boards" on public.mood_boards$$;
+    execute $$create policy "Authenticated select mood_boards"
+               on public.mood_boards for select
+               to authenticated
+               using (true)$$;
 
--- Admin (authenticated) keeps direct SELECT; everyone else uses the RPC.
-drop policy if exists "Authenticated select mood_boards" on public.mood_boards;
-create policy "Authenticated select mood_boards"
-  on public.mood_boards for select
-  to authenticated
-  using (true);
+    execute $$create or replace function public.get_mood_board_by_token(p_token text)
+              returns public.mood_boards
+              language sql
+              security definer
+              stable
+              set search_path = public
+              as 'select * from public.mood_boards where token = p_token limit 1'$$;
 
-create or replace function public.get_mood_board_by_token(p_token text)
-returns public.mood_boards
-language sql
-security definer
-stable
-set search_path = public
-as $$
-  select * from public.mood_boards where token = p_token limit 1;
-$$;
-
-grant execute on function public.get_mood_board_by_token(text)
-  to anon, authenticated;
+    execute $$grant execute on function public.get_mood_board_by_token(text)
+               to anon, authenticated$$;
+  end if;
+end
+$h6$;
 
 -- ╔════════════════════════════════════════════════════════════════════╗
 -- ║ H-9 — Drop the loose anon SELECT on bookings                       ║
