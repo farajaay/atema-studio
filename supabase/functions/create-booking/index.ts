@@ -204,41 +204,61 @@ serve(async (req) => {
 
   // ── Insert ────────────────────────────────────────────────────────────
   const ref = bookingRef();
-  const { data: booking, error: insErr } = await supabase
+
+  // Canonical legacy row. Has worked since pre-audit.
+  const legacyRow: Record<string, unknown> = {
+    booking_ref: ref,
+    package_id:  pkgId,
+    addon_ids:   addOnIds,
+    event_date:  eventDate,
+    event_time:  eventTime,
+    customer_name:    name,
+    customer_phone:   phone,
+    customer_email:   email || null,
+    location:         venue || null,
+    special_requests: notes || null,
+    subtotal, vat, total,
+    vat_enabled: vatEnabled,
+    status:         'pending',
+    payment_status: 'unpaid',
+    discount_code:   discountCode,
+    discount_amount: discountAmount,
+    discount_kind:   discountKind,
+  };
+  // Audit-appended fields. Inserted on top of legacy IF the columns exist.
+  const auditRow: Record<string, unknown> = {
+    ...legacyRow,
+    event_type:               eventType,
+    guest_count:              guestCount,
+    shot_list:                shotList || null,
+    tc_accepted:              tcAccepted,
+    tc_accepted_at:           tcAccepted ? new Date().toISOString() : null,
+    pdpl_consent_snapshot:    pdplConsent,
+    whatsapp_opt_in_snapshot: whatsappOptIn,
+  };
+
+  // Try with audit columns first. If a column doesn't exist on this DB
+  // (the audit migration hasn't been applied yet), drop them and retry
+  // with the legacy shape so the booking still completes.
+  let { data: booking, error: insErr } = await supabase
     .from('bookings')
-    .insert([{
-      booking_ref: ref,
-      package_id:  pkgId,
-      addon_ids:   addOnIds,
-      event_date:  eventDate,
-      event_time:  eventTime,
-      customer_name:    name,
-      customer_phone:   phone,
-      customer_email:   email || null,
-      location:         venue || null,
-      special_requests: notes || null,
-      subtotal, vat, total,
-      vat_enabled: vatEnabled,
-      status:         'pending',
-      payment_status: 'unpaid',
-      discount_code:   discountCode,
-      discount_amount: discountAmount,
-      discount_kind:   discountKind,
-      // Audit append (2026-05) — shoot logistics + consent snapshots.
-      // Schema added by database-alteration-v2.sql.
-      event_type:               eventType,
-      guest_count:              guestCount,
-      shot_list:                shotList || null,
-      tc_accepted:              tcAccepted,
-      tc_accepted_at:           tcAccepted ? new Date().toISOString() : null,
-      pdpl_consent_snapshot:    pdplConsent,
-      whatsapp_opt_in_snapshot: whatsappOptIn,
-    }])
+    .insert([auditRow])
     .select('id, booking_ref, status, created_at, event_date, total')
     .single();
-  if (insErr) {
+
+  const COLUMN_NOT_FOUND_RE = /column .* does not exist|Could not find the .* column/i;
+  if (insErr && COLUMN_NOT_FOUND_RE.test(insErr.message ?? '')) {
+    console.warn('[create-booking] audit columns missing on this DB — retrying with legacy schema.', insErr.message);
+    ({ data: booking, error: insErr } = await supabase
+      .from('bookings')
+      .insert([legacyRow])
+      .select('id, booking_ref, status, created_at, event_date, total')
+      .single());
+  }
+
+  if (insErr || !booking) {
     console.error('insert error:', insErr);
-    return fail('insert_failed', 500, insErr.message);
+    return fail('insert_failed', 500, insErr?.message);
   }
 
   // ── WhatsApp notification (fire & forget; preserved from previous stub) ──

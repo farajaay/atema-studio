@@ -39,11 +39,43 @@ function ref(): string {
  * direct insert path — same behaviour as before C-3, only used while the
  * Edge Function is being rolled out.
  */
+/** Hard ceiling for the Edge Function call. If it doesn't return inside
+ *  this window we abandon it and fall back to the direct-insert path —
+ *  the user must never see an indefinite spinner. */
+const EDGE_FN_TIMEOUT_MS = 12_000;
+
+/** Wrap any promise with a timeout. Resolves with `null` (not rejects) so
+ *  the caller can distinguish "timed out" from "errored". */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | { __timeout: true }> {
+  return new Promise(resolve => {
+    let done = false;
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      resolve({ __timeout: true });
+    }, ms);
+    p.then(v => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      resolve(v);
+    }).catch(err => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      // Surface as a rejected promise — re-throw on next tick.
+      // We use queueMicrotask so the outer await sees a real rejection.
+      queueMicrotask(() => { throw err; });
+      resolve({ __timeout: true });
+    });
+  });
+}
+
 export async function createBooking(payload: CreateBookingRequest): Promise<BookingResponse> {
   if (supabase) {
     // ── Preferred path: Edge Function ────────────────────────────────
     try {
-      const { data, error } = await supabase.functions.invoke('create-booking', {
+      const invokePromise = supabase.functions.invoke('create-booking', {
         body: {
           customerName:    payload.customerName,
           customerPhone:   payload.customerPhone,
@@ -65,27 +97,33 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
           whatsappOptIn:   !!payload.whatsappOptIn,
         },
       });
-      if (!error && data && typeof data.id === 'string') {
-        return {
-          id:         data.id,
-          bookingRef: data.bookingRef,
-          status:     data.status,
-          createdAt:  data.createdAt,
-          eventDate:  data.eventDate,
-          total:      data.total,
-        };
-      }
-      // Function returned an error response (validation, etc.)
-      if (error) {
-        // 404 = not deployed yet → silent fall-through to direct insert.
-        // Any other status = surface the message.
-        if (!/(404|Function not found)/i.test(String((error as { message?: string }).message ?? ''))) {
-          console.error('createBooking edge function error:', error);
-          throw new Error(typeof (data as { error?: string })?.error === 'string'
-            ? (data as { error: string }).error
-            : (error as { message?: string }).message ?? 'create_booking_failed');
+      const settled = await withTimeout(invokePromise, EDGE_FN_TIMEOUT_MS);
+      if (settled && typeof settled === 'object' && '__timeout' in settled) {
+        console.warn(`create-booking edge function timed out after ${EDGE_FN_TIMEOUT_MS}ms — falling back to direct insert.`);
+      } else {
+        const { data, error } = settled as Awaited<typeof invokePromise>;
+        if (!error && data && typeof data.id === 'string') {
+          return {
+            id:         data.id,
+            bookingRef: data.bookingRef,
+            status:     data.status,
+            createdAt:  data.createdAt,
+            eventDate:  data.eventDate,
+            total:      data.total,
+          };
         }
-        console.warn('create-booking edge function not deployed yet — falling back to direct insert.');
+        // Function returned an error response (validation, etc.)
+        if (error) {
+          // 404 = not deployed yet → silent fall-through to direct insert.
+          // Any other status = surface the message.
+          if (!/(404|Function not found)/i.test(String((error as { message?: string }).message ?? ''))) {
+            console.error('createBooking edge function error:', error);
+            throw new Error(typeof (data as { error?: string })?.error === 'string'
+              ? (data as { error: string }).error
+              : (error as { message?: string }).message ?? 'create_booking_failed');
+          }
+          console.warn('create-booking edge function not deployed yet — falling back to direct insert.');
+        }
       }
     } catch (err) {
       // Network / unknown — fall through to direct insert
@@ -128,41 +166,61 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
         }
       } catch { /* drop discount silently — booking continues */ }
     }
-    const { data, error } = await supabase
+    // Canonical insert payload — every column the live schema has had since
+    // pre-audit, plus the audit-appended ones if they exist.
+    const legacyRow: Record<string, unknown> = {
+      booking_ref:      bookingRef,
+      package_id:       pkgId,
+      addon_ids:        payload.addOnIds ?? [],
+      event_date:       payload.eventDate,
+      event_time:       payload.eventTime,
+      customer_name:    payload.customerName,
+      customer_phone:   payload.customerPhone,
+      customer_email:   payload.customerEmail ?? null,
+      location:         payload.location ?? null,
+      special_requests: payload.specialRequests ?? null,
+      subtotal:         payload.subtotal,
+      vat:              payload.vat,
+      total:            payload.total,
+      status:           'pending',
+      payment_status:   'unpaid',
+      discount_code:    discountAmount > 0 ? (payload.discountCode ?? null) : null,
+      discount_amount:  discountAmount,
+      discount_kind:    discountKind,
+    };
+    const auditRow: Record<string, unknown> = {
+      ...legacyRow,
+      // Audit append (2026-05): shoot-logistics + consent snapshots.
+      event_type:               payload.eventType ?? null,
+      guest_count:              typeof payload.guestCount === 'number' ? payload.guestCount : null,
+      shot_list:                payload.shotList ?? null,
+      tc_accepted:              !!payload.tcAccepted,
+      pdpl_consent_snapshot:    !!payload.pdplConsent,
+      whatsapp_opt_in_snapshot: !!payload.whatsappOptIn,
+    };
+
+    // Try with audit columns first. If PostgreSQL rejects an unknown
+    // column (the audit migration hasn't been applied to this DB yet),
+    // retry with the legacy shape so the booking still completes.
+    let { data, error } = await supabase
       .from('bookings')
-      .insert([{
-        booking_ref:      bookingRef,
-        package_id:       pkgId,
-        addon_ids:        payload.addOnIds ?? [],
-        event_date:       payload.eventDate,
-        event_time:       payload.eventTime,
-        customer_name:    payload.customerName,
-        customer_phone:   payload.customerPhone,
-        customer_email:   payload.customerEmail ?? null,
-        location:         payload.location ?? null,
-        special_requests: payload.specialRequests ?? null,
-        subtotal:         payload.subtotal,
-        vat:              payload.vat,
-        total:            payload.total,
-        status:           'pending',
-        payment_status:   'unpaid',
-        discount_code:    discountAmount > 0 ? (payload.discountCode ?? null) : null,
-        discount_amount:  discountAmount,
-        discount_kind:    discountKind,
-        // Audit append (2026-05): shoot-logistics + consent snapshots.
-        // These columns are added by database-alteration-v2.sql. PostgREST
-        // WILL reject the insert if any of them is missing on the live DB,
-        // so make sure that migration has been applied before deploying
-        // this client.
-        event_type:               payload.eventType ?? null,
-        guest_count:              typeof payload.guestCount === 'number' ? payload.guestCount : null,
-        shot_list:                payload.shotList ?? null,
-        tc_accepted:              !!payload.tcAccepted,
-        pdpl_consent_snapshot:    !!payload.pdplConsent,
-        whatsapp_opt_in_snapshot: !!payload.whatsappOptIn,
-      }])
+      .insert([auditRow])
       .select()
       .single();
+
+    const COLUMN_NOT_FOUND_RE = /column .* does not exist|Could not find the .* column/i;
+    if (error && COLUMN_NOT_FOUND_RE.test(error.message ?? '')) {
+      console.warn(
+        '[createBooking] audit columns missing on this DB — retrying with legacy schema. ' +
+        'Apply database-alteration-v2.sql + migrations-2026-05-repair-audit.sql to enable them.',
+        error.message,
+      );
+      ({ data, error } = await supabase
+        .from('bookings')
+        .insert([legacyRow])
+        .select()
+        .single());
+    }
 
     if (error) {
       console.error('Booking insert error:', error);
