@@ -21,6 +21,127 @@
 BEGIN;
 
 -- ============================================================
+-- SECTION 0 — RESTORE LIVE addons SCHEMA (URGENT — fixes hang)
+-- ============================================================
+-- The earlier `database-cleanup-legacy-price.sql` dropped addons.price
+-- because the audit-script introduced price_sar as the canonical column.
+-- But the LIVE frontend (src/hooks/useAddonsData.ts) reads `addon.price`
+-- and crashes on `.toLocaleString()` when the field is undefined — which
+-- bricks the booking page entirely.
+--
+-- Fix: restore the column, back-fill from price_sar, and keep both in
+-- sync so the rest of the live codebase keeps working.
+
+-- 0.1  Restore the legacy column (idempotent).
+ALTER TABLE public.addons
+  ADD COLUMN IF NOT EXISTS price       NUMERIC(10,2);
+
+-- 0.1b Make sure the live-expected ancillary columns exist too. These
+--      are referenced by useAddonsData.ts but the audit script never
+--      added them in this naming.
+ALTER TABLE public.addons
+  ADD COLUMN IF NOT EXISTS active      BOOLEAN     DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS sort_order  INT         DEFAULT 0;
+
+-- 0.2  Back-fill price from price_sar (audit migration's column) where
+--      the legacy column is now NULL. If price_sar is also NULL we
+--      can't recover the value — log a warning rather than fail silently.
+DO $$
+DECLARE
+  recoverable INT;
+  unrecoverable INT;
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'addons' AND column_name = 'price_sar'
+  ) THEN
+    UPDATE public.addons SET price = price_sar
+      WHERE price IS NULL AND price_sar IS NOT NULL;
+    GET DIAGNOSTICS recoverable = ROW_COUNT;
+    RAISE NOTICE 'Repair: back-filled price from price_sar on % addon row(s).', recoverable;
+  END IF;
+  SELECT COUNT(*) INTO unrecoverable FROM public.addons WHERE price IS NULL;
+  IF unrecoverable > 0 THEN
+    RAISE WARNING 'Repair: % addon row(s) still have NULL price. Set them manually in PackagesManager.', unrecoverable;
+  END IF;
+END $$;
+
+-- 0.3  Mirror live-vs-audit boolean naming if the audit script added a
+--      separate is_active column. Keep `active` (live) as the source of
+--      truth; sync it from is_active where possible.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'addons' AND column_name = 'is_active'
+  ) THEN
+    EXECUTE 'UPDATE public.addons SET active = is_active WHERE active IS DISTINCT FROM is_active';
+  END IF;
+END $$;
+
+-- 0.4  Same defensive sweep for packages — the audit script added
+--      parallel columns (edited_photos_count, album_type, includes_video,
+--      description_ar/_en, features_ar/_en, is_active) that the live
+--      frontend doesn't read. The live columns (edited_photos, album,
+--      video, description, features, active) MUST stay populated.
+--      If a parallel column has data and the live column is empty,
+--      back-fill it so the booking page renders correctly.
+DO $$
+BEGIN
+  -- price (in case any package was inserted by the audit seed)
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='packages' AND column_name='price_sar')
+    AND EXISTS (SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='packages' AND column_name='price')
+  THEN
+    EXECUTE 'UPDATE public.packages SET price = price_sar WHERE price IS NULL AND price_sar IS NOT NULL';
+  END IF;
+
+  -- edited_photos
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='packages' AND column_name='edited_photos_count')
+    AND EXISTS (SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='packages' AND column_name='edited_photos')
+  THEN
+    EXECUTE 'UPDATE public.packages SET edited_photos = edited_photos_count
+             WHERE (edited_photos IS NULL OR edited_photos = 0) AND edited_photos_count IS NOT NULL';
+  END IF;
+
+  -- album text
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='packages' AND column_name='album_type')
+    AND EXISTS (SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='packages' AND column_name='album')
+  THEN
+    EXECUTE 'UPDATE public.packages SET album = album_type WHERE album IS NULL AND album_type IS NOT NULL';
+  END IF;
+
+  -- video flag
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='packages' AND column_name='includes_video')
+    AND EXISTS (SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='packages' AND column_name='video')
+  THEN
+    EXECUTE 'UPDATE public.packages SET video = includes_video WHERE video IS NULL';
+  END IF;
+
+  -- active flag
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='packages' AND column_name='is_active')
+    AND EXISTS (SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='packages' AND column_name='active')
+  THEN
+    EXECUTE 'UPDATE public.packages SET active = is_active WHERE active IS DISTINCT FROM is_active';
+  END IF;
+END $$;
+
+-- 0.5  Default NOT-NULL safety net: any remaining NULL prices get 0.
+--      The admin must then set the real price via PackagesManager, but
+--      the booking page will at least render without crashing.
+UPDATE public.addons   SET price = 0 WHERE price IS NULL;
+UPDATE public.packages SET price = 0 WHERE price IS NULL;
+
+-- ============================================================
 -- SECTION 1 — REVERT payment_status REWRITE
 -- ============================================================
 -- The live CHECK constraint is:
