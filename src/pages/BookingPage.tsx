@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useBreakpoint } from '../hooks/useBreakpoint';
-import { usePackagesData } from '../hooks/usePackagesData';
+import { usePackagesData, getLocalizedFeatures } from '../hooks/usePackagesData';
 import type { Package } from '../hooks/usePackagesData';
 import { useAddonsData } from '../hooks/useAddonsData';
 import type { Addon } from '../hooks/useAddonsData';
@@ -236,9 +236,10 @@ function PkgCard({ pkg, lang, selected, onSelect, onDetails }: {
           </span>
         </div>
 
-        {/* Features */}
+        {/* Features — bilingual via getLocalizedFeatures (features_en
+            populated by audit migration; falls back to Arabic when null). */}
         <ul style={{ listStyle:'none', padding:0, margin:'0 0 16px', display:'flex', flexDirection:'column', gap:'5px' }}>
-          {(pkg.features ?? []).map((f, i) => (
+          {getLocalizedFeatures(pkg, lang).map((f, i) => (
             <li key={i} style={{ display:'flex', alignItems:'flex-start', gap:'8px',
               fontSize:'0.8rem', color: T.mocha, lineHeight:1.5 }}>
               <span style={{ width:'4px', height:'4px', borderRadius:'50%',
@@ -350,8 +351,8 @@ function PkgDetailsModal({ pkg, lang, selected, onSelect, onClose }: {
             )}
           </div>
 
-          {/* Features */}
-          {(pkg.features ?? []).length > 0 && (
+          {/* Features — bilingual via getLocalizedFeatures (see PkgCard above). */}
+          {getLocalizedFeatures(pkg, lang).length > 0 && (
             <>
               <div style={{ fontSize:'0.7rem', letterSpacing:'0.18em', color: T.taupe,
                 fontFamily:"'Cormorant Garamond',serif", textTransform:'uppercase',
@@ -360,7 +361,7 @@ function PkgDetailsModal({ pkg, lang, selected, onSelect, onClose }: {
               </div>
               <ul style={{ listStyle:'none', padding:0, margin:'0 0 24px',
                 display:'flex', flexDirection:'column', gap:'8px' }}>
-                {(pkg.features ?? []).map((f, i) => (
+                {getLocalizedFeatures(pkg, lang).map((f, i) => (
                   <li key={i} style={{ display:'flex', alignItems:'flex-start', gap:'10px',
                     fontSize:'0.88rem', color: T.mocha, lineHeight:1.6 }}>
                     <span style={{ width:'5px', height:'5px', borderRadius:'50%', flexShrink:0,
@@ -1584,10 +1585,10 @@ export default function BookingPage() {
                         </div>
                       </div>
                     </div>
-                    {(basePkg.features ?? []).length > 0 && (
+                    {getLocalizedFeatures(basePkg, lang).length > 0 && (
                       <ul style={{ listStyle:'none', padding:0, margin:'14px 0 0',
                         display:'flex', flexDirection:'column', gap:'5px' }}>
-                        {(basePkg.features ?? []).map((f, i) => (
+                        {getLocalizedFeatures(basePkg, lang).map((f, i) => (
                           <li key={i} style={{ display:'flex', alignItems:'flex-start', gap:'8px',
                             fontSize:'0.8rem', color: T.mocha }}>
                             <span style={{ width:'4px', height:'4px', borderRadius:'50%',

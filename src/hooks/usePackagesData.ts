@@ -11,11 +11,29 @@ export interface Package {
   album: string | null;
   video: boolean;
   description: string | null;
+  /** Default (Arabic) feature list — present on every package. */
   features: string[] | null;
+  /** Optional English feature list — added by the audit migration.
+   *  When absent, the renderer falls back to `features` (Arabic). */
+  features_en?: string[] | null;
   badge: string | null;
   is_popular: boolean;
   active: boolean;
   included_addon_ids: string[] | null;
+}
+
+/** Return the feature list in the bride's chosen language. Falls back
+ *  to the always-present (Arabic) `features` array when no English
+ *  variant exists on this row. */
+export function getLocalizedFeatures(
+  pkg: { features: string[] | null; features_en?: string[] | null } | null | undefined,
+  lang: 'ar' | 'en',
+): string[] {
+  if (!pkg) return [];
+  if (lang === 'en' && pkg.features_en && pkg.features_en.length > 0) {
+    return pkg.features_en;
+  }
+  return pkg.features ?? [];
 }
 
 // Fallback catalogue — mirrors database/seed-packages-2026-05.sql so the site
