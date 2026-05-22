@@ -38,6 +38,29 @@
 -- policy allows the same `services/booking.ts` fallback path used today.
 
 -- ╔════════════════════════════════════════════════════════════════════╗
+-- ║ 0. Schema prerequisites                                            ║
+-- ╚════════════════════════════════════════════════════════════════════╝
+--
+-- The base schema (database/schema.sql) predates the bank-transfer flow,
+-- so it's missing two things the anon UPDATE policy below needs:
+--
+--   * `payment_method` column — BankTransferPayment.tsx writes
+--     `'bank_transfer'` here when the bride marks she's wired the deposit.
+--   * `'awaiting_transfer'` in the payment_status CHECK list — same flow.
+--
+-- Both additions are idempotent. Drop the old CHECK constraint by name
+-- (auto-generated as `bookings_payment_status_check`) before re-adding.
+
+alter table public.bookings
+  add column if not exists payment_method text;
+
+alter table public.bookings
+  drop constraint if exists bookings_payment_status_check;
+alter table public.bookings
+  add  constraint bookings_payment_status_check
+  check (payment_status in ('unpaid','awaiting_transfer','paid','refunded'));
+
+-- ╔════════════════════════════════════════════════════════════════════╗
 -- ║ 1. Public view: event_date + status only (no PII)                 ║
 -- ╚════════════════════════════════════════════════════════════════════╝
 
@@ -104,8 +127,10 @@ create policy "Constrained anonymous booking insert"
 -- ║ 3. Tighten anon UPDATE                                             ║
 -- ╚════════════════════════════════════════════════════════════════════╝
 --
--- The BankTransferPayment component sets payment_method + status to
--- 'awaiting_transfer' from the anon role. Allow ONLY that transition.
+-- The BankTransferPayment component sets payment_method = 'bank_transfer'
+-- and payment_status = 'awaiting_transfer' from the anon role. Allow ONLY
+-- that transition. Values mirror what src/components/BankTransferPayment.tsx
+-- actually writes — anything else is for the authenticated admin to set.
 
 drop policy if exists "Allow public booking update" on public.bookings;
 drop policy if exists "anon_update_bookings"        on public.bookings;
@@ -116,9 +141,8 @@ create policy "Anon update — payment intent only"
   to anon
   using (status = 'pending' and payment_status = 'unpaid')
   with check (
-        -- can only set transfer intent
-        payment_method in ('transfer','card')
-    and payment_status in ('unpaid','awaiting_transfer','paid')
+        payment_method in ('bank_transfer','card')
+    and payment_status in ('unpaid','awaiting_transfer')
     and status = 'pending'
   );
 
