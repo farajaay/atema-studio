@@ -32,6 +32,8 @@ import {
 } from '../utils/validation';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
+import Testimonials from '../components/Testimonials';
+import FAQ from '../components/FAQ';
 
 // ── Design tokens — theme-aware, live-mutated on theme change ────────────────
 // T is a module-level object that mirrors the active theme palette. The main
@@ -962,6 +964,31 @@ function BookingFormModal({
 
             {/* Form */}
             <div style={{ padding:'22px 24px' }}>
+              {/* ── Audit append (2026-05): female-photographer reassurance ──
+                  HomePage already foregrounds the all-female team, but at
+                  the booking-form moment — when the bride is about to
+                  hand over personal info — Persona 5 specifically called
+                  for an in-flow trust cue. Slim, calm, no exclamation. */}
+              <div style={{
+                background: 'var(--a-surface-alt)',
+                border: '1px solid var(--a-border)',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                marginBottom: '18px',
+                fontFamily: lang === 'ar' ? "'Tajawal', sans-serif" : 'inherit',
+                fontSize: '0.78rem',
+                color: 'var(--a-text-soft)',
+                lineHeight: 1.6,
+                textAlign: lang === 'ar' ? 'right' : 'left',
+              }}>
+                <span style={{ color: 'var(--a-gold)', fontWeight: 600 }}>
+                  {tx(lang,'فريق نسائي بالكامل · ','All-female team · ')}
+                </span>
+                {tx(lang,
+                  'تصوير، مونتاج، وتنسيق — يومك في أيدٍ تفهمه بهدوء وخصوصية.',
+                  'photography, editing, and styling — your day in hands that hold it quietly and discreetly.')}
+              </div>
+
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', marginBottom:'14px' }}>
                 <div style={grp}>
                   <label style={lbl} htmlFor="bf-name">{tx(lang,'الاسم الكامل *','Full Name *')}</label>
@@ -1598,6 +1625,17 @@ export default function BookingPage() {
             </div>
           )}
         </div>
+      </section>
+
+      {/* ── Social proof & objection handling (audit append, 2026-05) ──
+          Per audit §6.6 — testimonials and FAQ at the bottom of the
+          decision page address the two biggest conversion-blockers a
+          boutique studio faces: "is this real?" and "what about X?". */}
+      <section style={{ padding: '56px 20px 24px 20px' }}>
+        <Testimonials />
+      </section>
+      <section style={{ padding: '24px 20px 64px 20px' }}>
+        <FAQ />
       </section>
 
       {/* ── FOOTER ── shared SiteFooter, consistent with the other public pages */}
