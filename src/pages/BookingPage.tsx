@@ -34,6 +34,8 @@ import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
 import Testimonials from '../components/Testimonials';
 import FAQ from '../components/FAQ';
+import PackageComparison from '../components/PackageComparison';
+import { LayoutGrid, Rows3 } from 'lucide-react';
 
 // ── Design tokens — theme-aware, live-mutated on theme change ────────────────
 // T is a module-level object that mirrors the active theme palette. The main
@@ -1205,6 +1207,9 @@ export default function BookingPage() {
     (location.state as { tab?: 'packages' | 'custom' } | null)?.tab === 'custom'
       ? 'custom' : 'packages';
   const [activeTab,      setActiveTab]      = useState<'packages' | 'custom'>(initialTab);
+  // Audit append (2026-05): card vs compare view. Cards remain default;
+  // the comparison view is opt-in and never the entry experience.
+  const [viewMode,       setViewMode]       = useState<'cards' | 'compare'>('cards');
   const [selectedPkg,    setSelectedPkg]    = useState<number | null>(null);
   const [detailPkg,      setDetailPkg]      = useState<Package | null>(null);
   const [activeAddons,   setActiveAddons]   = useState<Set<string>>(new Set());
@@ -1428,7 +1433,7 @@ export default function BookingPage() {
 
           {/* ── TAB: READY PACKAGES ── */}
           {activeTab === 'packages' && (<>
-          <div style={{ textAlign:'center', marginBottom:'36px' }}>
+          <div style={{ textAlign:'center', marginBottom:'28px' }}>
             <h2 style={{ fontFamily:"'Amiri',serif", fontSize:'clamp(1.3rem,3.5vw,1.9rem)',
               color: T.coffee, margin:0 }}>
               {tx(lang,'اختاري باقتك','Choose Your Package')}
@@ -1439,11 +1444,71 @@ export default function BookingPage() {
                 ? tx(lang,'جميع الأسعار بدون ضريبة القيمة المضافة ١٥٪','All prices exclude 15% VAT')
                 : tx(lang,'جميع الأسعار غير شاملة الضريبة','All prices are tax-free')}
             </p>
+
+            {/* ── Audit append (2026-05): view-mode toggle ────────────────
+                Cards remain default. Power users (or brides on desktop
+                doing real comparison) can flip to a side-by-side table. */}
+            {!pkgLoading && activePackages.length > 1 && (
+              <div role="group" aria-label={tx(lang,'طريقة العرض','View mode')}
+                style={{
+                  display: 'inline-flex',
+                  marginTop: '20px',
+                  border: '1px solid var(--a-border)',
+                  borderRadius: '999px',
+                  padding: '3px',
+                  background: 'var(--a-surface)',
+                }}>
+                {([
+                  { v: 'cards',   ar: 'بطاقات',    en: 'Cards',   Icon: LayoutGrid },
+                  { v: 'compare', ar: 'مقارنة',    en: 'Compare', Icon: Rows3 },
+                ] as const).map(opt => {
+                  const isActive = viewMode === opt.v;
+                  return (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setViewMode(opt.v)}
+                      aria-pressed={isActive}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '7px 16px',
+                        border: 'none',
+                        borderRadius: '999px',
+                        cursor: 'pointer',
+                        fontFamily: "'Cinzel', serif",
+                        fontSize: '0.66rem',
+                        letterSpacing: '0.18em',
+                        textTransform: 'uppercase',
+                        background: isActive ? 'var(--a-gold)' : 'transparent',
+                        color:      isActive ? 'var(--a-bg)'   : 'var(--a-text-soft)',
+                        transition: 'background 0.2s, color 0.2s',
+                      }}
+                    >
+                      <opt.Icon size={12} aria-hidden />
+                      {lang === 'ar' ? opt.ar : opt.en}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Desktop layout: packages + sidebar */}
           <div style={{ display:'flex', gap:'24px', alignItems:'flex-start' }}>
-            <div style={{ flex:1 }}>
+            <div style={{ flex:1, minWidth: 0 }}>
+              {viewMode === 'compare' && !pkgLoading ? (
+                <div className="fade-up">
+                  <PackageComparison
+                    packages={activePackages}
+                    lang={lang}
+                    vatEnabled={vatEnabled}
+                    selectedId={selectedPkg}
+                    onSelect={(id) => setSelectedPkg(id)}
+                  />
+                </div>
+              ) : (
               <div style={{
                 display:'grid',
                 gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
@@ -1465,6 +1530,7 @@ export default function BookingPage() {
                   </div>
                 ))}
               </div>
+              )}
             </div>
 
             {/* Desktop sidebar */}
