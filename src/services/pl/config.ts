@@ -25,15 +25,24 @@ export const DEFAULT_COST_CONFIG: CostConfig = {
 // Default P&L cost-inputs per package — spec Section 7 package table
 type PackageDefaults = Omit<BookingCostInputs, 'packageId' | 'revenueExVat' | 'travelDistanceKm' | 'travelFeeCharged' | 'extraStorageUnits'>;
 
+// Studio policy: any predesigned package with > 2h of coverage takes an
+// on-the-day assistant (lighting holds, BTS, family wrangling). The 2h
+// engagement session is the only tier the owner shoots solo. The flag is
+// reflected in P&L so direct costs aren't understated.
 export const PACKAGE_DEFAULTS: Record<string, PackageDefaults> = {
+  engagement: {
+    coverageHours: 2, prepHours: 0,
+    includesVideo: false, includesAssistant: false, includesVideographer: false,
+    albumIncluded: false, albumSize: 'none', albumPages: 0, miniFamilyAlbum: false,
+  },
   customise: {
     coverageHours: 3, prepHours: 0,
-    includesVideo: false, includesAssistant: false, includesVideographer: false,
+    includesVideo: false, includesAssistant: true, includesVideographer: false,
     albumIncluded: false, albumSize: 'none', albumPages: 0, miniFamilyAlbum: false,
   },
   classic: {
     coverageHours: 4, prepHours: 0,
-    includesVideo: false, includesAssistant: false, includesVideographer: false,
+    includesVideo: false, includesAssistant: true, includesVideographer: false,
     albumIncluded: true, albumSize: 'A4', albumPages: 10, miniFamilyAlbum: false,
   },
   royal: {
@@ -45,11 +54,6 @@ export const PACKAGE_DEFAULTS: Record<string, PackageDefaults> = {
     coverageHours: 6, prepHours: 0,
     includesVideo: true, includesAssistant: true, includesVideographer: true,
     albumIncluded: true, albumSize: 'A3', albumPages: 12, miniFamilyAlbum: true,
-  },
-  engagement: {
-    coverageHours: 2, prepHours: 0,
-    includesVideo: false, includesAssistant: false, includesVideographer: false,
-    albumIncluded: false, albumSize: 'none', albumPages: 0, miniFamilyAlbum: false,
   },
 };
 

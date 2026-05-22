@@ -285,6 +285,12 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
     INSERT/UPDATE policies — silences Supabase security advisor)
   - `database/migrations-2026-05-discount-codes.sql` (discount_codes table
     + 3 booking columns + preview/redeem RPCs + RLS)
+  - `database/migrations-2026-05-launch-code.sql` (LAUNCH15 — 15% off, max
+    800 SAR, valid 20 days from when the SQL is applied)
+  - `database/seed-packages-2026-05.sql` (6 packages + 11 add-ons — required
+    if `packages` table is empty; the booking flow falls back to the DEMO
+    catalogue without it, but the Edge Function still needs real rows to
+    redeem against)
   - `database/seed-journal-2026-05.sql` (6 journal posts)
   - `database/seed-portfolio-2026-05-expanded.sql` (23 portfolio items —
     **use this, not the old `seed-portfolio-2026-05.sql`**)

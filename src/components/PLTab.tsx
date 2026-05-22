@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { Booking } from '../hooks/useAdminData';
 import { calculateBookingPL } from '../services/pl/engine';
 import { DEFAULT_COST_CONFIG, PACKAGE_DEFAULTS, DEFAULT_PACKAGE_INPUTS } from '../services/pl/config';
+import { PACKAGE_KEY_BY_ID } from '../services/pnl';
 import type { BookingCostInputs } from '../services/pl/types';
 import { ATEMA_COLORS } from '../config/constants';
 import { AlertCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
@@ -89,7 +90,13 @@ function Check({ label, checked, onChange }: { label: string; checked: boolean; 
 
 // ── Main PLTab ────────────────────────────────────────────────────────────────
 export function PLTab({ booking }: { booking: Booking }) {
-  const pkgDefaults = PACKAGE_DEFAULTS[booking.package_id] ?? DEFAULT_PACKAGE_INPUTS;
+  // PACKAGE_DEFAULTS is keyed by name ('engagement', 'classic', …); booking
+  // rows carry the numeric package_id. Route through PACKAGE_KEY_BY_ID so
+  // the defaults table is actually consulted (previously every booking
+  // silently fell through to DEFAULT_PACKAGE_INPUTS — 4h, no album, no
+  // assistant — regardless of which tier was actually sold).
+  const pkgKey      = PACKAGE_KEY_BY_ID[booking.package_id] ?? '';
+  const pkgDefaults = PACKAGE_DEFAULTS[pkgKey] ?? DEFAULT_PACKAGE_INPUTS;
 
   const [inputs, setInputs] = useState<BookingCostInputs>({
     packageId: booking.package_id,

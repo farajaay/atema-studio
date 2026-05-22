@@ -61,8 +61,17 @@ export function usePackagesData() {
     setLoading(true); setError(null);
     if (!supabase) { setPackages(DEMO); setLoading(false); return; }
     const { data, error: err } = await supabase.from('packages').select('*').order('id');
-    if (err) { setError(err.message); setPackages(DEMO); }
-    else setPackages((data ?? []) as Package[]);
+    if (err) {
+      setError(err.message);
+      setPackages(DEMO);
+    } else if (!data || data.length === 0) {
+      // DB reachable but seed-packages-2026-05.sql has not been run yet
+      // (or all rows are inactive). Keep the booking flow usable — show the
+      // canonical 6-tier catalogue so brides can still complete a booking.
+      setPackages(DEMO);
+    } else {
+      setPackages(data as Package[]);
+    }
     setLoading(false);
   }, []);
 

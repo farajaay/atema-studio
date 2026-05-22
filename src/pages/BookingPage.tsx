@@ -713,6 +713,16 @@ function BookingFormModal({
       return;
     }
 
+    // Edge Function requires a numeric package_id (FK into packages.id).
+    // BookingFormModal is always invoked with pkg = activePkg, which is the
+    // selected package on the Ready tab and basePkg (lowest-priced) on the
+    // Design Your Package tab — so pkg should be defined whenever the
+    // catalogue has loaded. Guard anyway so a flicker doesn't ship 'customise'.
+    if (!pkg || typeof pkg.id !== 'number') {
+      setErrMsg(tx(lang,'تعذّر تحميل الباقات — حاولي تحديث الصفحة','Packages could not be loaded — please refresh the page'));
+      return;
+    }
+
     setErrMsg(''); setState('loading');
     submittingRef.current = true;
 
@@ -736,7 +746,7 @@ function BookingFormModal({
         customerName:    name,
         customerPhone:   normPhone,
         customerEmail:   cleanEmail,
-        packageId:       pkg?.id ?? 'customise',
+        packageId:       pkg.id,
         addOnIds:        Array.from(activeAddons),
         eventDate:       form.date,
         eventTime:       form.time || '18:00',
