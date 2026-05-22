@@ -4,8 +4,37 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0B0B0B" />
     <title>ATEMA STUDIO — جلسات تصوير احترافية في الجبيل</title>
-    <meta name="description" content="ATEMA Studio — جلسات تصوير احترافية للأفراح والمناسبات في الجبيل والمنطقة الشرقية." />
+    <meta name="description" content="ATEMA Studio — استوديو فاطمة بوحسن للتصوير النسائي الحصري في الجبيل والمنطقة الشرقية. باقات عرايس، خطوبة، وكوتور — مع ألبومات وفيديو سينمائي." />
+    <link rel="canonical" href="https://atemastudio.xyz/" />
+    <link rel="alternate" hreflang="ar-SA" href="https://atemastudio.xyz/" />
+    <link rel="alternate" hreflang="en-SA" href="https://atemastudio.xyz/" />
+    <link rel="alternate" hreflang="x-default" href="https://atemastudio.xyz/" />
+
+    <!-- Open Graph — controls how the URL renders when pasted into WhatsApp,
+         iMessage, Instagram DM, Twitter/X, LinkedIn, Slack, etc. The WhatsApp
+         share path is the highest-leverage one in KSA, so the image must be a
+         landscape composition that survives the WA preview crop. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ATEMA STUDIO" />
+    <meta property="og:title" content="ATEMA STUDIO — جلسات تصوير احترافية في الجبيل" />
+    <meta property="og:description" content="استوديو فاطمة بوحسن للتصوير النسائي الحصري في الجبيل والمنطقة الشرقية." />
+    <meta property="og:url" content="https://atemastudio.xyz/" />
+    <meta property="og:locale" content="ar_SA" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:image" content="https://atemastudio.xyz/photos/Promotion.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="675" />
+    <meta property="og:image:alt" content="ATEMA STUDIO — عرض ترويجي" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ATEMA STUDIO — جلسات تصوير احترافية في الجبيل" />
+    <meta name="twitter:description" content="استوديو فاطمة بوحسن للتصوير النسائي الحصري في الجبيل والمنطقة الشرقية." />
+    <meta name="twitter:image" content="https://atemastudio.xyz/photos/Promotion.jpg" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@300;400;500;600&family=Montserrat:wght@200;300;400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Amiri:ital,wght@0,400;0,700;1,400&family=Tajawal:wght@300;400;500;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
@@ -285,10 +314,108 @@
         cursor: pointer; flex-shrink: 0; margin-top: 2px;
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-xe0f2TpR.js"></script>
+
+
+    <!-- Structured data: LocalBusiness (women-only photography atelier) +
+         Service (a photography session) + WebSite (sitelinks-search-friendly).
+         Validate with https://validator.schema.org/. Update sameAs URLs and
+         the photo gallery list when new public-profile links exist. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": ["LocalBusiness", "PhotographyBusiness"],
+          "@id": "https://atemastudio.xyz/#business",
+          "name": "ATEMA STUDIO",
+          "alternateName": "استوديو أتيما",
+          "description": "Exclusive feminine photography atelier — bridal, engagement, couture sessions in Jubail and the Eastern Province, Saudi Arabia.",
+          "url": "https://atemastudio.xyz/",
+          "telephone": "+966548323496",
+          "email": "hello@atema.studio",
+          "image": "https://atemastudio.xyz/photos/Promotion.jpg",
+          "logo": "https://atemastudio.xyz/favicon.svg",
+          "priceRange": "SAR 1,500 – 25,000",
+          "currenciesAccepted": "SAR",
+          "paymentAccepted": "Cash, Credit Card, Apple Pay, Mada, Bank Transfer",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Jubail",
+            "addressRegion": "Eastern Province",
+            "addressCountry": "SA"
+          },
+          "areaServed": [
+            { "@type": "City", "name": "Jubail" },
+            { "@type": "City", "name": "Dammam" },
+            { "@type": "City", "name": "Al Khobar" },
+            { "@type": "City", "name": "Qatif" },
+            { "@type": "City", "name": "Al Ahsa" }
+          ],
+          "openingHoursSpecification": [
+            { "@type": "OpeningHoursSpecification",
+              "dayOfWeek": ["Saturday","Sunday","Monday","Tuesday","Wednesday","Thursday"],
+              "opens": "10:00", "closes": "22:00" }
+          ],
+          "knowsLanguage": ["ar-SA", "en"],
+          "founder": { "@type": "Person", "name": "Fatima Bohassan" }
+        },
+        {
+          "@type": "Service",
+          "@id": "https://atemastudio.xyz/#bridal-photography",
+          "serviceType": "Women-only bridal photography",
+          "provider": { "@id": "https://atemastudio.xyz/#business" },
+          "areaServed": { "@type": "Country", "name": "Saudi Arabia" },
+          "audience": { "@type": "PeopleAudience", "audienceType": "Brides, women-only events" },
+          "offers": {
+            "@type": "AggregateOffer",
+            "priceCurrency": "SAR",
+            "lowPrice": "1500",
+            "highPrice": "25000",
+            "offerCount": "6"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://atemastudio.xyz/#website",
+          "url": "https://atemastudio.xyz/",
+          "name": "ATEMA STUDIO",
+          "inLanguage": ["ar-SA", "en"],
+          "publisher": { "@id": "https://atemastudio.xyz/#business" }
+        }
+      ]
+    }
+    </script>
+    <script type="module" crossorigin src="/assets/index-DqsMSEib.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-Dkvgix3d.css">
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- noscript fallback so link-preview bots (WhatsApp, Slack, Telegram)
+         that don't execute JS still see meaningful content, and so a user
+         with JS disabled gets the essentials. The visible app re-mounts
+         over this when React boots. -->
+    <noscript>
+      <main style="font-family:'Tajawal',system-ui,sans-serif;color:#EFE3D1;background:#0B0B0B;min-height:100vh;padding:40px 20px;text-align:center" dir="rtl">
+        <h1 style="font-family:'Amiri',serif;font-weight:400;font-size:1.8rem;color:#D4AF7A;letter-spacing:0.02em">ATEMA STUDIO</h1>
+        <p style="max-width:520px;margin:24px auto;line-height:1.9;font-weight:300">
+          استوديو فاطمة بوحسن للتصوير النسائي الحصري في الجبيل والمنطقة الشرقية —
+          جلسات عرايس، خطوبة، وكوتور.
+        </p>
+        <p style="margin:18px auto">
+          <a href="/#/book" style="color:#D4AF7A;text-decoration:none;border:1px solid #D4AF7A;padding:10px 22px;display:inline-block">احجزي جلستك</a>
+        </p>
+        <ul style="list-style:none;padding:0;margin:30px auto;max-width:480px;line-height:2;font-size:0.9rem">
+          <li><a href="/#/portfolio" style="color:#D4AF7A;text-decoration:none">الأعمال — Portfolio</a></li>
+          <li><a href="/#/journal" style="color:#D4AF7A;text-decoration:none">اليوميات — Journal</a></li>
+          <li><a href="/#/about" style="color:#D4AF7A;text-decoration:none">الاستوديو — The Atelier</a></li>
+          <li><a href="/#/policy" style="color:#D4AF7A;text-decoration:none">الشروط والخصوصية — Policy</a></li>
+        </ul>
+        <p style="margin-top:30px;font-size:0.8rem;color:#9C8E76">
+          واتساب: <a href="https://wa.me/966548323496" style="color:#D4AF7A;text-decoration:none">+966 54 832 3496</a>
+        </p>
+      </main>
+    </noscript>
+
   </body>
 </html>
