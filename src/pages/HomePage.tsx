@@ -64,7 +64,7 @@ export default function HomePage() {
 
         <FadeUp delay={120}>
           <div className="editorial-eyebrow" style={{ marginBottom: 20 }}>
-            EST. 2024 · JUBAIL, KSA
+            EST. 2018 · JUBAIL, KSA
           </div>
         </FadeUp>
         <FadeUp delay={260}>
@@ -187,7 +187,7 @@ export default function HomePage() {
           {[
             { Icon: Users,       ar: 'فريق نسائي بالكامل', en: 'All-female team' },
             { Icon: MapPin,      ar: 'الجبيل والشرقية',    en: 'Jubail & Eastern Province' },
-            { Icon: ShieldCheck, ar: 'مسجَّل ضريبياً (زاتكا)', en: 'ZATCA-registered' },
+            /*{ Icon: ShieldCheck, ar: 'مسجَّل ضريبياً (زاتكا)', en: 'ZATCA-registered' },*/
             { Icon: CreditCard,  ar: 'مدى · Apple Pay · تحويل', en: 'Mada · Apple Pay · transfer' },
           ].map(({ Icon, ar, en }) => (
             <div key={en} style={{
