@@ -52,7 +52,7 @@ const COLUMN_NOT_FOUND_RE =
 /** Insert a row into `bookings`, auto-stripping any column the live
  *  schema doesn't recognise and retrying. Caps at 8 retries to bound
  *  recovery time; anything beyond is a real error and surfaces. */
-async function resilientInsert(
+export async function resilientInsert(
   client: NonNullable<typeof supabase>,
   row: Record<string, unknown>,
 ): Promise<{ data: { id: string; booking_ref?: string; status?: string; created_at?: string; event_date?: string; total?: number } | null; error: { message: string } | null }> {
@@ -279,7 +279,7 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
 /** Best-effort extraction of a CITIES key from a `location` string for the
  *  Edge Function's city-fee lookup. The form posts the venue + city joined
  *  as the `location` value, so we look for known city tokens. */
-function extractCityKey(location: string | null | undefined): string {
+export function extractCityKey(location: string | null | undefined): string {
   if (!location) return 'other';
   const v = location.toLowerCase();
   if (v.includes('jubail') || v.includes('الجبيل')) return 'jubail';
