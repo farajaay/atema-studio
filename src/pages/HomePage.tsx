@@ -12,7 +12,7 @@ import { useLang } from '../hooks/useLang';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { fetchPortfolio } from '../services/portfolio';
 import type { PortfolioItem } from '../services/portfolio';
-import { ShieldCheck, Users, MapPin, CreditCard } from 'lucide-react';
+import { Users, MapPin, CreditCard } from 'lucide-react';
 
 const tx = (l: 'ar' | 'en', ar: string, en: string) => l === 'ar' ? ar : en;
 
