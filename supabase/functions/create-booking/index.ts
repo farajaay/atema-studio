@@ -32,6 +32,7 @@ import {
   bookingRef,
   CITY_FEES,
 } from '../_shared/validation.ts';
+import { sumActiveAddons, clampDiscount, computeBookingTotals } from '../_shared/pricing.ts';
 
 const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -41,8 +42,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-const VAT_RATE = 0.15;
 
 function fail(error: string, status = 400, detail?: string): Response {
   return new Response(JSON.stringify({ error, detail }), {
@@ -114,9 +113,7 @@ serve(async (req) => {
     const { data: addons, error: addErr } = await supabase
       .from('addons').select('id, price, active').in('id', addOnIds);
     if (addErr) return fail('addons_lookup_failed', 500, addErr.message);
-    for (const a of addons ?? []) {
-      if (a.active) addonsTotal += a.price;
-    }
+    addonsTotal = sumActiveAddons((addons ?? []) as Array<{ price: number; active: boolean }>);
   }
 
   const cityFee = CITY_FEES[String(body.city ?? '')] ?? 0;
@@ -143,18 +140,15 @@ serve(async (req) => {
     if (reason && reason !== 'ok') {
       return fail('discount_' + reason, 422);
     }
-    discountAmount = Math.max(0, Math.min(Number(row?.applied_amount ?? 0), grossSubtotal));
+    discountAmount = clampDiscount(Number(row?.applied_amount ?? 0), grossSubtotal);
     discountKind   = (row?.applied_kind as 'percent' | 'flat' | null) ?? null;
     discountCode   = codeRaw;
   }
 
-  const subtotal = Math.max(0, grossSubtotal - discountAmount);
-
   const { data: settings } = await supabase
     .from('app_settings').select('vat_enabled').limit(1).single();
   const vatEnabled = settings?.vat_enabled ?? true;
-  const vat   = vatEnabled ? Math.round(subtotal * VAT_RATE) : 0;
-  const total = subtotal + vat;
+  const { subtotal, vat, total } = computeBookingTotals({ grossSubtotal, discountAmount, vatEnabled });
 
   // ── Insert ────────────────────────────────────────────────────────────
   const ref = bookingRef();

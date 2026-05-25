@@ -13,6 +13,7 @@
 //   ANTHROPIC_API_KEY     — for receipt vision extraction (wa-receipt only)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { verifyMetaSignature } from './signature.ts';
 
 export const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
 export const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -160,25 +161,11 @@ export function toE164(raw: string): string | null {
 
 // ── Verify X-Hub-Signature (Meta) ──────────────────────────────────────────
 export async function verifySignature(req: Request, raw: string): Promise<boolean> {
-  const sigHeader = req.headers.get('x-hub-signature-256') ?? '';
-  const APP_SECRET = Deno.env.get('META_WA_APP_SECRET');
-  if (!APP_SECRET) return true;          // skip if not configured (dev only)
-  if (!sigHeader.startsWith('sha256=')) return false;
-
-  const key  = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(APP_SECRET),
-    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
-  );
-  const mac  = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(raw));
-  const expected = 'sha256=' + Array.from(new Uint8Array(mac))
-    .map(b => b.toString(16).padStart(2, '0')).join('');
-  return timingSafeEqual(sigHeader, expected);
-}
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let r = 0;
-  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return r === 0;
+  return verifyMetaSignature({
+    signatureHeader: req.headers.get('x-hub-signature-256') ?? '',
+    rawBody: raw,
+    appSecret: Deno.env.get('META_WA_APP_SECRET'),
+  });
 }
 
 // ── CORS helper ────────────────────────────────────────────────────────────
