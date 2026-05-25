@@ -24,6 +24,14 @@
 // deno-lint-ignore-file no-explicit-any
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  normalizeSaudiMobile,
+  validEmail,
+  isFutureOrToday,
+  clampText,
+  bookingRef,
+  CITY_FEES,
+} from '../_shared/validation.ts';
 
 const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -34,61 +42,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ── Booking ref generator (matches client H-2 patch) ─────────────────────────
-const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-function randomTail(): string {
-  const bytes = new Uint8Array(8);
-  crypto.getRandomValues(bytes);
-  let out = '';
-  for (let i = 0; i < bytes.length; i++) out += CROCKFORD[bytes[i] & 0x1f];
-  return out;
-}
-function bookingRef(): string {
-  const d = new Date();
-  return `ATEMA-${String(d.getUTCFullYear()).slice(2)}${
-    String(d.getUTCMonth() + 1).padStart(2, '0')}${
-    String(d.getUTCDate()).padStart(2, '0')}-${randomTail()}`;
-}
-
-// ── Validators (mirror of src/utils/validation.ts) ───────────────────────────
-function normalizeSaudiMobile(raw: string): string | null {
-  if (!raw) return null;
-  let c = raw.replace(/[\s\-()]/g, '');
-  if (c.startsWith('+'))  c = c.slice(1);
-  if (c.startsWith('00')) c = c.slice(2);
-  if (c.startsWith('0'))  c = '966' + c.slice(1);
-  if (c.startsWith('5') && c.length === 9) c = '966' + c;
-  return /^9665\d{8}$/.test(c) ? '+' + c : null;
-}
-function validEmail(raw: string | undefined): boolean {
-  if (!raw) return true;
-  const v = raw.trim();
-  if (v.length > 254 || /\s/.test(v)) return false;
-  const m = v.match(/^([^@]+)@([^@]+)$/);
-  if (!m) return false;
-  const [, local, domain] = m;
-  return local.length > 0 && local.length <= 64 &&
-    /\./.test(domain) && !domain.startsWith('.') && !domain.endsWith('.');
-}
-function isFutureOrToday(iso: string): boolean {
-  if (!iso) return false;
-  const today = new Date(); today.setUTCHours(0, 0, 0, 0);
-  const t = new Date(iso + 'T00:00:00Z');
-  return !Number.isNaN(t.getTime()) && t >= today;
-}
-function clampText(raw: string | undefined, max: number): string {
-  if (!raw) return '';
-  const t = raw.trim();
-  return t.length > max ? t.slice(0, max) : t;
-}
-
 const VAT_RATE = 0.15;
-
-// City fee map mirrors src/pages/BookingPage.tsx CITIES constant.
-const CITY_FEES: Record<string, number> = {
-  jubail: 0, dammam: 200, khobar: 200, qatif: 200, ahsa: 450,
-  riyadh: 0, other: 0,
-};
 
 function fail(error: string, status = 400, detail?: string): Response {
   return new Response(JSON.stringify({ error, detail }), {
