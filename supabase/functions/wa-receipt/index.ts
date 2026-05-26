@@ -15,6 +15,7 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import {
   db, sendText, fetchMediaUrl, downloadMedia, jsonResponse, corsHeaders,
 } from '../_shared/wa.ts';
+import { sanitizeExtraction, decideReceiptMatch } from '../_shared/receipt.ts';
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
 const OWNER_PHONE       = Deno.env.get('OWNER_WA_NUMBER');
@@ -73,14 +74,19 @@ serve(async (req) => {
   const base64 = bytesToBase64(media.bytes);
   const inferredMime = mime ?? media.mime;
 
-  let extracted: any = null;
+  let rawExtracted: any = null;
   try {
-    extracted = await callClaude(inferredMime, base64);
+    rawExtracted = await callClaude(inferredMime, base64);
   } catch (err) {
     console.error('Claude extraction error:', err);
     await flagForReview(wa_log_id, booking_id, `claude_error: ${err}`);
     return jsonResponse({ ok: true, note: 'claude_error' });
   }
+
+  // Contain the (untrusted, attacker-influenceable) model output: whitelist to
+  // a fixed shape so injected control fields can't propagate, and force the
+  // money fields to safe numeric ranges. See _shared/receipt.ts.
+  const extracted = sanitizeExtraction(rawExtracted);
 
   // ── 3. Persist extraction + match to booking ─────────────────────────
   const supa = db();
@@ -91,20 +97,18 @@ serve(async (req) => {
     return jsonResponse({ ok: true, note: 'booking_missing' });
   }
 
-  const amount = Number(extracted?.amount ?? 0);
-  const conf   = Number(extracted?.confidence ?? 0);
+  const amount = extracted.amount;
+  const conf   = extracted.confidence;
   const due    = booking.deposit && booking.payment_status === 'unpaid'
     ? booking.deposit
     : (booking.total - (booking.deposit ?? 0));
 
-  const exact   = Math.abs(amount - due) <= 1 && conf >= 0.7;
-  const partial = !exact && Math.abs(amount - due) / due <= 0.05 && conf >= 0.5;
-
-  let status: 'auto_confirmed' | 'needs_review' = exact ? 'auto_confirmed' : 'needs_review';
+  // Deterministic server-side gate — the model's output never decides this.
+  const { exact, status, note } = decideReceiptMatch({ amount, confidence: conf, due });
 
   await supa.from('wa_messages').update({
     extracted, status, media_url: cdnUrl,
-    notes: exact ? null : partial ? 'partial_match' : 'no_match',
+    notes: note,
     resolved_at: new Date().toISOString(),
   }).eq('id', wa_log_id);
 
