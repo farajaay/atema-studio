@@ -1,5 +1,8 @@
 import type { CreateBookingRequest, BookingResponse } from '../types';
 import { supabase } from './supabase';
+// City-fee extraction is shared with the Edge Functions (single source).
+import { extractCityKey } from '../../supabase/functions/_shared/validation';
+export { extractCityKey };
 
 // Booking reference generator (Patch H-2).
 // Format: ATEMA-{YYMMDD}-{8-char Crockford base32 from CSPRNG bytes}.
@@ -274,21 +277,6 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
     eventDate: payload.eventDate,
     total: payload.total,
   };
-}
-
-/** Best-effort extraction of a CITIES key from a `location` string for the
- *  Edge Function's city-fee lookup. The form posts the venue + city joined
- *  as the `location` value, so we look for known city tokens. */
-export function extractCityKey(location: string | null | undefined): string {
-  if (!location) return 'other';
-  const v = location.toLowerCase();
-  if (v.includes('jubail') || v.includes('الجبيل')) return 'jubail';
-  if (v.includes('dammam') || v.includes('الدمام')) return 'dammam';
-  if (v.includes('khobar') || v.includes('الخبر'))  return 'khobar';
-  if (v.includes('qatif')  || v.includes('القطيف'))  return 'qatif';
-  if (v.includes('ahsa')   || v.includes('الأحساء'))  return 'ahsa';
-  if (v.includes('riyadh') || v.includes('الرياض'))  return 'riyadh';
-  return 'other';
 }
 
 export async function getPackages() {

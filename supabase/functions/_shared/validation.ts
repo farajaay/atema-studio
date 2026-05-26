@@ -83,3 +83,18 @@ export const CITY_FEES: Record<string, number> = {
   jubail: 0, dammam: 200, khobar: 200, qatif: 200, ahsa: 450,
   riyadh: 0, other: 0,
 };
+
+/** Best-effort extraction of a CITY_FEES key from a free-text location string
+ *  (Arabic or English). Used to re-derive the travel fee server-side when a
+ *  booking is changed. */
+export function extractCityKey(location: string | null | undefined): string {
+  if (!location) return 'other';
+  const v = location.toLowerCase();
+  if (v.includes('jubail') || v.includes('الجبيل')) return 'jubail';
+  if (v.includes('dammam') || v.includes('الدمام')) return 'dammam';
+  if (v.includes('khobar') || v.includes('الخبر'))  return 'khobar';
+  if (v.includes('qatif')  || v.includes('القطيف'))  return 'qatif';
+  if (v.includes('ahsa')   || v.includes('الأحساء'))  return 'ahsa';
+  if (v.includes('riyadh') || v.includes('الرياض'))  return 'riyadh';
+  return 'other';
+}
