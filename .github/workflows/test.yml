@@ -1,0 +1,29 @@
+name: Tests
+
+# Manual trigger only — this workflow runs when you start it from the
+# Actions tab (or `gh workflow run Tests`), never automatically on push.
+# Add `push:` / `pull_request:` triggers later if you want it on every change.
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Type-check + build
+        run: npm run build
