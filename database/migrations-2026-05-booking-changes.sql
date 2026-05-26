@@ -80,16 +80,17 @@ returns table (
   package_id       int,
   addon_ids        text[],
   location         text,
-  subtotal         numeric,
-  vat              numeric,
-  total            numeric,
+  subtotal         int,
+  vat              int,
+  total            int,
   reschedule_count int
 )
 language sql
 security definer
 set search_path = public
 as $$
-  select b.booking_ref, b.status, b.payment_status, b.event_date, b.event_time,
+  select b.booking_ref, b.status, b.payment_status, b.event_date,
+         to_char(b.event_time, 'HH24:MI') as event_time,
          b.package_id, b.addon_ids, b.location, b.subtotal, b.vat, b.total,
          b.reschedule_count
     from public.bookings b
