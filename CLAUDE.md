@@ -132,6 +132,21 @@ atema-studio/
     └── hooks/                 useLang, useBreakpoint, useAdminAuth, …
 ```
 
+Self-service booking changes (reschedule + package/add-on change) add:
+```
+supabase/functions/
+├── _shared/reschedule.ts      contract Article-3 reschedule policy (pure, tested)
+├── _shared/otp.ts             step-up OTP primitives (pure, tested)
+├── _shared/change.ts          package-change / delta math (pure, tested)
+└── change-booking/            token-authed Edge Fn (reschedule | request_otp | change_package)
+database/
+├── migrations-2026-05-booking-changes.sql      manage_token + reschedule_count + booking_changes + get_booking_by_token RPC
+└── migrations-2026-05-booking-changes-otp.sql  booking_otps (step-up codes)
+src/
+├── services/manage.ts         token read + Edge calls
+└── pages/ManageBookingPage.tsx  /#/manage/<token> customer page
+```
+
 ---
 
 ## 4. Conventions you MUST follow
@@ -231,6 +246,30 @@ atema-studio/
   truth for any future board logic (AI accent images, multi-board per
   booking, etc.). See `docs/MANUAL.md` §13b.
 
+### 4.9 Customer self-service changes (`/#/manage/<token>`)
+- Every booking has a `manage_token` (160-bit secret, defaulted in SQL via
+  `encode(gen_random_bytes(20),'hex')`). It is the **only** credential for the
+  page — same capability-link model as the Mood Board.
+- The page reads its booking through the `get_booking_by_token()`
+  `SECURITY DEFINER` RPC. **Anon never touches the `bookings` table.** All
+  writes go through the `change-booking` Edge Function as service-role.
+- **Policy is a single source of truth.** The rules live in dependency-free,
+  unit-tested modules under `supabase/functions/_shared/`
+  (`reschedule.ts`, `otp.ts`, `change.ts`). The client imports the *same*
+  modules so its gating can't drift from the server. Don't fork the logic.
+- **Reschedule** = link only (no money). **Package/add-on change** = step-up
+  OTP (6-digit, salted-hash at rest, 10-min TTL, 5-attempt lockout, texted to
+  the phone on file — never in the HTTP response).
+- **Server recomputes the total** from the catalogue (same discipline as
+  `create-booking`); the client estimate is display-only. The original
+  discount is **preserved, not re-redeemed** (don't double-spend a code's
+  budget). Deposit is non-refundable → downgrades refund nothing.
+- `booking_otps` is RLS-on with **no** anon/authenticated policies (service
+  role only). `booking_changes` is the audit log (admin SELECT only). Don't
+  loosen either.
+- Not yet wired (deliberate): manage-link delivery, top-up payment collection,
+  contract/invoice regeneration after a change. See `docs/MANUAL.md` §13g.
+
 ---
 
 ## 5. The booking flow (one-breath summary)
@@ -263,6 +302,10 @@ Landing  →  Promo modal  →  /book
                               (optional ritual — /#/board/<token>)
 ```
 
+After the booking exists, the bride can self-serve at `/#/manage/<token>`:
+reschedule (link only) or change package/add-ons (step-up OTP). Server-enforced
+by the `change-booking` Edge Fn — see §4.9.
+
 Payment status lifecycle: `unpaid` → `awaiting_transfer` → `paid`.
 
 Full detail: [`PROJECT.md` §4](./PROJECT.md) and
@@ -281,6 +324,11 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   - `database/migrations-2026-05-custom-domain.sql` (fixes existing rows)
   - `database/migrations-2026-05-wa.sql` (WhatsApp tables)
   - `database/migrations-2026-05-moodboard.sql` (Mood Board table + RPC)
+  - `database/migrations-2026-05-booking-changes.sql` (manage_token +
+    reschedule_count + booking_changes + get_booking_by_token RPC;
+    backfills a token onto existing bookings)
+  - `database/migrations-2026-05-booking-changes-otp.sql` (booking_otps —
+    step-up codes for package/add-on changes)
   - `database/migrations-2026-05-rls-hardening.sql` (PII view + constrained
     INSERT/UPDATE policies — silences Supabase security advisor)
   - `database/migrations-2026-05-discount-codes.sql` (discount_codes table
@@ -299,6 +347,7 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - Supabase secrets: `META_WA_*`, `ANTHROPIC_API_KEY`, `OWNER_WA_NUMBER`,
   `CRON_SECRET`.
 - Deploy WA Edge Functions: `supabase functions deploy wa-webhook wa-receipt wa-reminders`.
+- Deploy the self-service Edge Function: `supabase functions deploy change-booking`.
 - Schedule cron at `*/30 * * * *`.
 - Drop the legacy public bookings INSERT RLS policy after `create-booking`
   Edge Function is deployed and stable (Patch C-3 finish).
@@ -321,6 +370,15 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
    live activation. ~2 hr build, lifts existing TC_CONTENT / PDPL_CONTENT
    constants out of `BookingPage.tsx` popups into a standalone page.
 
+**Self-service follow-ups (Phase 1+2 shipped; these are the remaining slices):**
+- Manage-link delivery — auto-text `/#/manage/<token>` at booking time
+  (extend `create-booking`) or an admin "send link" button.
+- Top-up payment collection — an upgrade flags the balance due but doesn't yet
+  open a Moyasar/transfer flow to charge the difference.
+- Contract/invoice regeneration after a change (generators are client-side).
+- Edge-function path tests (OTP/availability with a mocked Supabase) — the pure
+  policy engines are fully tested; the function's glue isn't.
+
 **Still parked, not yet ordered:**
 - AI Concierge bilingual conversational booking (recommend WA pilot first)
 - Voice-note transcription (high value for KSA WA volume)
@@ -332,6 +390,8 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 **Done in recent sessions (do not re-build):**
 - ✅ Mood Board (post-booking ritual page) — shipped commit `dc1655b`
 - ✅ Expanded portfolio (23 items) — shipped commit `0a99efc`
+- ✅ Customer self-service: reschedule (Phase 1) + OTP-gated package/add-on
+  change (Phase 2) — `/#/manage/<token>` + `change-booking` Edge Fn. See §4.9.
 
 Full tracker: [`docs/bugs.md`](./docs/bugs.md).
 
@@ -367,5 +427,5 @@ the canonical voice samples.
 
 ---
 
-*Last updated: 2026-05-20 (Phase 5 — Couture Noir + custom domain + WA
-lifecycle + Mood Board + 23-photo portfolio)*
+*Last updated: 2026-05-26 (Phase 6 — customer self-service booking changes:
+reschedule + OTP-gated package/add-on change via /#/manage/<token>)*

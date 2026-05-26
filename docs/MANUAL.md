@@ -1,7 +1,7 @@
 # ATEMA STUDIO — Owner's Manual
 
 > A complete operational + technical handbook for the ATEMA Studio booking platform.
-> Updated 2026-05-17. Maintained alongside the codebase at
+> Updated 2026-05-26. Maintained alongside the codebase at
 > [farajaay/atema-studio](https://github.com/farajaay/atema-studio).
 
 ---
@@ -16,6 +16,7 @@ includes:
 |---|---|
 | **Public site** | Editorial brand presence — Home, Portfolio, Journal, About |
 | **Booking flow** | Customer self-service: pick a package, customise add-ons, pay deposit |
+| **Self-service changes** | Private per-booking link to reschedule or change package/add-ons (OTP-gated for money) — §13g |
 | **Admin panel** | Bookings list, monthly calendar, packages CRUD, portfolio CRUD, journal CRUD, system settings |
 | **Document engine** | Auto-generated ZATCA-compliant invoices (with QR), formal contracts, T&C popups |
 | **Theme engine** | Two themes (Couture Noir + Atelier Ivory), switchable from the admin panel |
@@ -79,7 +80,10 @@ PUBLIC
   /journal                 JournalPage        Editorial blog list
   /journal/:slug           JournalPostPage    Single post detail
   /about                   AboutPage          Atelier story
+  /policy                  PolicyPage         T&C + refund + PDPL
   /book                    BookingPage        Full booking flow
+  /board/:token            MoodBoardPage      Private post-booking mood board
+  /manage/:token           ManageBookingPage  Customer self-service (reschedule + change package)
 
 ADMIN  (gated by Supabase Auth, /admin → /admin/dashboard)
   /admin                   AdminLogin
@@ -273,6 +277,11 @@ bookings            id · booking_ref · customer_name/phone/email · city · ve
                     status (pending|confirmed|completed|cancelled)
                     payment_status (unpaid|paid|refunded)
                     payment_method · payment_ref · vat_enabled · special_requests
+                    manage_token (160-bit capability secret) · reschedule_count
+booking_changes     id · booking_id (FK) · kind (reschedule|package) · actor
+                    old_value · new_value (jsonb) · price_delta · created_at
+booking_otps        id · booking_id (FK) · purpose · code_hash · salt
+                    expires_at · attempts · consumed_at · created_at
 blocked_dates       id · date · reason · created_at
 app_settings        id (singleton) · vat_enabled · vat_number · cr_number
                     seller_name_ar · seller_name_en · theme
@@ -291,6 +300,14 @@ Row Level Security:
 - `bookings`, `contracts`, `invoices` — admin only (the booking flow uses
   Supabase service role via an Edge Function pattern for inserts, or
   permissive insert RLS — review your project's policies).
+- `booking_changes` — admin `SELECT` only; written by the `change-booking`
+  Edge Function as service-role.
+- `booking_otps` — RLS on with **no** anon/authenticated policies; only the
+  service-role Edge Function reads/writes it. Codes are stored as a salted
+  SHA-256 hash, never in clear.
+- Customer self-service reads its single booking through the
+  `get_booking_by_token()` `SECURITY DEFINER` RPC (anon never touches the
+  `bookings` table); all writes go through the `change-booking` Edge Function.
 
 Supabase Storage buckets: `portfolio`, `journal` (image uploads).
 
@@ -666,6 +683,103 @@ MEDIUMs were patched in a single sweep on 2026-05-21:
    ```
 3. (Already shipped) Code changes are live with this commit.
 
+## 13g. Customer self-service booking changes
+
+A bride can change her own booking from a private link — **without an account
+and without messaging you** — for the two changes she most often needs:
+reschedule the date, or swap her package / add-ons. Everything is policed by
+the contract and recomputed server-side; she can never move money in her own
+favour.
+
+### The private link
+
+Every booking carries a `manage_token` — a 160-bit random secret (the same
+unguessable-link idea as the Mood Board). Her management page lives at:
+
+```
+https://atemastudio.xyz/#/manage/<token>
+```
+
+The token is the only credential. The page reads her booking through the
+`get_booking_by_token()` RPC, which returns **only** the single row matching
+that token — anon can never list or read the `bookings` table.
+
+> ⚠ **Sending the link is not yet automated.** The token exists on every
+> booking, but nothing texts it to the bride at booking time yet. For now the
+> link is shared manually (or by a future tweak to `create-booking`). See
+> "What's not built yet" below.
+
+### Reschedule (low-risk — link only)
+
+The page shows her booking and a date picker (the same one as the public site,
+so it only offers genuinely free days). The rules — from **Article 3 of the
+contract** — are enforced both in the page and, authoritatively, in the
+`change-booking` Edge Function:
+
+- **Once only** — a booking can be rescheduled a single time.
+- **≥ 7 days notice** — no self-service moves inside the final week.
+- **Within 30 days** of the original date.
+- **Subject to availability** — the new day is re-checked against the live
+  calendar (other bookings + blocked dates) at the moment of the change.
+
+On success the date moves, `reschedule_count` ticks up, an audit row is
+written, and both the bride and you get a WhatsApp confirmation.
+
+### Change package / add-ons (money — step-up code required)
+
+Because this moves money, it needs a second factor on top of the link:
+
+1. She picks a new package / toggles add-ons and taps **"Send verification
+   code."**
+2. The Edge Function texts a **6-digit code** to the phone on file (the code
+   is never returned in the web response — only to her WhatsApp).
+3. She enters the code and confirms.
+
+The server then **recomputes the total from the live catalogue** (package +
+add-ons + her city's travel fee), **keeps her original discount** (it is not
+re-redeemed, so a code's usage budget isn't double-spent), and classifies the
+result:
+
+- **Upgrade** → a *balance to pay* is shown; you'll be contacted to collect it.
+- **Downgrade** → the deposit is non-refundable (Article 3), so nothing is
+  refunded and nothing is owed.
+- **No change** → nothing due.
+
+The code is single-use, expires in **10 minutes**, and locks out after **5
+wrong attempts**. Codes are stored only as a salted hash.
+
+### What's not built yet (deliberate follow-ups)
+
+- **Link delivery** — auto-texting the manage link at booking time.
+- **Top-up collection** — an upgrade flags the balance due and notifies, but
+  does not yet open a Moyasar / transfer flow to actually charge the
+  difference.
+- **Contract / invoice regeneration** after a change is not yet automatic (the
+  generators are client-side).
+
+### Where it lives in code
+
+| Piece | File |
+|---|---|
+| Reschedule policy (pure, tested) | `supabase/functions/_shared/reschedule.ts` |
+| OTP primitives (pure, tested) | `supabase/functions/_shared/otp.ts` |
+| Price-change / delta math (pure, tested) | `supabase/functions/_shared/change.ts` |
+| Server enforcement (all actions) | `supabase/functions/change-booking/index.ts` |
+| Client data + Edge calls | `src/services/manage.ts` |
+| Customer page | `src/pages/ManageBookingPage.tsx` |
+| Schema | `database/migrations-2026-05-booking-changes.sql` + `…-otp.sql` |
+
+### Activation steps
+
+1. Run `database/migrations-2026-05-booking-changes.sql`, then
+   `database/migrations-2026-05-booking-changes-otp.sql`, in the Supabase SQL
+   editor (both idempotent). The first backfills a `manage_token` onto every
+   existing booking.
+2. Deploy the function: `supabase functions deploy change-booking`.
+3. `npm run deploy` to ship the `/manage` page.
+4. (Optional) Submit a WhatsApp template for the OTP if you want it sent as a
+   template rather than a session message.
+
 ## 15. Package hero photos & object positioning
 
 Each package card renders a hero photo above the card body. The
@@ -713,6 +827,8 @@ const PKG_PHOTO: Record<string, PkgPhoto> = {
 | Admin bookings list, modal, filters | `src/pages/AdminDashboard.tsx` |
 | Admin month calendar | `src/components/AdminCalendar.tsx` |
 | Customer date picker | `src/components/DatePicker.tsx` |
+| Customer self-service (reschedule / change package) | `src/pages/ManageBookingPage.tsx` + `src/services/manage.ts` |
+| Booking-change rules + server enforcement | `supabase/functions/_shared/{reschedule,otp,change}.ts` + `supabase/functions/change-booking/` |
 | Theme tokens | `src/theme/themes.ts` + `index.html` `<style>` block |
 | Theme picker UI | `src/components/AppSettingsPanel.tsx` (ThemeCard sub-component) |
 | Invoice template | `src/services/invoice.ts` |

@@ -333,6 +333,44 @@ and have not regressed.
 
 ---
 
+## 2026-05-26 — Customer self-service booking changes (security notes)
+
+New feature shipped this session: a private per-booking link
+(`/#/manage/<token>`) lets the bride reschedule or change her package /
+add-ons. Security properties designed in from the start (no audit findings
+outstanding on this feature; listed here for the record):
+
+- **Capability-link auth.** `bookings.manage_token` is a 160-bit secret
+  (`encode(gen_random_bytes(20),'hex')`), defaulted in SQL and unique. Same
+  unguessable-link model as the Mood Board.
+- **No anon table access.** The page reads its single booking through the
+  `get_booking_by_token()` `SECURITY DEFINER` RPC — anon can't read or
+  enumerate `bookings`. All writes go through the `change-booking` Edge
+  Function as service-role.
+- **Server is authoritative on money.** Package/add-on changes recompute the
+  total from the catalogue (package + add-ons + re-derived city fee); the
+  client estimate is display-only — same discipline as Patch C-3.
+- **Discount not re-redeemed.** A change preserves the originally-redeemed
+  discount amount (capped at the new gross); it never re-runs
+  `redeem_discount_code`, so a code's usage budget can't be double-spent.
+- **Step-up OTP on the money path.** `change_package` requires a 6-digit code
+  texted to the phone on file. Codes are stored salted-SHA-256 (never clear),
+  expire in 10 min, lock out after 5 attempts, and are checked
+  constant-time. The code is never returned in the HTTP response.
+- **Least-privilege tables.** `booking_otps` is RLS-on with no
+  anon/authenticated policies (service-role only). `booking_changes` (audit)
+  is admin-SELECT only.
+- **Policy single-sourced + tested.** Rules live in dependency-free
+  `_shared/{reschedule,otp,change}.ts`, imported by both client and Edge
+  Function, with a Vitest suite (reschedule eligibility/new-date, OTP
+  verify/expiry/lockout, change-delta classification).
+
+**Open follow-ups (functional, not security):** manage-link delivery, top-up
+payment collection, contract/invoice regeneration after a change, and
+Edge-function glue tests (the pure engines are covered).
+
+---
+
 ## Patch progress tracking
 
 Updated as fixes land. Patch commits reference these IDs.

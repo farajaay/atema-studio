@@ -5,7 +5,7 @@ works, what it costs, and how to extend it.
 
 | Document | Audience | Purpose |
 |---|---|---|
-| [`MANUAL.md`](./MANUAL.md) | Owner + developers | Master operational handbook — brand, IA, booking flow, calendar, settings, schema, deployment, performance, code map |
+| [`MANUAL.md`](./MANUAL.md) | Owner + developers | Master operational handbook — brand, IA, booking flow, self-service changes (§13g), calendar, settings, schema, deployment, performance, code map |
 | [`PROFITABILITY.md`](./PROFITABILITY.md) | Owner | How package profit is calculated, where the money goes, and three levers to improve margin |
 | [`PRESENTATION.md`](./PRESENTATION.md) | Owner | One-slide-per-section walkthrough Fatima can flip through with a client or investor |
 | [`integrations/whatsapp.md`](./integrations/whatsapp.md) | Developer / no-code automator | Full design + process map for auto-confirming bank-transfer receipts via WhatsApp |

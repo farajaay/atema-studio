@@ -114,6 +114,27 @@ Landing → Choose Package OR Design Your Package
 
 ---
 
+## 4b. Customer self-service changes (`/#/manage/<token>`)
+
+After a booking exists, the bride can change it herself from a private link
+guarded by a 160-bit `manage_token` — no account required. Two changes are
+supported, both enforced server-side by the `change-booking` Edge Function:
+
+- **Reschedule** (link only) — once, ≥ 7 days out, within 30 days of the
+  original date, subject to live-calendar availability (contract Article 3).
+- **Package / add-on change** (step-up OTP) — a 6-digit code is texted to the
+  phone on file; the server then recomputes the total from the catalogue,
+  preserves the original discount (no re-redeem), and classifies the result as
+  top-up / downgrade / none. Deposit is non-refundable, so downgrades refund
+  nothing.
+
+All policy lives in dependency-free, unit-tested modules under
+`supabase/functions/_shared/` (`reschedule.ts`, `otp.ts`, `change.ts`); the
+client (`src/pages/ManageBookingPage.tsx` + `src/services/manage.ts`) imports
+the same modules so its gating matches the server. See `docs/MANUAL.md` §13g.
+
+---
+
 ## 5. ZATCA Phase 1 Invoice
 
 Implemented in `src/services/invoice.ts`.
@@ -159,6 +180,29 @@ subtotal numeric, vat numeric, total numeric,
 status text DEFAULT 'pending',
 payment_status text DEFAULT 'unpaid',
 payment_method text,
+manage_token text UNIQUE DEFAULT encode(gen_random_bytes(20),'hex'),  -- self-service capability secret
+reschedule_count int DEFAULT 0,
+created_at timestamptz DEFAULT now()
+```
+
+### `booking_changes` — customer self-service audit log
+```sql
+id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+booking_id uuid REFERENCES bookings(id) ON DELETE CASCADE,
+kind text,                 -- 'reschedule' | 'package'
+actor text DEFAULT 'customer',
+old_value jsonb, new_value jsonb,
+price_delta numeric DEFAULT 0,
+created_at timestamptz DEFAULT now()
+```
+
+### `booking_otps` — step-up codes for money changes (service-role only)
+```sql
+id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+booking_id uuid REFERENCES bookings(id) ON DELETE CASCADE,
+purpose text DEFAULT 'change_package',
+code_hash text, salt text,   -- salted SHA-256; never the clear code
+expires_at timestamptz, attempts int DEFAULT 0, consumed_at timestamptz,
 created_at timestamptz DEFAULT now()
 ```
 
@@ -265,7 +309,8 @@ URL: `/#/admin/login`
 - Moyasar webhook → `bookings.payment_status='paid'` is currently client-side only (no server-side webhook handler since hosting is static GH Pages)
 - WhatsApp Business API integration for auto-sending PDF contract/invoice is **not yet wired** (currently a `wa.me` deep-link with prefilled message)
 - Contract & Invoice PDF export uses `window.print()` — no headless PDF generator on the client
-- No automated tests yet
+- Vitest suite covers pure logic (pricing, discounts, reschedule/OTP/change policy, validation); no browser/E2E tests yet
+- Self-service: manage-link delivery and top-up payment collection are not yet wired (see §4b / MANUAL §13g)
 
 ---
 
