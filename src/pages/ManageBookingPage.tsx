@@ -16,7 +16,12 @@ import { useLang } from '../hooks/useLang';
 import {
   getBookingByToken,
   rescheduleBooking,
+  listChangeOptions,
+  requestChangeOtp,
+  changePackage,
   type ManagedBooking,
+  type ChangeOption,
+  type ChangeResult,
 } from '../services/manage';
 import {
   canReschedule,
@@ -35,6 +40,15 @@ function reasonToText(reason: string | undefined, lang: 'ar' | 'en'): string {
     not_found:        { ar: 'الرابط غير صالح.', en: 'This link is not valid.' },
     token_invalid:    { ar: 'الرابط غير صالح.', en: 'This link is not valid.' },
     offline:          { ar: 'الخدمة غير متاحة حالياً.', en: 'The service is currently unavailable.' },
+    event_passed:     { ar: 'انقضى موعد المناسبة.', en: 'The event date has passed.' },
+    no_phone_on_file: { ar: 'لا يوجد رقم جوال مسجّل لهذا الحجز.', en: 'No phone number on file for this booking.' },
+    otp_required:     { ar: 'أدخلي رمز التحقق المرسل إليك.', en: 'Enter the verification code we sent you.' },
+    otp_missing:      { ar: 'أدخلي رمز التحقق المرسل إليك.', en: 'Enter the verification code we sent you.' },
+    otp_mismatch:     { ar: 'الرمز غير صحيح.', en: 'That code is incorrect.' },
+    otp_expired:      { ar: 'انتهت صلاحية الرمز. اطلبي رمزاً جديداً.', en: 'The code has expired — request a new one.' },
+    otp_too_many_attempts: { ar: 'محاولات كثيرة. اطلبي رمزاً جديداً.', en: 'Too many attempts — request a new code.' },
+    package_invalid:  { ar: 'الباقة المختارة غير متاحة.', en: 'The selected package is unavailable.' },
+    package_required: { ar: 'يرجى اختيار باقة.', en: 'Please select a package.' },
   };
   const m = map[reason];
   return m ? m[lang] : (lang === 'ar' ? 'تعذّر إتمام الطلب.' : 'The request could not be completed.');
@@ -55,6 +69,18 @@ export default function ManageBookingPage() {
   const [error,   setError]   = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Package/add-on change (step-up OTP)
+  const [packages, setPackages] = useState<ChangeOption[]>([]);
+  const [addons,   setAddons]   = useState<ChangeOption[]>([]);
+  const [changeOpen, setChangeOpen] = useState(false);
+  const [selPkg,    setSelPkg]    = useState<number | null>(null);
+  const [selAddons, setSelAddons] = useState<string[]>([]);
+  const [otpSent,   setOtpSent]   = useState(false);
+  const [otpCode,   setOtpCode]   = useState('');
+  const [changeBusy, setChangeBusy] = useState(false);
+  const [changeError, setChangeError] = useState<string | null>(null);
+  const [changeResult, setChangeResult] = useState<ChangeResult | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -64,10 +90,43 @@ export default function ManageBookingPage() {
       if (!b) { setNotFound(true); setLoading(false); return; }
       setBooking(b);
       setNewTime(b.event_time || '18:00');
+      setSelPkg(b.package_id);
+      setSelAddons(b.addon_ids ?? []);
       setLoading(false);
+      const opts = await listChangeOptions();
+      if (cancelled) return;
+      setPackages(opts.packages);
+      setAddons(opts.addons);
     })();
     return () => { cancelled = true; };
   }, [token]);
+
+  function toggleAddon(id: string) {
+    setSelAddons(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]);
+  }
+
+  async function onRequestOtp() {
+    setChangeError(null);
+    setChangeBusy(true);
+    const res = await requestChangeOtp(token);
+    setChangeBusy(false);
+    if (res.ok) setOtpSent(true);
+    else setChangeError(reasonToText(res.reason, lang));
+  }
+
+  async function onConfirmChange() {
+    if (selPkg === null) { setChangeError(reasonToText('package_required', lang)); return; }
+    setChangeError(null);
+    setChangeBusy(true);
+    const res = await changePackage({ token, otp: otpCode, packageId: selPkg, addOnIds: selAddons });
+    setChangeBusy(false);
+    if (res.ok) {
+      setChangeResult(res);
+      setBooking(b => b ? { ...b, total: res.total ?? b.total, package_id: selPkg, addon_ids: selAddons } : b);
+    } else {
+      setChangeError(reasonToText(res.reason, lang));
+    }
+  }
 
   const eligibility = useMemo(() => {
     if (!booking) return null;
@@ -82,6 +141,12 @@ export default function ManageBookingPage() {
     if (!booking || !newDate) return null;
     return validateNewDate({ originalEventDate: booking.event_date, newEventDate: newDate });
   }, [booking, newDate]);
+
+  const estSubtotal = useMemo(() => {
+    const p = packages.find(x => String(x.id) === String(selPkg));
+    const a = addons.filter(x => selAddons.includes(String(x.id))).reduce((s, x) => s + x.price, 0);
+    return (p?.price ?? 0) + a;
+  }, [packages, addons, selPkg, selAddons]);
 
   const canSubmit = !!booking && !!eligibility?.allowed && !!dateCheck?.allowed && !submitting;
 
@@ -134,6 +199,9 @@ export default function ManageBookingPage() {
   const label: React.CSSProperties = { fontSize: '0.72rem', letterSpacing: '0.12em', color: 'var(--a-text-muted)', textTransform: 'uppercase', marginBottom: 4 };
   const val:   React.CSSProperties = { fontFamily: "'Amiri', serif", fontSize: '1.05rem', color: 'var(--a-text)' };
   const card:  React.CSSProperties = { background: 'var(--a-surface)', border: '1px solid var(--a-border)', borderRadius: 12, padding: 24 };
+  const optRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--a-border)', fontSize: '0.9rem', color: 'var(--a-text)' };
+  const secondaryBtn: React.CSSProperties = { padding: '10px 22px', borderRadius: 8, border: '1px solid var(--a-gold)', background: 'transparent', color: 'var(--a-gold)', fontFamily: "'Cinzel', serif", letterSpacing: '0.1em', fontSize: '0.78rem', cursor: 'pointer' };
+  const primaryBtn = (enabled: boolean): React.CSSProperties => ({ padding: '12px 28px', borderRadius: 8, border: 'none', background: enabled ? 'var(--a-gold)' : 'var(--a-border)', color: enabled ? '#0B0B0B' : 'var(--a-text-muted)', fontFamily: "'Cinzel', serif", letterSpacing: '0.12em', fontSize: '0.8rem', cursor: enabled ? 'pointer' : 'not-allowed' });
 
   return (
     <div style={wrap} dir={ar ? 'rtl' : 'ltr'}>
@@ -199,6 +267,90 @@ export default function ManageBookingPage() {
                 }}>
                 {submitting ? (ar ? 'جارٍ الحفظ…' : 'Saving…') : (ar ? 'تأكيد التأجيل' : 'Confirm reschedule')}
               </button>
+            </>
+          )}
+        </div>
+
+        {/* Change package / add-ons (step-up OTP) */}
+        <div style={{ ...card, marginTop: 24 }}>
+          <h2 style={{ fontFamily: "'Amiri', serif", fontSize: '1.15rem', color: 'var(--a-gold)', marginBottom: 12 }}>
+            {ar ? 'تغيير الباقة أو الإضافات' : 'Change package or add-ons'}
+          </h2>
+
+          {changeResult ? (
+            <div style={{ lineHeight: 1.9 }}>
+              <p style={{ color: 'var(--a-gold)' }}>{ar ? 'تم تحديث حجزك.' : 'Your booking has been updated.'}</p>
+              <p>{ar ? 'الإجمالي الجديد: ' : 'New total: '}
+                {(changeResult.total ?? 0).toLocaleString(ar ? 'ar-SA' : 'en-US')} {ar ? 'ر.س' : 'SAR'}</p>
+              {changeResult.topUpDue && changeResult.topUpDue > 0 ? (
+                <p style={{ color: 'var(--a-text)' }}>
+                  {ar ? 'المبلغ المتبقّي للدفع: ' : 'Balance to pay: '}
+                  {changeResult.topUpDue.toLocaleString(ar ? 'ar-SA' : 'en-US')} {ar ? 'ر.س' : 'SAR'}
+                  {' — '}{ar ? 'سنتواصل معك لإتمام الدفع.' : "we'll be in touch to complete it."}
+                </p>
+              ) : (
+                <p style={{ color: 'var(--a-text-soft)', fontSize: '0.85rem' }}>
+                  {ar ? 'لا توجد مبالغ إضافية مستحقة.' : 'No additional payment is due.'}
+                </p>
+              )}
+            </div>
+          ) : !changeOpen ? (
+            <button onClick={() => setChangeOpen(true)} style={secondaryBtn}>
+              {ar ? 'تعديل الباقة' : 'Edit my package'}
+            </button>
+          ) : (
+            <>
+              <div style={{ marginBottom: 16 }}>
+                <div style={label}>{ar ? 'الباقة' : 'Package'}</div>
+                {packages.map(p => (
+                  <label key={p.id} style={optRow}>
+                    <input type="radio" name="pkg" checked={String(selPkg) === String(p.id)}
+                      onChange={() => setSelPkg(Number(p.id))} />
+                    <span style={{ flex: 1 }}>{ar ? p.name_ar : p.name_en}</span>
+                    <span style={{ color: 'var(--a-text-soft)' }}>{p.price.toLocaleString(ar ? 'ar-SA' : 'en-US')} {ar ? 'ر.س' : 'SAR'}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <div style={label}>{ar ? 'الإضافات' : 'Add-ons'}</div>
+                {addons.map(a => (
+                  <label key={a.id} style={optRow}>
+                    <input type="checkbox" checked={selAddons.includes(String(a.id))}
+                      onChange={() => toggleAddon(String(a.id))} />
+                    <span style={{ flex: 1 }}>{ar ? a.name_ar : a.name_en}</span>
+                    <span style={{ color: 'var(--a-text-soft)' }}>{a.price.toLocaleString(ar ? 'ar-SA' : 'en-US')} {ar ? 'ر.س' : 'SAR'}</span>
+                  </label>
+                ))}
+              </div>
+
+              <p style={{ color: 'var(--a-text-soft)', fontSize: '0.82rem', marginBottom: 16 }}>
+                {ar ? 'تقدير المبلغ قبل الضريبة: ' : 'Estimated subtotal (pre-VAT): '}
+                {estSubtotal.toLocaleString(ar ? 'ar-SA' : 'en-US')} {ar ? 'ر.س' : 'SAR'}
+                {' · '}{ar ? 'يُحتسب الإجمالي النهائي عند التأكيد.' : 'Final total is confirmed on submit.'}
+              </p>
+
+              {!otpSent ? (
+                <button onClick={onRequestOtp} disabled={changeBusy} style={primaryBtn(!changeBusy)}>
+                  {changeBusy ? (ar ? 'جارٍ الإرسال…' : 'Sending…') : (ar ? 'إرسال رمز التحقق' : 'Send verification code')}
+                </button>
+              ) : (
+                <>
+                  <p style={{ color: 'var(--a-text-soft)', fontSize: '0.85rem', marginBottom: 10 }}>
+                    {ar ? 'أرسلنا رمزاً إلى رقمك عبر واتساب.' : 'We sent a code to your phone over WhatsApp.'}
+                  </p>
+                  <input value={otpCode} inputMode="numeric" placeholder="------"
+                    onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--a-border)', background: 'var(--a-surface)', color: 'var(--a-text)', letterSpacing: '0.5em', width: 160, marginBottom: 12 }} />
+                  <div>
+                    <button onClick={onConfirmChange} disabled={changeBusy || otpCode.length < 6}
+                      style={primaryBtn(!changeBusy && otpCode.length >= 6)}>
+                      {changeBusy ? (ar ? 'جارٍ الحفظ…' : 'Saving…') : (ar ? 'تأكيد التعديل' : 'Confirm change')}
+                    </button>
+                  </div>
+                </>
+              )}
+              {changeError && <p style={{ color: '#c98b8b', fontSize: '0.82rem', marginTop: 12 }}>{changeError}</p>}
             </>
           )}
         </div>

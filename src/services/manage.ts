@@ -64,3 +64,74 @@ export async function rescheduleBooking(input: {
     : (error as { message?: string } | null)?.message ?? 'change_failed';
   return { ok: false, reason };
 }
+
+// ── Phase 2: package / add-on change (step-up OTP) ──────────────────────────
+export interface ChangeOption {
+  id: string | number;
+  name_ar: string;
+  name_en: string;
+  price: number;
+}
+
+export async function listChangeOptions(): Promise<{ packages: ChangeOption[]; addons: ChangeOption[] }> {
+  if (!supabase) return { packages: [], addons: [] };
+  const [{ data: pkgs }, { data: adds }] = await Promise.all([
+    supabase.from('packages').select('id, name_ar, name_en, price, active').eq('active', true).order('price'),
+    supabase.from('addons').select('id, name_ar, name_en, price, active').eq('active', true).order('price'),
+  ]);
+  return {
+    packages: (pkgs ?? []) as ChangeOption[],
+    addons: (adds ?? []) as ChangeOption[],
+  };
+}
+
+/** Ask the server to text a step-up code to the booking's phone. */
+export async function requestChangeOtp(token: string): Promise<{ ok: boolean; reason?: string }> {
+  if (!supabase) return { ok: false, reason: 'offline' };
+  const { data, error } = await supabase.functions.invoke('change-booking', {
+    body: { action: 'request_otp', token },
+  });
+  const row = (data ?? {}) as Record<string, unknown>;
+  if (!error && row.ok === true) return { ok: true };
+  const reason = typeof row.error === 'string' ? row.error
+    : (error as { message?: string } | null)?.message ?? 'otp_failed';
+  return { ok: false, reason };
+}
+
+export interface ChangeResult {
+  ok: boolean;
+  reason?: string;
+  total?: number;
+  delta?: number;
+  direction?: 'none' | 'top_up' | 'downgrade';
+  topUpDue?: number;
+}
+
+export async function changePackage(input: {
+  token: string;
+  otp: string;
+  packageId: number;
+  addOnIds: string[];
+}): Promise<ChangeResult> {
+  if (!supabase) return { ok: false, reason: 'offline' };
+  const { data, error } = await supabase.functions.invoke('change-booking', {
+    body: {
+      action: 'change_package',
+      token: input.token, otp: input.otp,
+      packageId: input.packageId, addOnIds: input.addOnIds,
+    },
+  });
+  const row = (data ?? {}) as Record<string, unknown>;
+  if (!error && row.ok === true) {
+    return {
+      ok: true,
+      total: Number(row.total ?? 0),
+      delta: Number(row.delta ?? 0),
+      direction: row.direction as ChangeResult['direction'],
+      topUpDue: Number(row.topUpDue ?? 0),
+    };
+  }
+  const reason = typeof row.error === 'string' ? row.error
+    : (error as { message?: string } | null)?.message ?? 'change_failed';
+  return { ok: false, reason };
+}
