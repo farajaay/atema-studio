@@ -271,12 +271,13 @@ packages            id · name_ar/en · price · duration_hours · edited_photos
                     album · video · description · features (text[])
                     badge · is_popular · active · sort_order · included_addon_ids
 addons              id · name_ar/en · price · active · sort_order
-bookings            id · booking_ref · customer_name/phone/email · city · venue
-                    package_id (FK) · event_date · addons (jsonb)
-                    subtotal · vat · total · deposit
+bookings            id · booking_ref · customer_name/phone/email · location
+                    package_id (FK, int) · event_date · event_time · addon_ids (text[])
+                    subtotal · vat · total (all integer SAR)
                     status (pending|confirmed|completed|cancelled)
-                    payment_status (unpaid|paid|refunded)
-                    payment_method · payment_ref · vat_enabled · special_requests
+                    payment_status (unpaid|paid|refunded; +awaiting_transfer via migration)
+                    payment_method · vat_enabled · special_requests
+                    discount_code/amount/kind (discount-codes migration)
                     manage_token (160-bit capability secret) · reschedule_count
 booking_changes     id · booking_id (FK) · kind (reschedule|package) · actor
                     old_value · new_value (jsonb) · price_delta · created_at

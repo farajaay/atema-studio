@@ -111,8 +111,9 @@ atema-studio/
 │   ├── seed-portfolio-2026-05.sql          (superseded) 7 portfolio items
 │   └── seed-portfolio-2026-05-expanded.sql 23 portfolio items, bride/couture/editorial
 ├── supabase/functions/
-│   ├── _shared/wa.ts          Meta Cloud API wrapper, HMAC verify
+│   ├── _shared/               wa.ts · pricing.ts · validation.ts · signature.ts · receipt.ts
 │   ├── create-booking/        server-side total recompute (Patch C-3)
+│   ├── discount-preview/      rate-limited preview_discount_code (Patch M-10)
 │   ├── wa-webhook/            Meta webhook receiver (GET handshake + POST)
 │   ├── wa-receipt/            Claude 3.5 Sonnet Vision bank-receipt OCR
 │   ├── wa-reminders/          cron-fired lifecycle reminders (every 30 min)
@@ -255,8 +256,11 @@ src/
   writes go through the `change-booking` Edge Function as service-role.
 - **Policy is a single source of truth.** The rules live in dependency-free,
   unit-tested modules under `supabase/functions/_shared/`
-  (`reschedule.ts`, `otp.ts`, `change.ts`). The client imports the *same*
-  modules so its gating can't drift from the server. Don't fork the logic.
+  (`reschedule.ts`, `otp.ts`, `change.ts`). The reschedule policy
+  (`reschedule.ts`) is imported by **both** the client page and the Edge
+  Function, so the date gating can't drift. The OTP + price-change engines
+  (`otp.ts`, `change.ts`) are server-side and unit-tested; the client shows a
+  display-only estimate. Don't fork any of this logic.
 - **Reschedule** = link only (no money). **Package/add-on change** = step-up
   OTP (6-digit, salted-hash at rest, 10-min TTL, 5-attempt lockout, texted to
   the phone on file — never in the HTTP response).

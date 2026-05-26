@@ -3,7 +3,7 @@
 > Luxury photography studio booking platform for Saudi Arabian women's events
 > Bilingual (Arabic-first / English) · Mobile-optimised · ZATCA-compliant
 
-**Live:** https://farajaay.github.io/atema-studio
+**Live:** https://atemastudio.xyz
 **Repo:** `_deploy/atema-studio/`
 
 ---
@@ -26,7 +26,7 @@
 
 ## 2. Brand Identity
 
-Per `Photos/Identity.PNG`. All colours are tokenised in `src/index.css` and re-declared per component.
+Per `Photos/Identity.PNG`. Theme tokens are CSS custom properties declared in `index.html` (inline `<style>`) + `src/theme/themes.ts` (`getBookingPalette`); two themes (Couture Noir default, Atelier Ivory). See `CLAUDE.md` §4.1.
 
 | Token       | Hex       | Usage |
 |-------------|-----------|-------|
@@ -53,16 +53,17 @@ src/
 ├── main.tsx                   Entry point
 ├── index.css                  Brand-aligned base styles
 ├── components/
-│   ├── Header.tsx             Top nav (lang switcher, admin link)
+│   ├── SiteHeader.tsx         Top nav (lang switcher, admin link)
 │   ├── PackageCard.tsx        Package tile with click-to-details modal
-│   ├── BookingForm.tsx        (legacy — superseded by inline modal in BookingPage)
-│   ├── BookingSummary.tsx     Side panel summary
+│   ├── DatePicker.tsx         Customer date picker (public_booked_dates)
 │   ├── MoyasarForm.tsx        Online card payment (Moyasar SDK)
 │   ├── BankTransferPayment.tsx Bank-transfer flow with copy buttons + WA receipt
 │   ├── PaymentMethodChooser.tsx Card vs Transfer selector
 │   └── PLTab.tsx              P&L admin tab
 ├── pages/
 │   ├── BookingPage.tsx        Customer booking flow (long file — modal lives here)
+│   ├── ManageBookingPage.tsx  Customer self-service (/#/manage/<token>)
+│   ├── MoodBoardPage.tsx      Private mood board (/#/board/<token>)
 │   ├── AdminLogin.tsx         Email/password gate
 │   ├── AdminDashboard.tsx     Bookings list + KPIs
 │   ├── PackagesManager.tsx    CRUD for packages + addons
@@ -70,6 +71,8 @@ src/
 ├── services/
 │   ├── supabase.ts            Supabase client (env-driven)
 │   ├── booking.ts             createBooking() — inserts booking row
+│   ├── manage.ts              self-service reads + change-booking Edge calls
+│   ├── moodboard.ts           mood-board compose/read
 │   ├── contract.ts            generateContractHTML() + saveContract()
 │   ├── invoice.ts             ZATCA TLV QR + generateInvoiceHTML() + saveInvoice()
 │   └── moyasar.ts             Moyasar SDK loader
@@ -129,9 +132,10 @@ supported, both enforced server-side by the `change-booking` Edge Function:
   nothing.
 
 All policy lives in dependency-free, unit-tested modules under
-`supabase/functions/_shared/` (`reschedule.ts`, `otp.ts`, `change.ts`); the
-client (`src/pages/ManageBookingPage.tsx` + `src/services/manage.ts`) imports
-the same modules so its gating matches the server. See `docs/MANUAL.md` §13g.
+`supabase/functions/_shared/` (`reschedule.ts`, `otp.ts`, `change.ts`). The
+client (`src/pages/ManageBookingPage.tsx`) imports `reschedule.ts` directly so
+its date gating matches the server; the OTP + price math run server-side
+(client shows a display-only estimate). See `docs/MANUAL.md` §13g.
 
 ---
 
@@ -151,35 +155,35 @@ Implemented in `src/services/invoice.ts`.
 
 ### `packages`
 ```sql
-id text PRIMARY KEY,
+id serial PRIMARY KEY,
 name_ar text, name_en text,
-description_ar text, description_en text,
-price numeric(10,2), duration_hours int,
-features_ar text[], features_en text[],
-included_addon_ids text[],
-sort_order int, active bool, created_at timestamptz
+price integer, duration_hours integer, edited_photos integer,
+album text, video boolean, description text,
+features text[], badge text, is_popular boolean,
+active boolean, created_at timestamptz
+-- migrations-2026-05-branding.sql adds: sort_order int, included_addon_ids text[]
 ```
 
 ### `addons`
 ```sql
 id text PRIMARY KEY,
 name_ar text, name_en text,
-price numeric(10,2), category text,
-sort_order int, active bool
+price integer, active boolean
 ```
 
 ### `bookings`
 ```sql
-id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
 booking_ref text UNIQUE,
-package_id text, addon_ids text[],
+package_id integer REFERENCES packages(id), addon_ids text[],
 event_date date, event_time time,
 customer_name text, customer_phone text, customer_email text,
 location text, special_requests text,
-subtotal numeric, vat numeric, total numeric,
-status text DEFAULT 'pending',
-payment_status text DEFAULT 'unpaid',
-payment_method text,
+subtotal integer, vat integer, total integer,
+status text DEFAULT 'pending',         -- pending|confirmed|completed|cancelled
+payment_status text DEFAULT 'unpaid',  -- unpaid|paid|refunded (awaiting_transfer via migration)
+-- added by migrations: vat_enabled boolean, payment_method text,
+--   discount_code/discount_amount/discount_kind (discount-codes migration)
 manage_token text UNIQUE DEFAULT encode(gen_random_bytes(20),'hex'),  -- self-service capability secret
 reschedule_count int DEFAULT 0,
 created_at timestamptz DEFAULT now()
@@ -206,16 +210,22 @@ expires_at timestamptz, attempts int DEFAULT 0, consumed_at timestamptz,
 created_at timestamptz DEFAULT now()
 ```
 
-### `contracts`
+### `contracts` / `invoices`
+
+> ⚠ **No creating SQL for these two tables lives in `database/`.** They are
+> read/written by `src/services/contract.ts` and `invoice.ts` and exist in the
+> production project, but were created outside the tracked migrations. The
+> shapes below are the columns the code relies on — add a migration if you ever
+> rebuild the DB from scratch.
+
 ```sql
+-- contracts
 id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 booking_id uuid REFERENCES bookings(id) ON DELETE CASCADE,
 booking_ref text, content_html text,
 created_at timestamptz DEFAULT now()
-```
 
-### `invoices` *(latest addition — see SQL below)*
-```sql
+-- invoices
 id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 booking_id uuid REFERENCES bookings(id) ON DELETE CASCADE,
 booking_ref text, invoice_number text UNIQUE,

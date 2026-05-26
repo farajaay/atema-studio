@@ -361,9 +361,11 @@ outstanding on this feature; listed here for the record):
   anon/authenticated policies (service-role only). `booking_changes` (audit)
   is admin-SELECT only.
 - **Policy single-sourced + tested.** Rules live in dependency-free
-  `_shared/{reschedule,otp,change}.ts`, imported by both client and Edge
-  Function, with a Vitest suite (reschedule eligibility/new-date, OTP
-  verify/expiry/lockout, change-delta classification).
+  `_shared/{reschedule,otp,change}.ts` with a Vitest suite (reschedule
+  eligibility/new-date, OTP verify/expiry/lockout, change-delta
+  classification). `reschedule.ts` is imported by both the client page and the
+  Edge Function so date gating can't drift; `otp.ts`/`change.ts` run
+  server-side only (the client shows a display-only estimate).
 
 **Open follow-ups (functional, not security):** manage-link delivery, top-up
 payment collection, contract/invoice regeneration after a change, and
