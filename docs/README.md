@@ -7,6 +7,7 @@ works, what it costs, and how to extend it.
 |---|---|---|
 | [`MANUAL.md`](./MANUAL.md) | Owner + developers | Master operational handbook — brand, IA, booking flow, self-service changes (§13g), calendar, settings, schema, deployment, performance, code map |
 | [`ACTIVATION-BOOKING-CHANGES.md`](./ACTIVATION-BOOKING-CHANGES.md) | Owner + developers | Step-by-step checklist to take the self-service reschedule + package-change feature live (migrations, Edge deploy, site deploy, smoke test) |
+| [`REVENUE-READINESS.md`](./REVENUE-READINESS.md) | Owner + developers | Gap analysis + ordered roadmap from "platform built" to "collecting money" — activation (run/deploy), revenue integrity (payment verification), and revenue capture (top-ups, link delivery) |
 | [`PROFITABILITY.md`](./PROFITABILITY.md) | Owner | How package profit is calculated, where the money goes, and three levers to improve margin |
 | [`PRESENTATION.md`](./PRESENTATION.md) | Owner | One-slide-per-section walkthrough Fatima can flip through with a client or investor |
 | [`integrations/whatsapp.md`](./integrations/whatsapp.md) | Developer / no-code automator | Full design + process map for auto-confirming bank-transfer receipts via WhatsApp |
