@@ -33,10 +33,13 @@ import {
   CITY_FEES,
 } from '../_shared/validation.ts';
 import { sumActiveAddons, clampDiscount, computeBookingTotals } from '../_shared/pricing.ts';
+import { sendEmail } from '../_shared/email.ts';
+import { renderBookingConfirmation } from '../_shared/email-confirmation.ts';
 
 const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const SUPABASE_ANON_KEY     = Deno.env.get('SUPABASE_ANON_KEY')!;
+const SITE_ORIGIN           = Deno.env.get('SITE_ORIGIN') ?? 'https://atemastudio.xyz';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
@@ -199,7 +202,7 @@ serve(async (req) => {
     ({ data: booking, error: insErr } = await supabase
       .from('bookings')
       .insert([attempt])
-      .select('id, booking_ref, status, created_at, event_date, total')
+      .select('id, booking_ref, status, created_at, event_date, total, manage_token')
       .single());
     if (!insErr) break;
     const msg = (insErr as { message?: string }).message ?? '';
@@ -216,6 +219,34 @@ serve(async (req) => {
   if (insErr || !booking) {
     console.error('insert error:', insErr);
     return fail('insert_failed', 500, insErr?.message);
+  }
+
+  // ── Email confirmation (fire & forget; Zoho Mail SMTP) ─────────────────
+  // Failure is non-fatal — sendEmail() logs to email_messages and returns
+  // a status object rather than throwing, so a flaky SMTP session never
+  // rolls back a successful booking. We don't await it.
+  if (email) {
+    (async () => {
+      const rendered = renderBookingConfirmation({
+        customerName:  name,
+        bookingRef:    ref,
+        packageNameAr: pkg.name_ar,
+        packageNameEn: pkg.name_en,
+        eventDate,
+        eventTime,
+        total,
+        manageToken:   (booking as { manage_token?: string | null }).manage_token ?? null,
+        siteOrigin:    SITE_ORIGIN,
+      });
+      await sendEmail({
+        to:        email,
+        subject:   rendered.subject,
+        html:      rendered.html,
+        text:      rendered.text,
+        template:  'booking_confirmation',
+        bookingId: booking.id,
+      });
+    })().catch(err => console.error('email-confirm error:', (err as Error).message));
   }
 
   // ── WhatsApp notification (fire & forget; preserved from previous stub) ──

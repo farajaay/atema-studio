@@ -70,6 +70,7 @@ and answers most "how does X work" questions.**
 | Payment gateway readiness (Moyasar live + transfer flow) | [`docs/integrations/payments.md`](./docs/integrations/payments.md) |
 | WhatsApp Cloud API blueprint (legacy reference) | [`docs/integrations/whatsapp.md`](./docs/integrations/whatsapp.md) |
 | **WhatsApp lifecycle reminders + receipt vision — IMPLEMENTED** | [`docs/integrations/wa-platform.md`](./docs/integrations/wa-platform.md) |
+| **Email confirmation (Zoho Mail SMTP) — IMPLEMENTED**          | [`docs/integrations/email.md`](./docs/integrations/email.md) |
 | **Mood Board composer & public page — IMPLEMENTED** | [`docs/MANUAL.md`](./docs/MANUAL.md) §13b |
 | First-time Supabase wiring | [`BACKEND_SETUP.md`](./BACKEND_SETUP.md) |
 | Quick-start (npm scripts, dev/build/deploy) | [`README.md`](./README.md) |
@@ -339,6 +340,8 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
     + 3 booking columns + preview/redeem RPCs + RLS)
   - `database/migrations-2026-05-launch-code.sql` (LAUNCH15 — 15% off, max
     800 SAR, valid 20 days from when the SQL is applied)
+  - `database/migrations-2026-05-email.sql` (email_messages audit table —
+    booking-confirmation email via Zoho Mail SMTP)
   - `database/seed-packages-2026-05.sql` (6 packages + 11 add-ons — required
     if `packages` table is empty; the booking flow falls back to the DEMO
     catalogue without it, but the Edge Function still needs real rows to
@@ -349,7 +352,8 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - Meta Business verification + permanent access token.
 - Submit 6 WA templates to Meta (copy from `docs/integrations/wa-platform.md` §6).
 - Supabase secrets: `META_WA_*`, `ANTHROPIC_API_KEY`, `OWNER_WA_NUMBER`,
-  `CRON_SECRET`.
+  `CRON_SECRET`, `ZOHO_SMTP_*` (see `docs/integrations/email.md` §2.4),
+  `SITE_ORIGIN`.
 - Deploy WA Edge Functions: `supabase functions deploy wa-webhook wa-receipt wa-reminders`.
 - Deploy the self-service Edge Function: `supabase functions deploy change-booking`.
 - Schedule cron at `*/30 * * * *`.
