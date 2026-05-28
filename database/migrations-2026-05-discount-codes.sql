@@ -19,9 +19,9 @@
 --   database/migrations-2026-05.sql
 --   database/migrations-2026-05-rls-hardening.sql
 
--- ╔════════════════════════════════════════════════════════════════════╗
+-- ╔═══════════════════════════════════════════════════════════════════╗
 -- ║ 1. discount_codes table                                            ║
--- ╚════════════════════════════════════════════════════════════════════╝
+-- ╚═══════════════════════════════════════════════════════════════════╝
 
 create table if not exists public.discount_codes (
   code             text primary key,
@@ -64,9 +64,9 @@ create trigger discount_codes_updated_at
   before update on public.discount_codes
   for each row execute function set_updated_at();
 
--- ╔════════════════════════════════════════════════════════════════════╗
+-- ╔═══════════════════════════════════════════════════════════════════╗
 -- ║ 2. Three new columns on bookings                                  ║
--- ╚════════════════════════════════════════════════════════════════════╝
+-- ╚═══════════════════════════════════════════════════════════════════╝
 
 alter table public.bookings
   add column if not exists discount_code   text;
@@ -94,14 +94,16 @@ create index if not exists bookings_discount_code_idx
   on public.bookings(discount_code)
   where discount_code is not null;
 
--- ╔════════════════════════════════════════════════════════════════════╗
+-- ╔═══════════════════════════════════════════════════════════════════╗
 -- ║ 3. preview_discount_code — read-only forecast                     ║
--- ╚════════════════════════════════════════════════════════════════════╝
+-- ╚═══════════════════════════════════════════════════════════════════╝
 --
 -- Returns (applied_amount, applied_kind, reason). Does NOT increment
 -- used_count. Callable by anon for instant UI feedback.
 
-create or replace function public.preview_discount_code(
+drop function if exists public.preview_discount_code(text, integer);
+
+create function public.preview_discount_code(
   p_code text,
   p_subtotal integer
 ) returns table (
@@ -175,15 +177,17 @@ $$;
 grant execute on function public.preview_discount_code(text, integer)
   to anon, authenticated, service_role;
 
--- ╔════════════════════════════════════════════════════════════════════╗
+-- ╔════════════════════════════════��══════════════════════════════════╗
 -- ║ 4. redeem_discount_code — atomic redemption                       ║
--- ╚════════════════════════════════════════════════════════════════════╝
+-- ╚═══════════════════════════════════════════════════════════════════╝
 --
 -- Same validation as preview, PLUS: row-lock + increment used_count
 -- in the same transaction. service_role-only — only the
 -- create-booking Edge Function can call this.
 
-create or replace function public.redeem_discount_code(
+drop function if exists public.redeem_discount_code(text, integer);
+
+create function public.redeem_discount_code(
   p_code text,
   p_subtotal integer
 ) returns table (
@@ -262,9 +266,9 @@ $$;
 grant execute on function public.redeem_discount_code(text, integer)
   to service_role;
 
--- ╔════════════════════════════════════════════════════════════════════╗
+-- ╔═══════════════════════════════════════════════════════════════════╗
 -- ║ 5. RLS — admin-only direct access to discount_codes               ║
--- ╚════════════════════════════════════════════════════════════════════╝
+-- ╚═══════════════════════════════════════════════════════════════════╝
 
 alter table public.discount_codes enable row level security;
 
@@ -300,9 +304,9 @@ create policy "Service role full access — discount_codes"
   on public.discount_codes for all
   to service_role using (true) with check (true);
 
--- ╔════════════════════════════════════════════════════════════════════╗
+-- ╔═══════════════════════════════════════════════════════════════════╗
 -- ║ 6. Verify                                                          ║
--- ╚════════════════════════════════════════════════════════════════════╝
+-- ╚═══════════════════════════════════════════════════════════════════╝
 
 select '— Discount codes ready —' as section;
 select policyname, cmd, roles from pg_policies
