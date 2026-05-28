@@ -37,9 +37,9 @@
 -- The customer booking path still works because the constrained INSERT
 -- policy allows the same `services/booking.ts` fallback path used today.
 
--- ╔════════════════════════════════════════════════════════════════════╗
+-- ╔═══════════════════════════════════════════════════════════════════╗
 -- ║ 0. Schema prerequisites                                            ║
--- ╚════════════════════════════════════════════════════════════════════╝
+-- ╚═══════════════════════════════════════════════════════════════════╝
 --
 -- The base schema (database/schema.sql) predates the bank-transfer flow,
 -- so it's missing two things the anon UPDATE policy below needs:
@@ -60,9 +60,9 @@ alter table public.bookings
   add  constraint bookings_payment_status_check
   check (payment_status in ('unpaid','awaiting_transfer','paid','refunded'));
 
--- ╔════════════════════════════════════════════════════════════════════╗
+-- ╔═══════════════════════════════════════════════════════════════════╗
 -- ║ 1. Public view: event_date + status only (no PII)                 ║
--- ╚════════════════════════════════════════════════════════════════════╝
+-- ╚═══════════════════════════════════════════════════════════════════╝
 
 drop view if exists public.public_booked_dates;
 create view public.public_booked_dates
@@ -98,12 +98,13 @@ create policy "Public select event_date status only"
 -- (Once the customer flow has migrated to the view, this open SELECT can
 -- be dropped — anon should not need bookings at all. See Final cleanup.)
 
--- ╔════════════════════════════════════════════════════════════════════╗
+-- ╔═══════════════════════════════════════════════════════════════════╗
 -- ║ 2. Replace the permissive anon INSERT with a constrained one      ║
--- ╚════════════════════════════════════════════════════════════════════╝
+-- ╚═══════════════════════════════════════════════════════════════════╝
 
 drop policy if exists "anon_insert_bookings" on public.bookings;
 drop policy if exists "Allow public booking insert" on public.bookings;
+drop policy if exists "Constrained anonymous booking insert" on public.bookings;
 
 create policy "Constrained anonymous booking insert"
   on public.bookings
@@ -123,9 +124,9 @@ create policy "Constrained anonymous booking insert"
     and payment_status = 'unpaid'             -- payment flows through update
   );
 
--- ╔════════════════════════════════════════════════════════════════════╗
+-- ╔══════════════════════��════════════════════════════════════════════╗
 -- ║ 3. Tighten anon UPDATE                                             ║
--- ╚════════════════════════════════════════════════════════════════════╝
+-- ╚═══════════════════════════════════════════════════════════════════╝
 --
 -- The BankTransferPayment component sets payment_method = 'bank_transfer'
 -- and payment_status = 'awaiting_transfer' from the anon role. Allow ONLY
@@ -134,6 +135,7 @@ create policy "Constrained anonymous booking insert"
 
 drop policy if exists "Allow public booking update" on public.bookings;
 drop policy if exists "anon_update_bookings"        on public.bookings;
+drop policy if exists "Anon update — payment intent only" on public.bookings;
 
 create policy "Anon update — payment intent only"
   on public.bookings
@@ -146,9 +148,9 @@ create policy "Anon update — payment intent only"
     and status = 'pending'
   );
 
--- ╔════════════════════════════════════════════════════════════════════╗
+-- ╔═══════════════════════════════════════════════════════════════════╗
 -- ║ 4. Admin/authenticated full access (keep as-is, but ensure)        ║
--- ╚════════════════════════════════════════════════════════════════════╝
+-- ╚═══════════════════════════════════════════════════════════════════╝
 
 drop policy if exists "authenticated_all_bookings" on public.bookings;
 create policy "Authenticated full access — bookings"
@@ -156,9 +158,9 @@ create policy "Authenticated full access — bookings"
   to authenticated
   using (true) with check (true);
 
--- ╔════════════════════════════════════════════════════════════════════╗
+-- ╔═══════════════════════════════════════════════════════════════════╗
 -- ║ 5. Customers — keep open INSERT only with shape validation         ║
--- ╚════════════════════════════════════════════════════════════════════╝
+-- ╚═══════════════════════════════════════════════════════════════════╝
 
 drop policy if exists "anon_insert_customers" on public.customers;
 
@@ -171,9 +173,9 @@ create policy "Constrained anonymous customer insert"
     and phone      is not null and length(trim(phone))      between 7 and 25
   );
 
--- ╔════════════════════════════════════════════════════════════════════╗
+-- ╔═══════════════════════════════════════════════════════════════════╗
 -- ║ 6. Verify                                                          ║
--- ╚════════════════════════════════════════════════════════════════════╝
+-- ╚═══════════════════════════════════════════════════════════════════╝
 
 select '— RLS hardened —' as section;
 select schemaname, tablename, policyname, cmd, roles
@@ -182,9 +184,9 @@ select schemaname, tablename, policyname, cmd, roles
    and tablename in ('bookings','customers')
  order by tablename, cmd, policyname;
 
--- ╔════════════════════════════════════════════════════════════════════╗
+-- ╔═══════════════════════════════════════════════════════════════════╗
 -- ║ FINAL CLEANUP — run AFTER deploying create-booking Edge Function   ║
--- ╚════════════════════════════════════════════════════════════════════╝
+-- ╚═══════════════════════════════════════════════════════════════════╝
 --
 -- The Edge Function uses the service-role key and bypasses RLS. Once
 -- it's deployed and the client (src/services/booking.ts) is invoking
