@@ -144,10 +144,19 @@ Override if previewing against a staging URL.
 
 ### 2.5 Run the migration
 
-In the Supabase SQL editor:
+Two ways — CI or SQL editor.
+
+**CI path (recommended):** Actions tab → *Supabase — apply SQL
+migrations* → **Run workflow** → leave defaults → click. It applies every
+`database/migrations-*.sql` in alphabetical order. To apply just this
+one file, set the `only-file` input to `migrations-2026-05-email.sql`.
+Requires the same `SUPABASE_ACCESS_TOKEN` + `SUPABASE_PROJECT_REF`
+secrets from §2.4 — no new credential.
+
+**Manual path:** In the Supabase SQL editor:
 
 ```sql
-\i database/migrations-2026-05-email.sql
+-- paste the full contents of database/migrations-2026-05-email.sql
 ```
 
 (Idempotent — safe to re-run.)

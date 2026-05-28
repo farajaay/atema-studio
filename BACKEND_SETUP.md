@@ -12,7 +12,18 @@ board, customer self-service), see [`docs/MANUAL.md`](./docs/MANUAL.md).
 ## 1. Supabase database
 
 1. Create a project at <https://app.supabase.com>.
-2. In **SQL Editor**, run the migrations in this order — each is idempotent:
+2. **Apply the migrations.** Two ways:
+
+   **CI path (recommended):** once the GitHub Actions secrets in §3 are
+   set, hit Actions tab → *Supabase — apply SQL migrations* →
+   **Run workflow** → leave `include-seeds = false` for the first run
+   (or `true` to also load the demo catalogue). The workflow loops every
+   `database/migrations-*.sql` file via the Supabase Management API.
+   You can target a single file with the `only-file` input
+   (e.g. `migrations-2026-05-email.sql`).
+
+   **Manual path:** In **SQL Editor**, paste each file in this order
+   (each is idempotent, safe to re-run):
 
    ```sql
    -- Base schema (run once)
