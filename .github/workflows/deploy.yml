@@ -1,0 +1,50 @@
+name: Deploy to GitHub Pages
+
+# Builds the Vite bundle and publishes `dist/` to the `gh-pages` branch on
+# every push to master. Replaces the manual `npm run deploy` from Fatima's
+# laptop. Tests are the gate — a failing suite blocks the deploy.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# One deploy at a time; if a second push lands while the first is running,
+# queue the second (don't cancel) so we never publish stale dist contents.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write          # required to push to gh-pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Type-check + build
+        run: npm run build
+
+      - name: Publish dist/ to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          # CNAME comes from public/CNAME via the build — don't override here.
+          # commit_message defaults to the source commit message, which is
+          # what we want.
