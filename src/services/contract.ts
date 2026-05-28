@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { STATIONERY, STATIONERY_FONTS_IMPORT } from '../theme/stationery';
 
 export interface ContractData {
   customerName: string;
@@ -55,7 +56,7 @@ export function generateContractHTML(d: ContractData): string {
   const eventDateFmt  = formatDateAr(d.eventDate);
   const contractDateFmt = d.contractDate || formatDateAr(new Date().toISOString().split('T')[0]);
   const addonsStr = d.addons.length > 0
-    ? `<tr><td style="padding:6px 12px;border:1px solid #d6bfa3;font-size:13px">الإضافات</td><td style="padding:6px 12px;border:1px solid #d6bfa3;font-size:13px">${d.addons.map(esc).join(' · ')}</td></tr>`
+    ? `<tr><td style="padding:6px 12px;border:1px solid ${STATIONERY.borderDash};font-size:13px">الإضافات</td><td style="padding:6px 12px;border:1px solid ${STATIONERY.borderDash};font-size:13px">${d.addons.map(esc).join(' · ')}</td></tr>`
     : '';
 
   return `<!DOCTYPE html>
@@ -65,54 +66,54 @@ export function generateContractHTML(d: ContractData): string {
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>عقد خدمات التصوير — ${esc(d.bookingRef)}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;400;600;700&display=swap');
+  ${STATIONERY_FONTS_IMPORT}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Tajawal',sans-serif;background:#f9f5f0;color:#2c2218;padding:32px 20px;direction:rtl}
-  .page{max-width:760px;margin:0 auto;background:white;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.08);overflow:hidden}
-  .header{background:linear-gradient(135deg,#1a1a1a,#2c2c2c,#4a3728);padding:32px 40px;text-align:center;color:white}
-  .header h1{font-family:'Amiri',serif;font-size:26px;letter-spacing:0.15em;margin-bottom:4px}
+  body{font-family:${STATIONERY.fontBody};background:${STATIONERY.paper};color:${STATIONERY.ink};padding:32px 20px;direction:rtl}
+  .page{max-width:760px;margin:0 auto;background:${STATIONERY.card};border-radius:12px;box-shadow:${STATIONERY.shadow};overflow:hidden}
+  .header{background:${STATIONERY.noirGrad};padding:32px 40px;text-align:center;color:white}
+  .header h1{font-family:${STATIONERY.fontWordmark};font-size:26px;letter-spacing:0.15em;margin-bottom:4px}
   .header p{font-size:12px;letter-spacing:0.2em;opacity:0.7;font-weight:300}
-  .header .subtitle{font-size:13px;color:#e8d9c5;margin-top:8px;opacity:0.9}
-  .stamp{display:inline-block;border:2px solid #c9b393;border-radius:8px;padding:6px 16px;font-size:11px;letter-spacing:0.12em;color:#c9b393;margin-top:12px}
+  .header .subtitle{font-size:13px;color:${STATIONERY.goldHi};margin-top:8px;opacity:0.9}
+  .stamp{display:inline-block;border:2px solid ${STATIONERY.goldChampagne};border-radius:8px;padding:6px 16px;font-size:11px;letter-spacing:0.12em;color:${STATIONERY.goldChampagne};margin-top:12px}
   .body{padding:36px 40px}
-  h2{font-family:'Amiri',serif;font-size:16px;color:#8c6b4f;border-bottom:1px solid #e8d9c5;padding-bottom:8px;margin:28px 0 16px}
+  h2{font-family:${STATIONERY.fontDisplayAr};font-size:16px;color:${STATIONERY.goldDeep};border-bottom:1px solid ${STATIONERY.borderHair};padding-bottom:8px;margin:28px 0 16px}
   h2:first-child{margin-top:0}
   .parties{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:4px}
-  .party-box{background:#f9f5f0;border-radius:8px;padding:16px 18px;border:1px solid #e8d9c5}
-  .party-box .role{font-size:10px;letter-spacing:0.14em;color:#b09880;text-transform:uppercase;margin-bottom:6px}
-  .party-box .name{font-family:'Amiri',serif;font-size:15px;color:#2c2218;font-weight:700}
-  .party-box .detail{font-size:12px;color:#8c6b4f;margin-top:3px}
+  .party-box{background:${STATIONERY.paper};border-radius:8px;padding:16px 18px;border:1px solid ${STATIONERY.borderHair}}
+  .party-box .role{font-size:10px;letter-spacing:0.14em;color:${STATIONERY.inkFaint};text-transform:uppercase;margin-bottom:6px}
+  .party-box .name{font-family:${STATIONERY.fontDisplayAr};font-size:15px;color:${STATIONERY.ink};font-weight:700}
+  .party-box .detail{font-size:12px;color:${STATIONERY.goldDeep};margin-top:3px}
   table.data-table{width:100%;border-collapse:collapse;margin-bottom:4px}
-  table.data-table td{padding:8px 12px;border:1px solid #e8d9c5;font-size:13px;line-height:1.5}
-  table.data-table td:first-child{background:#f9f5f0;font-weight:600;color:#555;width:42%}
+  table.data-table td{padding:8px 12px;border:1px solid ${STATIONERY.borderHair};font-size:13px;line-height:1.5}
+  table.data-table td:first-child{background:${STATIONERY.paper};font-weight:600;color:${STATIONERY.inkSoft};width:42%}
   .financial{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:4px}
-  .fin-box{text-align:center;padding:14px;background:#f9f5f0;border-radius:8px;border:1px solid #e8d9c5}
-  .fin-box .fin-label{font-size:10px;color:#b09880;letter-spacing:0.1em;margin-bottom:4px}
-  .fin-box .fin-val{font-family:'Amiri',serif;font-size:20px;color:#8c6b4f;font-weight:700}
-  .fin-box .fin-cur{font-size:11px;color:#b09880}
-  .fin-box.highlight{background:linear-gradient(135deg,#1a1a1a,#2c2c2c);border-color:#2c2c2c}
-  .fin-box.highlight .fin-label{color:#c9b393}
-  .fin-box.highlight .fin-val{color:#e8d9c5}
-  .fin-box.highlight .fin-cur{color:#c9b393}
+  .fin-box{text-align:center;padding:14px;background:${STATIONERY.paper};border-radius:8px;border:1px solid ${STATIONERY.borderHair}}
+  .fin-box .fin-label{font-size:10px;color:${STATIONERY.inkFaint};letter-spacing:0.1em;margin-bottom:4px}
+  .fin-box .fin-val{font-family:${STATIONERY.fontDisplayAr};font-size:20px;color:${STATIONERY.goldDeep};font-weight:700}
+  .fin-box .fin-cur{font-size:11px;color:${STATIONERY.inkFaint}}
+  .fin-box.highlight{background:linear-gradient(135deg,${STATIONERY.noir},${STATIONERY.noirMid});border-color:${STATIONERY.noirMid}}
+  .fin-box.highlight .fin-label{color:${STATIONERY.goldChampagne}}
+  .fin-box.highlight .fin-val{color:${STATIONERY.goldHi}}
+  .fin-box.highlight .fin-cur{color:${STATIONERY.goldChampagne}}
   .article{margin-bottom:18px}
-  .article h3{font-size:13px;font-weight:700;color:#4a3728;margin-bottom:8px}
-  .article p,.article li{font-size:12.5px;line-height:1.9;color:#444}
+  .article h3{font-size:13px;font-weight:700;color:${STATIONERY.inkSoft};margin-bottom:8px}
+  .article p,.article li{font-size:12.5px;line-height:1.9;color:${STATIONERY.inkSoft}}
   .article ul{padding-right:18px}
   .article ul li{margin-bottom:4px}
   .article table{width:100%;border-collapse:collapse;margin-top:8px}
-  .article table td{padding:6px 10px;border:1px solid #e8d9c5;font-size:12px}
-  .article table td:first-child{background:#f9f5f0;font-weight:600;width:50%}
-  .important{background:#fff8f0;border-right:3px solid #8c6b4f;padding:10px 14px;border-radius:0 6px 6px 0;font-size:12.5px;color:#5c3d1e;font-weight:600;margin:10px 0}
-  .signatures{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:32px;padding-top:24px;border-top:1px solid #e8d9c5}
-  .sig-box .role{font-size:10px;letter-spacing:0.14em;color:#b09880;text-transform:uppercase;margin-bottom:14px}
-  .sig-box .sig-line{border-bottom:1px dashed #c9b393;height:40px;margin-bottom:8px}
-  .sig-box .sig-label{font-size:11px;color:#b09880}
-  .footer-bar{background:#f4ede4;padding:16px 40px;text-align:center;border-top:1px solid #e8d9c5}
-  .footer-bar p{font-size:11px;color:#b09880;letter-spacing:0.08em}
-  .ref-badge{display:inline-block;background:#1a1a1a;color:#e8d9c5;border-radius:6px;padding:4px 12px;font-size:11px;letter-spacing:0.1em;font-weight:600;margin-top:6px}
+  .article table td{padding:6px 10px;border:1px solid ${STATIONERY.borderHair};font-size:12px}
+  .article table td:first-child{background:${STATIONERY.paper};font-weight:600;width:50%}
+  .important{background:${STATIONERY.paperWarn};border-right:3px solid ${STATIONERY.warnAccent};padding:10px 14px;border-radius:0 6px 6px 0;font-size:12.5px;color:${STATIONERY.warnInk};font-weight:600;margin:10px 0}
+  .signatures{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:32px;padding-top:24px;border-top:1px solid ${STATIONERY.borderHair}}
+  .sig-box .role{font-size:10px;letter-spacing:0.14em;color:${STATIONERY.inkFaint};text-transform:uppercase;margin-bottom:14px}
+  .sig-box .sig-line{border-bottom:1px dashed ${STATIONERY.goldChampagne};height:40px;margin-bottom:8px}
+  .sig-box .sig-label{font-size:11px;color:${STATIONERY.inkFaint}}
+  .footer-bar{background:${STATIONERY.paperAlt};padding:16px 40px;text-align:center;border-top:1px solid ${STATIONERY.borderHair}}
+  .footer-bar p{font-size:11px;color:${STATIONERY.inkFaint};letter-spacing:0.08em}
+  .ref-badge{display:inline-block;background:${STATIONERY.noir};color:${STATIONERY.goldHi};border-radius:6px;padding:4px 12px;font-size:11px;letter-spacing:0.1em;font-weight:600;margin-top:6px}
   /* FAB couture monogram — reserved for printable contract / T&C only (per brand-usage rule) */
   .page{position:relative}
-  .fab-monogram{position:absolute;top:18px;right:18px;width:42px;height:42px;border:1px solid rgba(201,179,147,0.45);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Amiri',serif;font-size:13px;letter-spacing:0.04em;color:#c9b393;background:rgba(255,255,255,0.04);box-shadow:inset 0 0 0 3px rgba(255,255,255,0.04)}
+  .fab-monogram{position:absolute;top:18px;right:18px;width:42px;height:42px;border:1px solid rgba(201,179,147,0.45);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:${STATIONERY.fontWordmark};font-size:13px;letter-spacing:0.04em;color:${STATIONERY.goldChampagne};background:rgba(255,255,255,0.04);box-shadow:inset 0 0 0 3px rgba(255,255,255,0.04)}
   .fab-monogram span{display:inline-block;transform:translateY(-1px)}
 </style>
 </head>
@@ -165,10 +166,10 @@ export function generateContractHTML(d: ContractData): string {
     <!-- Financials -->
     <h2>الملخص المالي</h2>
     ${d.discount ? `
-    <div style="background:#FFF8E8;border:1px solid #E8D9A8;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#5C3D1E;line-height:1.7">
-      <div style="font-weight:700;color:#8C6B4F;margin-bottom:4px">خصم مطبّق</div>
+    <div style="background:${STATIONERY.paperWarn};border:1px solid ${STATIONERY.borderDash};border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:${STATIONERY.warnInk};line-height:1.7">
+      <div style="font-weight:700;color:${STATIONERY.goldDeep};margin-bottom:4px">خصم مطبّق</div>
       <div>
-        كود: <span style="font-family:'Inter',monospace;font-weight:700;letter-spacing:1px">${esc(d.discount.code)}</span>
+        كود: <span style="font-family:monospace;font-weight:700;letter-spacing:1px">${esc(d.discount.code)}</span>
         &nbsp;·&nbsp;
         ${d.discount.kind === 'percent' ? `${d.discount.value}٪` : `${fmt(d.discount.value)} ر.س`}
         &nbsp;·&nbsp;
@@ -232,7 +233,7 @@ export function generateContractHTML(d: ContractData): string {
         <tr><td>الألبوم المطبوع</td><td>بعد اختيار الصور واعتمادها</td></tr>
         <tr><td>المعاينة نفس اليوم (إن وُجدت)</td><td>خلال نفس يوم المناسبة</td></tr>
       </table>
-      <p style="margin-top:8px;font-size:12px;color:#888">تبدأ مدة التسليم من يوم انتهاء المناسبة، ولا يُعدّ التأخر ضمنها إخلالاً بالعقد.</p>
+      <p style="margin-top:8px;font-size:12px;color:${STATIONERY.inkFaint}">تبدأ مدة التسليم من يوم انتهاء المناسبة، ولا يُعدّ التأخر ضمنها إخلالاً بالعقد.</p>
     </div>
 
     <div class="article">

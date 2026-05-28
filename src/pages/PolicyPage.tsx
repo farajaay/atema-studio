@@ -9,6 +9,7 @@ import SiteFooter from '../components/SiteFooter';
 import FadeUp from '../components/FadeUp';
 import { useLang } from '../hooks/useLang';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { STATIONERY } from '../theme/stationery';
 import {
   TC_CONTENT_AR, TC_CONTENT_EN,
   PDPL_CONTENT_AR, PDPL_CONTENT_EN,
@@ -71,9 +72,9 @@ export default function PolicyPage() {
             <article
               dir={lang === 'ar' ? 'rtl' : 'ltr'}
               style={{
-                background: '#FDFBF6', color: '#4A3728', borderRadius: 8,
+                background: STATIONERY.paperAlt, color: STATIONERY.inkSoft, borderRadius: 8,
                 padding: isMobile ? '22px 20px' : '34px 36px',
-                border: '1px solid var(--a-border)',
+                border: `1px solid ${STATIONERY.borderHair}`,
               }}
               dangerouslySetInnerHTML={{ __html: tc }}
             />
@@ -82,9 +83,9 @@ export default function PolicyPage() {
             <article
               dir={lang === 'ar' ? 'rtl' : 'ltr'}
               style={{
-                background: '#FDFBF6', color: '#4A3728', borderRadius: 8,
+                background: STATIONERY.paperAlt, color: STATIONERY.inkSoft, borderRadius: 8,
                 padding: isMobile ? '22px 20px' : '34px 36px',
-                border: '1px solid var(--a-border)',
+                border: `1px solid ${STATIONERY.borderHair}`,
               }}
               dangerouslySetInnerHTML={{ __html: pdpl }}
             />

@@ -1,12 +1,14 @@
 // ATEMA STUDIO — bilingual booking-confirmation email template.
 //
 // Standalone (no React, no DOM) — pure string assembly for the
-// create-booking Edge Function. Matches the contract/invoice visual
-// language: noir header + cream body + gold accents, Amiri serif for
-// Arabic headlines, Tajawal sans for body text.
+// create-booking Edge Function. Sources all colours + fonts from the
+// shared stationery palette so contract, invoice, /policy, and this
+// email always wear the same dress.
 //
 // Inline-styled and table-based on purpose: email clients (especially
 // Outlook) ignore <style> blocks intermittently and don't speak flex/grid.
+
+import { STATIONERY, STATIONERY_FONTS_IMPORT } from './stationery.ts';
 
 const HTML_ESCAPES: Record<string, string> = {
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -91,7 +93,7 @@ export function renderBookingConfirmation(d: ConfirmationData): RenderedEmail {
   ].filter(Boolean).join('\n');
 
   const ctaAr = manageUrl
-    ? `<a href="${manageUrl}" style="display:inline-block;background:#1a1a1a;color:#e8d9c5;text-decoration:none;padding:14px 28px;border-radius:6px;font-family:'Tajawal',Arial,sans-serif;font-size:13px;letter-spacing:0.12em;font-weight:600">إدارة الحجز · MANAGE BOOKING</a>`
+    ? `<a href="${manageUrl}" style="display:inline-block;background:${STATIONERY.noir};color:${STATIONERY.goldHi};text-decoration:none;padding:14px 28px;border-radius:6px;font-family:${STATIONERY.fontBody};font-size:13px;letter-spacing:0.12em;font-weight:600">إدارة الحجز · MANAGE BOOKING</a>`
     : '';
 
   const html = `<!DOCTYPE html>
@@ -101,27 +103,27 @@ export function renderBookingConfirmation(d: ConfirmationData): RenderedEmail {
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${subject}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;400;600;700&display=swap');
-  body{margin:0;padding:0;background:#f4ede4;font-family:'Tajawal',Arial,sans-serif;color:#2c2218}
-  a{color:#8c6b4f}
+  ${STATIONERY_FONTS_IMPORT}
+  body{margin:0;padding:0;background:${STATIONERY.paper};font-family:${STATIONERY.fontBody};color:${STATIONERY.ink}}
+  a{color:${STATIONERY.goldDeep}}
 </style>
 </head>
-<body style="margin:0;padding:0;background:#f4ede4;font-family:'Tajawal',Arial,sans-serif;color:#2c2218">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f4ede4;padding:32px 16px">
+<body style="margin:0;padding:0;background:${STATIONERY.paper};font-family:${STATIONERY.fontBody};color:${STATIONERY.ink}">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${STATIONERY.paper};padding:32px 16px">
   <tr><td align="center">
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:${STATIONERY.card};border-radius:12px;overflow:hidden;box-shadow:${STATIONERY.shadow}">
 
       <!-- Noir header -->
-      <tr><td style="background:linear-gradient(135deg,#1a1a1a,#2c2c2c,#4a3728);padding:36px 32px;text-align:center;color:#ffffff" dir="rtl">
-        <div style="font-family:'Amiri',serif;font-size:26px;letter-spacing:0.15em;margin:0 0 4px">ATEMA STUDIO</div>
+      <tr><td style="background:${STATIONERY.noirGrad};padding:36px 32px;text-align:center;color:#ffffff" dir="rtl">
+        <div style="font-family:${STATIONERY.fontWordmark};font-size:26px;letter-spacing:0.15em;margin:0 0 4px">ATEMA STUDIO</div>
         <div style="font-size:11px;letter-spacing:0.22em;opacity:0.6;font-weight:300">ATELIER · JUBAIL</div>
-        <div style="display:inline-block;border:2px solid #c9b393;border-radius:8px;padding:6px 18px;font-size:11px;letter-spacing:0.14em;color:#c9b393;margin-top:16px">تأكيد الحجز · BOOKING CONFIRMED</div>
+        <div style="display:inline-block;border:2px solid ${STATIONERY.goldChampagne};border-radius:8px;padding:6px 18px;font-size:11px;letter-spacing:0.14em;color:${STATIONERY.goldChampagne};margin-top:16px">تأكيد الحجز · BOOKING CONFIRMED</div>
       </td></tr>
 
       <!-- Arabic body -->
       <tr><td style="padding:32px 36px 12px" dir="rtl">
-        <p style="font-family:'Amiri',serif;font-size:18px;color:#2c2218;margin:0 0 12px">عزيزتي ${name}،</p>
-        <p style="font-size:13.5px;line-height:1.9;color:#4a3728;margin:0">
+        <p style="font-family:${STATIONERY.fontDisplayAr};font-size:18px;color:${STATIONERY.ink};margin:0 0 12px">عزيزتي ${name}،</p>
+        <p style="font-size:13.5px;line-height:1.9;color:${STATIONERY.inkSoft};margin:0">
           تم استلام طلب الحجز الخاص بكِ في ATEMA STUDIO. ستجدين أدناه ملخص الحجز،
           وسنتواصل معكِ قريبًا لإتمام التفاصيل النهائية.
         </p>
@@ -129,22 +131,22 @@ export function renderBookingConfirmation(d: ConfirmationData): RenderedEmail {
 
       <!-- Summary card -->
       <tr><td style="padding:8px 36px 24px" dir="rtl">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#f9f5f0;border:1px solid #e8d9c5;border-radius:8px">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:${STATIONERY.paper};border:1px solid ${STATIONERY.borderHair};border-radius:8px">
           <tr>
-            <td style="padding:12px 16px;border-bottom:1px solid #e8d9c5;font-size:11px;letter-spacing:0.12em;color:#b09880;width:42%">رقم الحجز</td>
-            <td style="padding:12px 16px;border-bottom:1px solid #e8d9c5;font-family:'Amiri',serif;font-size:14px;color:#2c2218;font-weight:700">${ref}</td>
+            <td style="padding:12px 16px;border-bottom:1px solid ${STATIONERY.borderHair};font-size:11px;letter-spacing:0.12em;color:${STATIONERY.inkFaint};width:42%">رقم الحجز</td>
+            <td style="padding:12px 16px;border-bottom:1px solid ${STATIONERY.borderHair};font-family:${STATIONERY.fontDisplayAr};font-size:14px;color:${STATIONERY.ink};font-weight:700">${ref}</td>
           </tr>
           <tr>
-            <td style="padding:12px 16px;border-bottom:1px solid #e8d9c5;font-size:11px;letter-spacing:0.12em;color:#b09880">الباقة</td>
-            <td style="padding:12px 16px;border-bottom:1px solid #e8d9c5;font-size:13px;color:#2c2218">${pkgAr}</td>
+            <td style="padding:12px 16px;border-bottom:1px solid ${STATIONERY.borderHair};font-size:11px;letter-spacing:0.12em;color:${STATIONERY.inkFaint}">الباقة</td>
+            <td style="padding:12px 16px;border-bottom:1px solid ${STATIONERY.borderHair};font-size:13px;color:${STATIONERY.ink}">${pkgAr}</td>
           </tr>
           <tr>
-            <td style="padding:12px 16px;border-bottom:1px solid #e8d9c5;font-size:11px;letter-spacing:0.12em;color:#b09880">التاريخ</td>
-            <td style="padding:12px 16px;border-bottom:1px solid #e8d9c5;font-size:13px;color:#2c2218">${dateAr} · ${time}</td>
+            <td style="padding:12px 16px;border-bottom:1px solid ${STATIONERY.borderHair};font-size:11px;letter-spacing:0.12em;color:${STATIONERY.inkFaint}">التاريخ</td>
+            <td style="padding:12px 16px;border-bottom:1px solid ${STATIONERY.borderHair};font-size:13px;color:${STATIONERY.ink}">${dateAr} · ${time}</td>
           </tr>
           <tr>
-            <td style="padding:14px 16px;background:#1a1a1a;font-size:11px;letter-spacing:0.12em;color:#c9b393;border-radius:0 0 0 8px">الإجمالي</td>
-            <td style="padding:14px 16px;background:#1a1a1a;font-family:'Amiri',serif;font-size:18px;color:#e8d9c5;font-weight:700;border-radius:0 0 8px 0">${totalAr} <span style="font-size:11px;color:#c9b393">ر.س</span></td>
+            <td style="padding:14px 16px;background:${STATIONERY.noir};font-size:11px;letter-spacing:0.12em;color:${STATIONERY.goldChampagne};border-radius:0 0 0 8px">الإجمالي</td>
+            <td style="padding:14px 16px;background:${STATIONERY.noir};font-family:${STATIONERY.fontDisplayAr};font-size:18px;color:${STATIONERY.goldHi};font-weight:700;border-radius:0 0 8px 0">${totalAr} <span style="font-size:11px;color:${STATIONERY.goldChampagne}">ر.س</span></td>
           </tr>
         </table>
       </td></tr>
@@ -152,46 +154,46 @@ export function renderBookingConfirmation(d: ConfirmationData): RenderedEmail {
       ${ctaAr ? `<tr><td align="center" style="padding:8px 36px 28px">${ctaAr}</td></tr>` : ''}
 
       <!-- Gold divider -->
-      <tr><td style="padding:0 36px"><div style="height:1px;background:linear-gradient(to right, transparent, #c9b393, transparent)"></div></td></tr>
+      <tr><td style="padding:0 36px"><div style="height:1px;background:linear-gradient(to right, transparent, ${STATIONERY.goldChampagne}, transparent)"></div></td></tr>
 
       <!-- English body -->
       <tr><td style="padding:24px 36px 8px" dir="ltr">
-        <p style="font-family:'Amiri',serif;font-size:17px;color:#2c2218;margin:0 0 10px">Dear ${name},</p>
-        <p style="font-size:13px;line-height:1.8;color:#4a3728;margin:0">
+        <p style="font-family:${STATIONERY.fontDisplayEn};font-size:19px;color:${STATIONERY.ink};margin:0 0 10px;font-weight:500">Dear ${name},</p>
+        <p style="font-size:13px;line-height:1.8;color:${STATIONERY.inkSoft};margin:0">
           We've received your booking with ATEMA STUDIO. A summary is below — we'll be in touch shortly to finalise the details.
         </p>
       </td></tr>
 
       <tr><td style="padding:8px 36px 28px" dir="ltr">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#f9f5f0;border:1px solid #e8d9c5;border-radius:8px">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:${STATIONERY.paper};border:1px solid ${STATIONERY.borderHair};border-radius:8px">
           <tr>
-            <td style="padding:12px 16px;border-bottom:1px solid #e8d9c5;font-size:11px;letter-spacing:0.12em;color:#b09880;text-transform:uppercase;width:42%">Reference</td>
-            <td style="padding:12px 16px;border-bottom:1px solid #e8d9c5;font-family:'Amiri',serif;font-size:14px;color:#2c2218;font-weight:700">${ref}</td>
+            <td style="padding:12px 16px;border-bottom:1px solid ${STATIONERY.borderHair};font-size:11px;letter-spacing:0.12em;color:${STATIONERY.inkFaint};text-transform:uppercase;width:42%">Reference</td>
+            <td style="padding:12px 16px;border-bottom:1px solid ${STATIONERY.borderHair};font-family:${STATIONERY.fontDisplayEn};font-size:15px;color:${STATIONERY.ink};font-weight:600;font-feature-settings:&quot;tnum&quot; 1">${ref}</td>
           </tr>
           <tr>
-            <td style="padding:12px 16px;border-bottom:1px solid #e8d9c5;font-size:11px;letter-spacing:0.12em;color:#b09880;text-transform:uppercase">Package</td>
-            <td style="padding:12px 16px;border-bottom:1px solid #e8d9c5;font-size:13px;color:#2c2218">${pkgEn}</td>
+            <td style="padding:12px 16px;border-bottom:1px solid ${STATIONERY.borderHair};font-size:11px;letter-spacing:0.12em;color:${STATIONERY.inkFaint};text-transform:uppercase">Package</td>
+            <td style="padding:12px 16px;border-bottom:1px solid ${STATIONERY.borderHair};font-size:13px;color:${STATIONERY.ink}">${pkgEn}</td>
           </tr>
           <tr>
-            <td style="padding:12px 16px;border-bottom:1px solid #e8d9c5;font-size:11px;letter-spacing:0.12em;color:#b09880;text-transform:uppercase">Date</td>
-            <td style="padding:12px 16px;border-bottom:1px solid #e8d9c5;font-size:13px;color:#2c2218">${dateEn} · ${time}</td>
+            <td style="padding:12px 16px;border-bottom:1px solid ${STATIONERY.borderHair};font-size:11px;letter-spacing:0.12em;color:${STATIONERY.inkFaint};text-transform:uppercase">Date</td>
+            <td style="padding:12px 16px;border-bottom:1px solid ${STATIONERY.borderHair};font-size:13px;color:${STATIONERY.ink}">${dateEn} · ${time}</td>
           </tr>
           <tr>
-            <td style="padding:14px 16px;background:#1a1a1a;font-size:11px;letter-spacing:0.12em;color:#c9b393;text-transform:uppercase;border-radius:0 0 0 8px">Total</td>
-            <td style="padding:14px 16px;background:#1a1a1a;font-family:'Amiri',serif;font-size:18px;color:#e8d9c5;font-weight:700;border-radius:0 0 8px 0">SAR ${totalEn}</td>
+            <td style="padding:14px 16px;background:${STATIONERY.noir};font-size:11px;letter-spacing:0.12em;color:${STATIONERY.goldChampagne};text-transform:uppercase;border-radius:0 0 0 8px">Total</td>
+            <td style="padding:14px 16px;background:${STATIONERY.noir};font-family:${STATIONERY.fontDisplayAr};font-size:18px;color:${STATIONERY.goldHi};font-weight:700;border-radius:0 0 8px 0;font-feature-settings:&quot;tnum&quot; 1">SAR ${totalEn}</td>
           </tr>
         </table>
       </td></tr>
 
       <!-- Footer -->
-      <tr><td style="background:#f4ede4;padding:24px 36px;text-align:center;border-top:1px solid #e8d9c5">
-        <p style="font-family:'Amiri',serif;font-size:13px;color:#8c6b4f;letter-spacing:0.1em;margin:0 0 6px">ATEMA STUDIO</p>
-        <p style="font-size:11px;color:#b09880;letter-spacing:0.08em;margin:0">الجبيل · المنطقة الشرقية · المملكة العربية السعودية</p>
-        <p style="font-size:11px;color:#b09880;letter-spacing:0.08em;margin:4px 0 12px" dir="ltr">Al-Jubail · Eastern Province · Saudi Arabia</p>
-        <p style="font-size:11px;color:#b09880;margin:0">
-          <a href="${origin}" style="color:#8c6b4f;text-decoration:none">atemastudio.xyz</a>
+      <tr><td style="background:${STATIONERY.paperAlt};padding:24px 36px;text-align:center;border-top:1px solid ${STATIONERY.borderHair}">
+        <p style="font-family:${STATIONERY.fontWordmark};font-size:13px;color:${STATIONERY.goldDeep};letter-spacing:0.1em;margin:0 0 6px">ATEMA STUDIO</p>
+        <p style="font-size:11px;color:${STATIONERY.inkFaint};letter-spacing:0.08em;margin:0">الجبيل · المنطقة الشرقية · المملكة العربية السعودية</p>
+        <p style="font-size:11px;color:${STATIONERY.inkFaint};letter-spacing:0.08em;margin:4px 0 12px" dir="ltr">Al-Jubail · Eastern Province · Saudi Arabia</p>
+        <p style="font-size:11px;color:${STATIONERY.inkFaint};margin:0">
+          <a href="${origin}" style="color:${STATIONERY.goldDeep};text-decoration:none">atemastudio.xyz</a>
           &nbsp;·&nbsp;
-          <a href="mailto:atema@atemastudio.xyz" style="color:#8c6b4f;text-decoration:none">atema@atemastudio.xyz</a>
+          <a href="mailto:atema@atemastudio.xyz" style="color:${STATIONERY.goldDeep};text-decoration:none">atema@atemastudio.xyz</a>
         </p>
       </td></tr>
 

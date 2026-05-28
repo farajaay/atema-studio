@@ -5,6 +5,7 @@
 import { supabase } from './supabase';
 import { DEFAULT_SETTINGS } from './settings';
 import type { AppSettings } from './settings';
+import { STATIONERY, STATIONERY_FONTS_IMPORT } from '../theme/stationery';
 
 export interface InvoiceData {
   invoiceNumber:   string;
@@ -145,7 +146,7 @@ export function generateInvoiceHTML(d: InvoiceData): string {
     : '<div class="badge pending">بانتظار الدفع — Pending Payment</div>';
 
   const depositInfo = d.depositPaid && d.depositPaid > 0
-    ? `<tr><td style="font-weight:600">دفعة أولى مسددة (٥٠٪)</td><td style="text-align:left;direction:ltr;color:#059669;font-weight:700">${fmt(d.depositPaid)} SAR</td></tr>
+    ? `<tr><td style="font-weight:600">دفعة أولى مسددة (٥٠٪)</td><td style="text-align:left;direction:ltr;color:${STATIONERY.okInk};font-weight:700">${fmt(d.depositPaid)} SAR</td></tr>
        <tr><td style="font-weight:600">المتبقي (يُسدَّد قبل المناسبة)</td><td style="text-align:left;direction:ltr">${fmt(d.total - d.depositPaid)} SAR</td></tr>`
     : '';
 
@@ -156,52 +157,52 @@ export function generateInvoiceHTML(d: InvoiceData): string {
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${esc(docTitleAr)} — ${esc(d.invoiceNumber)}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+  ${STATIONERY_FONTS_IMPORT}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Tajawal',sans-serif;background:#F5EDE4;color:#1A1A1A;padding:24px;direction:rtl;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .invoice{max-width:780px;margin:0 auto;background:white;border-radius:16px;box-shadow:0 6px 32px rgba(26,26,26,0.08);overflow:hidden}
-  .header{background:linear-gradient(135deg,#1A1A1A,#2C2C2C,#4A3728);padding:30px 36px;color:white;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px}
-  .brand h1{font-family:'Amiri',serif;font-size:28px;letter-spacing:0.18em;color:#E8D9C5}
-  .brand p{font-size:11px;letter-spacing:0.22em;color:#D6BFA3;margin-top:4px}
-  .brand .crinfo{font-size:10px;color:rgba(232,217,197,0.7);margin-top:8px;font-family:'Inter',sans-serif}
+  body{font-family:${STATIONERY.fontBody};background:${STATIONERY.paper};color:${STATIONERY.ink};padding:24px;direction:rtl;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .invoice{max-width:780px;margin:0 auto;background:${STATIONERY.card};border-radius:16px;box-shadow:${STATIONERY.cardShadow};overflow:hidden}
+  .header{background:${STATIONERY.noirGrad};padding:30px 36px;color:white;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px}
+  .brand h1{font-family:${STATIONERY.fontWordmark};font-size:28px;letter-spacing:0.18em;color:${STATIONERY.goldHi}}
+  .brand p{font-size:11px;letter-spacing:0.22em;color:${STATIONERY.borderDash};margin-top:4px}
+  .brand .crinfo{font-size:10px;color:rgba(232,217,197,0.7);margin-top:8px;font-family:${STATIONERY.fontBody}}
   .doc-meta{text-align:left;direction:ltr}
-  .doc-meta .doc-title{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:0.2em;color:#D6BFA3;margin-bottom:6px}
-  .doc-meta .doc-num{font-family:'Inter',sans-serif;font-size:18px;color:#E8D9C5;font-weight:600;letter-spacing:0.05em}
+  .doc-meta .doc-title{font-family:${STATIONERY.fontDisplayEn};font-size:11px;letter-spacing:0.2em;color:${STATIONERY.borderDash};margin-bottom:6px}
+  .doc-meta .doc-num{font-family:${STATIONERY.fontBody};font-size:18px;color:${STATIONERY.goldHi};font-weight:600;letter-spacing:0.05em;font-feature-settings:"tnum" 1}
   .doc-meta .doc-date{font-size:11px;color:rgba(232,217,197,0.75);margin-top:4px}
   .body{padding:32px 36px}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
-  .info-box{background:#F5EDE4;border-radius:10px;padding:16px 18px;border:1px solid #E8D9C5}
-  .info-box .lbl{font-size:10px;letter-spacing:0.14em;color:#8C6B4F;text-transform:uppercase;margin-bottom:6px;font-family:'Inter',sans-serif}
-  .info-box .val{font-family:'Amiri',serif;font-size:15px;color:#1A1A1A;font-weight:700}
-  .info-box .sub{font-size:12px;color:#8C6B4F;margin-top:3px}
-  h2{font-family:'Amiri',serif;font-size:15px;color:#8C6B4F;border-bottom:1px solid #E8D9C5;padding-bottom:8px;margin:18px 0 12px}
+  .info-box{background:${STATIONERY.paper};border-radius:10px;padding:16px 18px;border:1px solid ${STATIONERY.borderHair}}
+  .info-box .lbl{font-size:10px;letter-spacing:0.14em;color:${STATIONERY.goldDeep};text-transform:uppercase;margin-bottom:6px;font-family:${STATIONERY.fontBody}}
+  .info-box .val{font-family:${STATIONERY.fontDisplayAr};font-size:15px;color:${STATIONERY.ink};font-weight:700}
+  .info-box .sub{font-size:12px;color:${STATIONERY.goldDeep};margin-top:3px}
+  h2{font-family:${STATIONERY.fontDisplayAr};font-size:15px;color:${STATIONERY.goldDeep};border-bottom:1px solid ${STATIONERY.borderHair};padding-bottom:8px;margin:18px 0 12px}
   table.items{width:100%;border-collapse:collapse;margin-bottom:18px}
-  table.items th{background:#1A1A1A;color:#E8D9C5;padding:10px 14px;font-size:12px;font-weight:600;text-align:right;letter-spacing:0.06em;font-family:'Inter',sans-serif}
+  table.items th{background:${STATIONERY.noir};color:${STATIONERY.goldHi};padding:10px 14px;font-size:12px;font-weight:600;text-align:right;letter-spacing:0.06em;font-family:${STATIONERY.fontBody}}
   table.items th:last-child{text-align:left;direction:ltr}
-  table.items td{padding:10px 14px;border-bottom:1px solid #F5EDE4;font-size:13px;color:#1A1A1A}
-  table.items td:last-child{font-family:'Inter',sans-serif;font-weight:600;color:#8C6B4F}
+  table.items td{padding:10px 14px;border-bottom:1px solid ${STATIONERY.paper};font-size:13px;color:${STATIONERY.ink}}
+  table.items td:last-child{font-feature-settings:"tnum" 1;font-weight:600;color:${STATIONERY.goldDeep}}
   .totals{width:100%;border-collapse:collapse;margin-top:8px}
-  .totals td{padding:9px 14px;border-bottom:1px solid #F5EDE4;font-size:13px}
-  .totals td:first-child{color:#4A3728}
-  .totals td:last-child{text-align:left;direction:ltr;font-family:'Inter',sans-serif;color:#1A1A1A}
-  .totals tr.grand td{font-weight:700;font-size:17px;border-top:2px solid #8C6B4F;border-bottom:none;padding-top:14px;color:#1A1A1A}
-  .totals tr.grand td:last-child{color:#8C6B4F;font-family:'Amiri',serif;font-size:22px}
-  .badge{display:inline-block;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:0.04em;font-family:'Inter',sans-serif;margin-bottom:12px}
-  .badge.paid{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
-  .badge.pending{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
-  .qr-section{background:#F5EDE4;border-radius:12px;padding:20px;display:flex;gap:20px;align-items:center;margin-top:24px;border:1px dashed #D6BFA3}
-  .qr-section img{width:140px;height:140px;background:white;padding:8px;border-radius:8px;flex-shrink:0;border:1px solid #E8D9C5}
-  .qr-section .qr-info .lbl{font-size:11px;letter-spacing:0.14em;color:#8C6B4F;font-family:'Inter',sans-serif;margin-bottom:6px}
-  .qr-section .qr-info h3{font-family:'Amiri',serif;font-size:14px;color:#1A1A1A;margin-bottom:4px}
-  .qr-section .qr-info p{font-size:11px;color:#4A3728;line-height:1.7}
-  .footer-bar{background:#F5EDE4;padding:18px 36px;text-align:center;border-top:1px solid #E8D9C5}
-  .footer-bar .eta{font-size:10px;color:#8C6B4F;letter-spacing:0.16em;font-family:'Inter',sans-serif;margin-bottom:6px}
-  .footer-bar p{font-size:11px;color:#4A3728}
+  .totals td{padding:9px 14px;border-bottom:1px solid ${STATIONERY.paper};font-size:13px}
+  .totals td:first-child{color:${STATIONERY.inkSoft}}
+  .totals td:last-child{text-align:left;direction:ltr;font-feature-settings:"tnum" 1;color:${STATIONERY.ink}}
+  .totals tr.grand td{font-weight:700;font-size:17px;border-top:2px solid ${STATIONERY.goldDeep};border-bottom:none;padding-top:14px;color:${STATIONERY.ink}}
+  .totals tr.grand td:last-child{color:${STATIONERY.goldDeep};font-family:${STATIONERY.fontDisplayAr};font-size:22px}
+  .badge{display:inline-block;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:0.04em;font-family:${STATIONERY.fontBody};margin-bottom:12px}
+  .badge.paid{background:${STATIONERY.okBg};color:${STATIONERY.okInk};border:1px solid ${STATIONERY.okBorder}}
+  .badge.pending{background:${STATIONERY.warnBg};color:${STATIONERY.warnIn};border:1px solid ${STATIONERY.warnBorder}}
+  .qr-section{background:${STATIONERY.paper};border-radius:12px;padding:20px;display:flex;gap:20px;align-items:center;margin-top:24px;border:1px dashed ${STATIONERY.borderDash}}
+  .qr-section img{width:140px;height:140px;background:white;padding:8px;border-radius:8px;flex-shrink:0;border:1px solid ${STATIONERY.borderHair}}
+  .qr-section .qr-info .lbl{font-size:11px;letter-spacing:0.14em;color:${STATIONERY.goldDeep};font-family:${STATIONERY.fontBody};margin-bottom:6px}
+  .qr-section .qr-info h3{font-family:${STATIONERY.fontDisplayAr};font-size:14px;color:${STATIONERY.ink};margin-bottom:4px}
+  .qr-section .qr-info p{font-size:11px;color:${STATIONERY.inkSoft};line-height:1.7}
+  .footer-bar{background:${STATIONERY.paperAlt};padding:18px 36px;text-align:center;border-top:1px solid ${STATIONERY.borderHair}}
+  .footer-bar .eta{font-size:10px;color:${STATIONERY.goldDeep};letter-spacing:0.16em;font-family:${STATIONERY.fontBody};margin-bottom:6px}
+  .footer-bar p{font-size:11px;color:${STATIONERY.inkSoft}}
   /* FAB couture monogram — reserved for printable invoice / T&C only (per brand-usage rule) */
   .invoice{position:relative}
-  .fab-monogram{position:absolute;top:20px;left:20px;width:44px;height:44px;border:1px solid rgba(214,191,163,0.55);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Amiri',serif;font-size:13px;letter-spacing:0.04em;color:#D6BFA3;background:rgba(0,0,0,0.18);z-index:2}
+  .fab-monogram{position:absolute;top:20px;left:20px;width:44px;height:44px;border:1px solid rgba(214,191,163,0.55);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:${STATIONERY.fontWordmark};font-size:13px;letter-spacing:0.04em;color:${STATIONERY.borderDash};background:rgba(0,0,0,0.18);z-index:2}
   .actions{position:fixed;top:14px;left:14px;display:flex;gap:8px;z-index:100}
-  .actions button{padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;background:#1A1A1A;color:#E8D9C5;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+  .actions button{padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-family:${STATIONERY.fontBody};font-size:12px;font-weight:600;background:${STATIONERY.noir};color:${STATIONERY.goldHi};box-shadow:0 4px 12px rgba(0,0,0,0.15)}
   @media print{.actions{display:none}.invoice{box-shadow:none;border-radius:0}body{background:white;padding:0}}
 </style>
 </head>
@@ -252,7 +253,7 @@ export function generateInvoiceHTML(d: InvoiceData): string {
       </thead>
       <tbody>
         <tr>
-          <td><strong>${esc(d.packageNameAr)}</strong> <span style="color:#888">(${esc(d.packageNameEn)})</span></td>
+          <td><strong>${esc(d.packageNameAr)}</strong> <span style="color:${STATIONERY.inkFaint}">(${esc(d.packageNameEn)})</span></td>
           <td>${fmt(d.subtotal - d.addons.reduce((s, a) => s + a.price * (a.qty ?? 1), 0))}</td>
         </tr>
         ${addonRows}
@@ -270,7 +271,7 @@ export function generateInvoiceHTML(d: InvoiceData): string {
             (${d.discount.kind === 'percent' ? `${d.discount.value}%` : `${fmt(d.discount.value)} SAR`})
             / Discount
           </td>
-          <td style="color:#8C6B4F">−${fmt(d.discount.amount)} SAR</td>
+          <td style="color:${STATIONERY.goldDeep}">−${fmt(d.discount.amount)} SAR</td>
         </tr>
       ` : ''}
       ${vatActive
@@ -291,7 +292,7 @@ export function generateInvoiceHTML(d: InvoiceData): string {
       </div>
     </div>
     ` : `
-    <div style="background:#F5EDE4;border-radius:12px;padding:14px 18px;margin-top:18px;text-align:center;font-size:12px;color:#6B5440;border:1px dashed #D6BFA3">
+    <div style="background:${STATIONERY.paper};border-radius:12px;padding:14px 18px;margin-top:18px;text-align:center;font-size:12px;color:${STATIONERY.inkSoft};border:1px dashed ${STATIONERY.borderDash}">
       هذه الفاتورة لا تخضع لضريبة القيمة المضافة — Non-VAT Invoice
     </div>
     `}
