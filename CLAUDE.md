@@ -424,6 +424,7 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - ✅ Booking-confirmation email via Zoho Mail SMTP — commit `f5ed8d9`. Docs at `docs/integrations/email.md` and `docs/MANUAL.md` §13h.
 - ✅ Stationery palette convergence (contract + invoice + email + `/policy` + legal popups) — commit `a2866ae`. Docs at `docs/design.md`.
 - ✅ GitHub Actions auto-deploy (`master → gh-pages` with test gate) — commit `6b74854`.
+- ✅ GitHub Actions for Supabase ops — `.github/workflows/supabase-secrets.yml` (manual, pushes secrets from GH Actions store) and `.github/workflows/supabase-functions.yml` (auto on `supabase/functions/**` push, + manual). Operator setup in `BACKEND_SETUP.md` §3 and `docs/integrations/email.md` §2.4.
 
 Full tracker: [`docs/bugs.md`](./docs/bugs.md).
 

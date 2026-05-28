@@ -87,21 +87,60 @@ Propagation is usually under 30 min on Namecheap; sometimes hours.
 
 ### 2.4 Supabase secrets
 
-Set these via `supabase secrets set` (or in the dashboard, *Edge
-Functions → Manage Secrets*):
+Two ways to push these. The CI path is the day-to-day one; the CLI path
+is faster for an ad-hoc one-off.
 
-```
-ZOHO_SMTP_HOST       smtp.zoho.com
-ZOHO_SMTP_PORT       465
-ZOHO_SMTP_USER       atema@atemastudio.xyz
-ZOHO_SMTP_PASSWORD   <16-char app password from step 2.2>
-ZOHO_SMTP_FROM_NAME  ATEMA STUDIO
-ZOHO_SMTP_FROM       atema@atemastudio.xyz
-SITE_ORIGIN          https://atemastudio.xyz
+#### Option A — via GitHub Actions (recommended)
+
+1. **One-time** — register the supabase access credentials as GitHub
+   Actions secrets (Repo → Settings → Secrets and variables → Actions →
+   New repository secret):
+
+   | Name | Value |
+   |---|---|
+   | `SUPABASE_ACCESS_TOKEN` | Personal access token from <https://supabase.com/dashboard/account/tokens> |
+   | `SUPABASE_PROJECT_REF` | The 20-char project id from the dashboard URL |
+
+2. **Each time you need to set or rotate a Zoho secret** — add or
+   update these GitHub Actions secrets:
+
+   ```
+   ZOHO_SMTP_HOST       smtp.zoho.com
+   ZOHO_SMTP_PORT       465
+   ZOHO_SMTP_USER       atema@atemastudio.xyz
+   ZOHO_SMTP_PASSWORD   <16-char app password from step 2.2>
+   ZOHO_SMTP_FROM_NAME  ATEMA STUDIO
+   ZOHO_SMTP_FROM       atema@atemastudio.xyz
+   SITE_ORIGIN          https://atemastudio.xyz
+   ```
+
+3. **Run the workflow** — Actions tab → *Supabase — set secrets* →
+   **Run workflow**. It reads from the GitHub secret store and pushes
+   to Supabase. Only secrets that are set in GitHub get pushed; unset
+   ones are silently skipped, so you can also use this to roll out
+   Meta WA / Anthropic / cron secrets as you add them.
+
+4. The workflow prints the *names* of the secrets it set, never the
+   values. If you want to preview without pushing, run it with the
+   `dry-run = true` input.
+
+#### Option B — via the local Supabase CLI
+
+If you have `supabase` installed and already linked to the project:
+
+```bash
+supabase secrets set \
+  ZOHO_SMTP_HOST=smtp.zoho.com \
+  ZOHO_SMTP_PORT=465 \
+  ZOHO_SMTP_USER=atema@atemastudio.xyz \
+  ZOHO_SMTP_PASSWORD='<16-char app password>' \
+  ZOHO_SMTP_FROM_NAME='ATEMA STUDIO' \
+  ZOHO_SMTP_FROM=atema@atemastudio.xyz \
+  SITE_ORIGIN=https://atemastudio.xyz
 ```
 
-`SITE_ORIGIN` is used to build the `/#/manage/<token>` CTA link. Override
-if previewing against a staging URL.
+`SITE_ORIGIN` is used to build the `/#/manage/<token>` CTA link.
+Override if previewing against a staging URL.
 
 ### 2.5 Run the migration
 
@@ -115,12 +154,23 @@ In the Supabase SQL editor:
 
 ### 2.6 Deploy the function
 
+Pick the CI path or the CLI path — same outcome.
+
+**CI path (recommended):** push the function change to `master`, or hit
+*Supabase — deploy Edge Functions* → **Run workflow** from the Actions
+tab. The workflow auto-detects every `supabase/functions/<name>/index.ts`
+and deploys each. Requires the same `SUPABASE_ACCESS_TOKEN` +
+`SUPABASE_PROJECT_REF` GitHub secrets from §2.4.
+
+**CLI path:**
+
 ```
 supabase functions deploy create-booking
 ```
 
-The shared modules (`_shared/email.ts`, `_shared/email-confirmation.ts`)
-ship with the function — no separate deploy needed.
+The shared modules (`_shared/email.ts`, `_shared/email-confirmation.ts`,
+`_shared/stationery.ts`) ship with the function — no separate deploy
+needed.
 
 ---
 

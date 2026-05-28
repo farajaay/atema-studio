@@ -56,6 +56,20 @@ board, customer self-service), see [`docs/MANUAL.md`](./docs/MANUAL.md).
 
 ## 2. Deploy Supabase Edge Functions
 
+**CI path (recommended).** Push to `master` with any change under
+`supabase/functions/**`, or hit *Supabase — deploy Edge Functions* →
+**Run workflow** on the Actions tab. The workflow at
+[`.github/workflows/supabase-functions.yml`](./.github/workflows/supabase-functions.yml)
+auto-discovers every function and deploys it. Requires two GitHub
+Actions repository secrets:
+
+| Name | Value |
+|---|---|
+| `SUPABASE_ACCESS_TOKEN` | Personal access token from <https://supabase.com/dashboard/account/tokens> |
+| `SUPABASE_PROJECT_REF` | The 20-char project id from the dashboard URL |
+
+**Local CLI path.**
+
 ```bash
 # Install + login (once)
 npm install -g supabase
@@ -78,32 +92,48 @@ supabase functions deploy send-whatsapp
 
 ## 3. Supabase secrets
 
+**CI path (recommended).** Set each value as a GitHub Actions
+repository secret with **the same name**, then run *Supabase — set
+secrets* from the Actions tab. The workflow at
+[`.github/workflows/supabase-secrets.yml`](./.github/workflows/supabase-secrets.yml)
+reads from the GitHub secret store and pushes them to Supabase — values
+never touch the repo or workflow logs.
+
+The studio's full secret list:
+
+| Name | Purpose |
+|---|---|
+| `SITE_ORIGIN` | `https://atemastudio.xyz` — used in email + manage links |
+| `ZOHO_SMTP_HOST` | `smtp.zoho.com` |
+| `ZOHO_SMTP_PORT` | `465` |
+| `ZOHO_SMTP_USER` | `atema@atemastudio.xyz` |
+| `ZOHO_SMTP_PASSWORD` | 16-char app password from Zoho Accounts |
+| `ZOHO_SMTP_FROM_NAME` | `ATEMA STUDIO` |
+| `ZOHO_SMTP_FROM` | `atema@atemastudio.xyz` |
+| `META_WA_TOKEN` | Permanent access token from Meta Business |
+| `META_WA_PHONE_NUMBER_ID` | WhatsApp phone-number id |
+| `META_WA_VERIFY_TOKEN` | Webhook verify token you chose |
+| `META_WA_APP_SECRET` | App secret for HMAC signature verification |
+| `OWNER_WA_NUMBER` | `+966548323496` |
+| `ANTHROPIC_API_KEY` | `sk-ant-…` — used by `wa-receipt` for Vision OCR |
+| `CRON_SECRET` | Random 32 chars — gates the reminders cron |
+
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`
+are **automatically injected** by the Supabase platform into Edge
+Function environments — don't try to set them yourself.
+
+**Local CLI path.** If you have the CLI linked:
+
 ```bash
-# Service-role key (required — used by create-booking + change-booking)
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
-
-# Site origin (used in emails + manage links)
-supabase secrets set SITE_ORIGIN=https://atemastudio.xyz
-
-# Meta WhatsApp Cloud API
-supabase secrets set META_WA_TOKEN=<permanent-access-token>
-supabase secrets set META_WA_PHONE_NUMBER_ID=<phone-number-id>
-supabase secrets set META_WA_VERIFY_TOKEN=<your-webhook-verify-token>
-supabase secrets set META_WA_APP_SECRET=<app-secret-for-HMAC>
-supabase secrets set OWNER_WA_NUMBER=+966548323496
-
-# Anthropic Claude Vision (used by wa-receipt for OCR)
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-
-# Reminders cron secret
-supabase secrets set CRON_SECRET=<random-32-chars>
-
-# Zoho Mail SMTP (booking-confirmation email)
-supabase secrets set ZOHO_SMTP_HOST=smtp.zoho.com
-supabase secrets set ZOHO_SMTP_PORT=465
-supabase secrets set ZOHO_SMTP_USER=atema@atemastudio.xyz
-supabase secrets set ZOHO_SMTP_PASSWORD=<16-char-app-password>
-supabase secrets set ZOHO_SMTP_FROM_NAME="ATEMA STUDIO"
+supabase secrets set \
+  SITE_ORIGIN=https://atemastudio.xyz \
+  ZOHO_SMTP_HOST=smtp.zoho.com \
+  ZOHO_SMTP_PORT=465 \
+  ZOHO_SMTP_USER=atema@atemastudio.xyz \
+  ZOHO_SMTP_PASSWORD='<16-char-app-password>' \
+  ZOHO_SMTP_FROM_NAME='ATEMA STUDIO' \
+  ZOHO_SMTP_FROM=atema@atemastudio.xyz
+# … add Meta WA + Anthropic + CRON_SECRET the same way
 ```
 
 See [`docs/integrations/email.md`](./docs/integrations/email.md) for the
