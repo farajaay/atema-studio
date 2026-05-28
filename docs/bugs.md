@@ -1,14 +1,39 @@
 # ATEMA Studio — Stress Test & Security Audit Report
 
-> **Re-audit pass:** 2026-05-21
+> **Tip-of-tree iteration appended:** 2026-05-28 — see "Status update"
+> immediately below for what's changed since the last full audit.
+>
+> **Last full audit pass:** 2026-05-21
 > **Commit audited:** `5260db0` (discount-codes shipped)
 > **Bundle:** 627 KB raw / 178 KB gzip (terser-minified)
 > **Audited by:** Claude Code (Anthropic) — static analysis + tool execution
 >
-> **Scope of this pass:** All changes since the previous audit (Mood
+> **Scope of that pass:** All changes since the previous audit (Mood
 > Board, Studio-wide P&L, RLS hardening, terser obfuscation, package
 > hero photos, discount-codes system) plus a regression sweep over
 > every previously-patched finding (C-1 through L-7).
+
+---
+
+## Status update — 2026-05-28
+
+Four shipments landed after the last full audit; none introduce new
+critical findings:
+
+| Commit | What landed | Security note |
+|---|---|---|
+| `44a7556` | Promo modal + social-meta `.JPG` → `.jpg` (Linux case-sensitive paths) | Pure bug fix — restores JPEG fallback and unbreaks OG / Twitter / schema.org link previews. No surface change. |
+| `f5ed8d9` | Booking-confirmation email via Zoho Mail SMTP. New `_shared/email.ts` + `_shared/email-confirmation.ts`, `email_messages` audit table, wired fire-and-forget into `create-booking`. | Service-role only audit writes; admin SELECT. New Supabase secrets (`ZOHO_SMTP_*`). Recipient is `bookings.customer_email`, already PII-classified and stored. No new PII surface. |
+| `a2866ae` | Stationery palette convergence: single token map (`STATIONERY`) drives contract + invoice + email + `/policy` + legal popups. Dropped Inter, replaced Tailwind status badges. | Pure refactor. C-1 (`esc()` wrapping every customer-controlled string) was preserved on every template — verified by grep before commit. No behaviour change. |
+| `6b74854` | GitHub Actions auto-deploy (`master → gh-pages`). Tests gate the build. | CI uses default `GITHUB_TOKEN` with `contents: write` on the same repo. No new secrets, same trust boundary as the previous local `npm run deploy`. Workflow code lives at `.github/workflows/deploy.yml` and is reviewable in PRs. |
+
+Tip-of-tree commit: `6b74854`. Vitest suite: 113 passing. Type-check
+clean. The H-6/H-7/H-7b/H-9/M-8/M-9/M-10/L-8 patches from the 2026-05-21
+sweep have not regressed.
+
+---
+
+## Original 2026-05-21 audit report follows.
 >
 > **What this audit covers:** static analysis (`npm audit`, `tsc
 > --noEmit`, `vite build`, grep over the build output), code review,

@@ -1,7 +1,8 @@
 # ATEMA STUDIO — Owner's Manual
 
 > A complete operational + technical handbook for the ATEMA Studio booking platform.
-> Updated 2026-05-26. Maintained alongside the codebase at
+> Updated 2026-05-28 (email + stationery + CI auto-deploy). Maintained
+> alongside the codebase at
 > [farajaay/atema-studio](https://github.com/farajaay/atema-studio).
 
 ---
@@ -14,12 +15,14 @@ includes:
 
 | Surface | Purpose |
 |---|---|
-| **Public site** | Editorial brand presence — Home, Portfolio, Journal, About |
+| **Public site** | Editorial brand presence — Home, Portfolio, Journal, About, `/policy` |
 | **Booking flow** | Customer self-service: pick a package, customise add-ons, pay deposit |
 | **Self-service changes** | Private per-booking link to reschedule or change package/add-ons (OTP-gated for money) — §13g |
-| **Admin panel** | Bookings list, monthly calendar, packages CRUD, portfolio CRUD, journal CRUD, system settings |
-| **Document engine** | Auto-generated ZATCA-compliant invoices (with QR), formal contracts, T&C popups |
-| **Theme engine** | Two themes (Couture Noir + Atelier Ivory), switchable from the admin panel |
+| **Mood board** | Post-booking editorial 6-image page composed by Fatima for the bride — §13b |
+| **Admin panel** | Bookings list, monthly calendar, packages CRUD, portfolio CRUD, journal CRUD, system settings, studio-wide P&L rollup |
+| **Document engine** | Auto-generated ZATCA-compliant invoices (with QR), formal contracts, T&C popups — all on one stationery palette (§2 + `design.md`) |
+| **Communications** | WhatsApp lifecycle reminders + receipt vision OCR (Meta Cloud API) **+** booking-confirmation email from `atema@atemastudio.xyz` (Zoho Mail SMTP) |
+| **Theme engine** | Two screen themes (Couture Noir + Atelier Ivory), switchable from the admin panel. Stationery is single-palette regardless. |
 
 Hosted on **GitHub Pages** at <https://atemastudio.xyz> with
 data in **Supabase** (Postgres + Storage + Auth).
@@ -28,7 +31,12 @@ data in **Supabase** (Postgres + Storage + Auth).
 
 ## 2. Brand & design concepts
 
-### 2.1 The two themes
+ATEMA runs **two parallel design systems** — full reference at
+[`design.md`](./design.md). Quick overview:
+
+### 2.1 The two screen themes
+
+Switchable from Admin → Settings → Theme card. Default is Couture Noir.
 
 | Token | Couture Noir (default) | Atelier Ivory |
 |---|---|---|
@@ -39,16 +47,37 @@ data in **Supabase** (Postgres + Storage + Auth).
 | Body ink | `#D8CDB9` | `#4A3728` |
 | Accent (gold) | `#D4AF7A` champagne | `#8C6B4F` deep bronze |
 | Accent (deep) | `#BB864B` | `#6B5440` |
-| Hairline | `rgba(212,175,122,0.18)` | `rgba(214,191,163,0.4)` |
+| Hairline | `rgba(212,175,122,0.14)` | `rgba(214,191,163,0.4)` |
+
+Lives in `src/theme/themes.ts`. Components consume via CSS custom
+properties (`var(--a-bg)`, `var(--a-gold)`, …) declared in `index.html`,
+or via `getBookingPalette(themeName)` for screens that pre-date the
+properties era (`BookingPage.tsx`, `AdminDashboard.tsx`).
+
+### 2.1b The stationery palette (printable + sendable)
+
+A separate canonical palette — cream paper, deep umber ink, champagne +
+gold accents, noir gradient — drives the **contract, ZATCA tax invoice,
+booking-confirmation email, public `/policy` page, and the booking-flow
+T&C/PDPL popups.** It is **not** theme-toggleable. Lives in
+`src/theme/stationery.ts` (mirrored at
+`supabase/functions/_shared/stationery.ts` for the email Edge Function).
+Full token table + when-to-use guide in [`design.md`](./design.md) §3.
 
 ### 2.2 Typography
-- **Display headlines** — `Cinzel Light` (Latin). For Arabic, the cascade falls
-  back to `Tajawal Light` so headings stay in family with body copy.
-- **Body** — `Montserrat Light` (Latin) / `Tajawal Light` (Arabic).
-- **Editorial captions / eyebrows** — `Cinzel 400` 0.4em letter-spacing,
-  uppercase, gold.
-- **Printable docs (contracts / invoices)** — `Amiri` (display) + `Tajawal` (body),
-  ivory paper aesthetic regardless of theme.
+
+- **Brand wordmark** ("ATEMA STUDIO" in any script) — `Amiri`, spaced
+  letters. The spaced-letter serif IS the wordmark.
+- **Public-site display headlines** — `Cormorant Garamond` (Latin) +
+  `Amiri` (Arabic, with a Tajawal fallback for screen H1s where Amiri
+  feels too heavy).
+- **Body / UI** — `Tajawal` for both scripts.
+- **Tabular numerals** — `Tajawal` with `font-feature-settings:"tnum" 1`.
+  (Inter was previously a third font on the invoice; it was dropped in
+  the stationery convergence — commit `a2866ae`.)
+- **Stationery documents** — same Amiri + Cormorant + Tajawal trio,
+  sourced via `STATIONERY.fontDisplayAr/En/Wordmark/Body`. See
+  [`design.md`](./design.md) §3.2.
 
 ### 2.3 Motion
 A custom `FadeUp` component drives cinematic reveals using IntersectionObserver
@@ -340,15 +369,33 @@ Without `VITE_SUPABASE_URL` the site falls back to in-memory demo data
 
 ## 12. Deployment
 
+**Deployment is automated** — every push to `master` runs the
+[`deploy.yml`](../.github/workflows/deploy.yml) GitHub Actions workflow:
+
+1. `npm ci`
+2. `npm test` — gates the build; a failing suite blocks the publish
+3. `npm run build` — type-check + Vite build → `dist/`
+4. `peaceiris/actions-gh-pages@v4` publishes `dist/` to the `gh-pages`
+   branch using the source commit's message
+5. GitHub Pages serves the new HEAD at <https://atemastudio.xyz> within
+   ~1 minute
+
+Watch progress on the
+[Actions tab](https://github.com/farajaay/atema-studio/actions/workflows/deploy.yml).
+The same workflow has a **Run workflow** button for redeploys without a
+code change.
+
+For local development:
+
 ```bash
 npm install          # one-time
 npm run dev          # local dev at http://localhost:5173
 npm run build        # tsc + vite build → dist/
-npm run deploy       # publish dist/ to gh-pages branch
+npm test             # vitest pure-logic suite (113 passing)
 ```
 
-Pushing to `master` does **not** auto-deploy — `npm run deploy` is the manual
-step. Production URL: <https://atemastudio.xyz>.
+The legacy `npm run deploy` (`gh-pages -d dist`) still works for local
+emergency deploys, but the CI pipeline is the day-to-day path.
 
 ---
 
@@ -777,9 +824,98 @@ wrong attempts**. Codes are stored only as a salted hash.
    editor (both idempotent). The first backfills a `manage_token` onto every
    existing booking.
 2. Deploy the function: `supabase functions deploy change-booking`.
-3. `npm run deploy` to ship the `/manage` page.
+3. Push the change to master — the CI workflow ships the `/manage` page
+   automatically.
 4. (Optional) Submit a WhatsApp template for the OTP if you want it sent as a
    template rather than a session message.
+
+---
+
+## 13h. Booking-confirmation email (Zoho Mail SMTP)
+
+Every booking with a valid `customer_email` receives a single bilingual
+email from `atema@atemastudio.xyz` immediately after the booking row is
+written. The email gives the bride a durable paper trail, an English
+fallback when she's reading on a laptop, and a deep link back to her
+`/#/manage/<token>` page.
+
+### What gets sent
+
+- **Subject:** `تأكيد الحجز · Booking confirmed — <ref> — ATEMA STUDIO`
+- **Body:** Bilingual HTML — noir gradient header, two summary cards
+  (Arabic + English) showing reference / package / date / time / total,
+  a noir-pill CTA to the manage page, and a footer with the studio's
+  contact info. Same stationery palette as the contract and invoice —
+  see [`design.md`](./design.md).
+- **Plaintext fallback** for clients that don't render HTML.
+- **Reply-To** is the sender mailbox, so replies land back in the Zoho
+  inbox naturally.
+
+### Architecture
+
+```
+BookingPage  →  create-booking Edge Fn
+                  │
+                  ├─ INSERT bookings row
+                  ├─ send-whatsapp call          (fire-and-forget)
+                  └─ sendEmail()                 (fire-and-forget, NEW)
+                        │
+                        ├─ Zoho SMTP → atema@atemastudio.xyz
+                        └─ audit row in email_messages
+                            (status: sent | skipped | failed)
+```
+
+Failure is **non-fatal** — a flaky SMTP session never rolls back a
+successful booking. The audit row tells you whether it landed.
+
+### Where it lives in code
+
+| Piece | File |
+|---|---|
+| SMTP wrapper (denomailer) | `supabase/functions/_shared/email.ts` |
+| Bilingual HTML template | `supabase/functions/_shared/email-confirmation.ts` |
+| Stationery palette (Deno mirror) | `supabase/functions/_shared/stationery.ts` |
+| Wired into booking insert | `supabase/functions/create-booking/index.ts` |
+| Audit table | `database/migrations-2026-05-email.sql` |
+| Operator setup doc | `docs/integrations/email.md` |
+
+### Activation steps
+
+The full procedure (DNS, app password, secrets, smoke test) lives in
+[`docs/integrations/email.md`](./integrations/email.md). Short form:
+
+1. Generate a Zoho app password at <https://accounts.zoho.com> → Security → App Passwords.
+2. Add DNS records: SPF (`v=spf1 include:zoho.com -all`), DKIM (from
+   Zoho admin), DMARC (`p=none` to start).
+3. Run `database/migrations-2026-05-email.sql` in Supabase SQL editor.
+4. Set Supabase secrets: `ZOHO_SMTP_USER`, `ZOHO_SMTP_PASSWORD`,
+   `SITE_ORIGIN`, plus host/port/from defaults if overriding.
+5. `supabase functions deploy create-booking`.
+6. Smoke-test with a real booking to an inbox you control. The audit row
+   in **Supabase → email_messages** should show `status='sent'`.
+
+### Debugging deliverability
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `status='skipped'`, error `no_valid_recipient` | Bride left email blank or it failed format check | Nothing to fix — booking still succeeded, follow up by WA |
+| `status='skipped'`, error `smtp_credentials_unset` | Supabase secrets missing | Set them and redeploy |
+| `status='failed'`, error `Invalid login: 535 Authentication failed` | App password expired or wrong | Regenerate at Zoho, update secret, redeploy |
+| All mail lands in spam | DKIM / SPF misconfigured | Recheck via <https://mail-tester.com> |
+
+### What's NOT built (deliberate scope)
+
+- **Lifecycle emails** (deposit received, final-payment due, mood-board
+  ready, shoot-day tomorrow). WhatsApp covers these. Add later only if
+  brides ask.
+- **PDF attachments.** The bride generates the contract + invoice
+  client-side from the booking flow + manage page; the email links to
+  the manage page rather than attaching duplicates.
+- **Channel preference picker.** Currently every booking with an email
+  gets the email; WA always sends. Decoupling them is parked until the
+  Telegram bot decision lands (see §14).
+
+---
 
 ## 15. Package hero photos & object positioning
 
@@ -811,12 +947,36 @@ const PKG_PHOTO: Record<string, PkgPhoto> = {
 
 ## 14. Future enhancements (parked)
 
-- **WhatsApp automation** — see [`docs/integrations/whatsapp.md`](./integrations/whatsapp.md).
-- **Tap Payments** as a Moyasar alternative — see [`docs/integrations/payments.md`](./integrations/payments.md).
-- **Bundle code-splitting** — current bundle is 715 KB; split admin and public
-  surfaces with React.lazy when bundle size becomes an issue.
-- **Server-side rendering / SEO** — current setup is client-rendered with hash
-  routing. Migrate to Next.js + Supabase if SEO becomes important.
+**Already shipped (do not re-build):**
+- ✅ WhatsApp lifecycle reminders + receipt vision OCR — see
+  [`integrations/wa-platform.md`](./integrations/wa-platform.md).
+- ✅ Booking-confirmation email (Zoho SMTP) — see §13h and
+  [`integrations/email.md`](./integrations/email.md).
+- ✅ CI auto-deploy on push to master — see §12.
+- ✅ Stationery palette convergence — see [`design.md`](./design.md).
+
+**Parked (genuinely not built):**
+- **Telegram bot** as a parallel comms channel to WhatsApp. KSA luxury-
+  bridal market is overwhelmingly WhatsApp; defer until brides actually
+  ask. Build is cheap — mirror `wa-webhook` + `wa-receipt` into
+  `tg-*`, add a `comm_pref` column on `bookings`, add a picker to the
+  booking modal.
+- **Lifecycle emails** (deposit received, mood-board ready, shoot-day
+  tomorrow). WA covers these today.
+- **Tap Payments** as a Moyasar alternative — see
+  [`integrations/payments.md`](./integrations/payments.md). Only when
+  Mada volume justifies it.
+- **Channel-preference picker** on the booking form (WA / Email / Both).
+- **Top-up payment collection** for the self-service upgrade path
+  (§13g) — currently flags the balance owed but doesn't open a
+  Moyasar/transfer flow.
+- **Auto-send the `/manage/<token>` link** at booking time (§13g).
+- **Contract / invoice regeneration** after a self-service change.
+- **Bundle code-splitting** beyond the admin lazy chunk — the public
+  bundle is ~464 KB gzipped to ~140 KB; split further if it grows.
+- **Server-side rendering / SEO** — current setup is client-rendered
+  with hash routing. Migrate to Next.js + Supabase if SEO becomes
+  important.
 
 ---
 
@@ -829,22 +989,37 @@ const PKG_PHOTO: Record<string, PkgPhoto> = {
 | Admin month calendar | `src/components/AdminCalendar.tsx` |
 | Customer date picker | `src/components/DatePicker.tsx` |
 | Customer self-service (reschedule / change package) | `src/pages/ManageBookingPage.tsx` + `src/services/manage.ts` |
+| Mood Board composer (admin) | `src/components/MoodBoardComposer.tsx` + `src/services/moodboard.ts` |
+| Mood Board public page | `src/pages/MoodBoardPage.tsx` |
 | Booking-change rules + server enforcement | `supabase/functions/_shared/{reschedule,otp,change}.ts` + `supabase/functions/change-booking/` |
-| Theme tokens | `src/theme/themes.ts` + `index.html` `<style>` block |
+| Screen theme tokens | `src/theme/themes.ts` + `index.html` `<style>` block |
+| Stationery palette (contract / invoice / email / policy) | `src/theme/stationery.ts` + Deno mirror at `supabase/functions/_shared/stationery.ts` |
 | Theme picker UI | `src/components/AppSettingsPanel.tsx` (ThemeCard sub-component) |
 | Invoice template | `src/services/invoice.ts` |
 | Contract template | `src/services/contract.ts` |
+| Booking-confirmation email template | `supabase/functions/_shared/email-confirmation.ts` |
+| SMTP wrapper | `supabase/functions/_shared/email.ts` |
+| T&C + PDPL bilingual content (popups + `/policy`) | `src/content/legal.ts` |
 | Bank account details | `src/components/BankTransferPayment.tsx` (BANK constant) |
 | Cities + travel fees | `src/pages/BookingPage.tsx` (CITIES constant) |
 | Promotion modal image | `public/photos/Promotion.jpg` + `.webp` (+ `_Mobile` variants) |
+| Promotion modal component | `src/components/PromotionModal.tsx` |
+| CI auto-deploy workflow | `.github/workflows/deploy.yml` |
 
 ---
 
 ## 16. Support & escalation
 
-- Code repo: <https://github.com/farajaay/atema-studio>
-- Supabase project: log in at <https://supabase.com> with the studio account.
-- Moyasar dashboard: <https://moyasar.com> with the studio account.
-- Domain / DNS: GitHub Pages defaults (`farajaay.github.io/atema-studio`).
-  Add a custom domain by setting `CNAME` in `public/` and updating the DNS
-  records.
+- **Code repo:** <https://github.com/farajaay/atema-studio>
+- **Live site:** <https://atemastudio.xyz>
+- **CI deploys:** <https://github.com/farajaay/atema-studio/actions/workflows/deploy.yml>
+- **Supabase project:** log in at <https://supabase.com> with the studio account.
+- **Moyasar dashboard:** <https://moyasar.com>.
+- **Zoho Mail inbox:** <https://mail.zoho.com> — `atema@atemastudio.xyz`.
+- **Meta Business / WhatsApp:** <https://business.facebook.com>.
+- **Domain / DNS (Namecheap):** the apex has 4 A records pointing at
+  GitHub Pages (`185.199.108–111.153`), `www` is a CNAME to
+  `farajaay.github.io`, and TXT records carry SPF / DKIM / DMARC for
+  Zoho. `public/CNAME` pins `atemastudio.xyz` so the gh-pages publish
+  preserves it. Full record table in
+  [`../BACKEND_SETUP.md`](../BACKEND_SETUP.md) §8.

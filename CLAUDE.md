@@ -63,6 +63,7 @@ and answers most "how does X work" questions.**
 |---|---|
 | Overall stack, folder layout, env vars, schema, build commands | [`PROJECT.md`](./PROJECT.md) |
 | Day-to-day owner operations (admin panel, P&L, calendar, settings) | [`docs/MANUAL.md`](./docs/MANUAL.md) |
+| **Design system — palettes, stationery, typography, FAB monogram, how to add a surface** | [`docs/design.md`](./docs/design.md) |
 | The doc set itself + navigation | [`docs/README.md`](./docs/README.md) |
 | Investor / client pitch (the "what is ATEMA" story) | [`docs/PRESENTATION.md`](./docs/PRESENTATION.md) |
 | P&L model, margin warnings, owner-hour costing | [`docs/PROFITABILITY.md`](./docs/PROFITABILITY.md) |
@@ -153,11 +154,23 @@ src/
 
 ## 4. Conventions you MUST follow
 
-### 4.1 Theming
-- **Never** hard-code colours in component files. Use the CSS custom
-  properties declared in `index.html` (`--a-ink`, `--a-surface`,
-  `--a-gold`, etc.) or pull from `getBookingPalette(theme)` in
-  `src/theme/themes.ts`.
+### 4.1 Theming — TWO palettes, by purpose
+- **Screen surfaces** (public site, admin, booking flow, mood board page,
+  manage page): use the CSS custom properties declared in `index.html`
+  (`--a-ink`, `--a-surface`, `--a-gold`, etc.) or pull from
+  `getBookingPalette(theme)` in `src/theme/themes.ts`. **Two themes** —
+  Couture Noir (default) + Atelier Ivory — admin-toggleable.
+- **Stationery surfaces** (contract, ZATCA invoice, booking-confirmation
+  email, `/policy` page, T&C/PDPL popups in the booking flow): import
+  the `STATIONERY` token map from `src/theme/stationery.ts` (Edge
+  Functions use the Deno mirror at
+  `supabase/functions/_shared/stationery.ts` — **change both**). Stationery
+  is **not** theme-toggleable; printed/sent artifacts always wear the
+  same dress.
+- **Never** hard-code hex literals in any of these surfaces. Reach for
+  the right palette's tokens.
+- **Full design system + token tables** live at
+  [`docs/design.md`](./docs/design.md).
 - **One exception:** Lucide icon `color={…}` props are SVG presentation
   attributes — they don't resolve CSS vars. Use a literal hex (e.g.
   `color="#D4AF7A"`) at icon sites only.
@@ -226,7 +239,11 @@ src/
 ### 4.7 Commits & deploys
 - One feature = one commit, prose-first message ("why" before "what").
 - `npm run build` must pass type-check before commit.
-- `npm run deploy` publishes `dist/` to `gh-pages`. Don't push there manually.
+- **Auto-deploy** — every push to `master` triggers
+  `.github/workflows/deploy.yml` (test → build → publish to `gh-pages` via
+  `peaceiris/actions-gh-pages@v4`). Don't push to `gh-pages` manually.
+- The legacy `npm run deploy` still works for local emergency deploys
+  but is no longer the day-to-day path.
 - **Never** force-push `master` or `gh-pages` without an explicit user OK.
 
 ### 4.8 Mood Board (post-booking ritual)
@@ -292,7 +309,10 @@ Landing  →  Promo modal  →  /book
                                 1. validate (utils/validation.ts)
                                 2. submittingRef guard (double-click)
                                 3. create-booking Edge Fn
-                                   (server-side total recompute)
+                                   - server-side total recompute
+                                   - WA notify owner (fire & forget)
+                                   - EMAIL bride from atema@atemastudio.xyz
+                                     (Zoho SMTP, fire & forget)
                                 4. saveContract + saveInvoice
                                     ↓
                               PaymentMethodChooser
@@ -400,6 +420,10 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - ✅ Expanded portfolio (23 items) — shipped commit `0a99efc`
 - ✅ Customer self-service: reschedule (Phase 1) + OTP-gated package/add-on
   change (Phase 2) — `/#/manage/<token>` + `change-booking` Edge Fn. See §4.9.
+- ✅ Promo modal case fix (`.JPG` → `.jpg` + OG/Twitter/schema.org meta) — commit `44a7556`.
+- ✅ Booking-confirmation email via Zoho Mail SMTP — commit `f5ed8d9`. Docs at `docs/integrations/email.md` and `docs/MANUAL.md` §13h.
+- ✅ Stationery palette convergence (contract + invoice + email + `/policy` + legal popups) — commit `a2866ae`. Docs at `docs/design.md`.
+- ✅ GitHub Actions auto-deploy (`master → gh-pages` with test gate) — commit `6b74854`.
 
 Full tracker: [`docs/bugs.md`](./docs/bugs.md).
 
@@ -435,5 +459,6 @@ the canonical voice samples.
 
 ---
 
-*Last updated: 2026-05-26 (Phase 6 — customer self-service booking changes:
-reschedule + OTP-gated package/add-on change via /#/manage/<token>)*
+*Last updated: 2026-05-28 — Phase 7: booking-confirmation email (Zoho SMTP),
+stationery palette convergence (one token map across contract + invoice + email +
+/policy + legal popups), GitHub Actions auto-deploy on push to master.*

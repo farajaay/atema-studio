@@ -14,77 +14,106 @@
 |--------------|------------|
 | Frontend     | React 19 + TypeScript + Vite 8 |
 | Routing      | `react-router-dom` (HashRouter — required for GH Pages) |
-| Styling      | Inline styles + brand tokens (no CSS framework) |
+| Styling      | Inline styles + brand tokens (no CSS framework). Two screen palettes + one stationery palette — see [`docs/design.md`](./docs/design.md) |
 | Icons        | `lucide-react` |
 | Backend / DB | Supabase (PostgreSQL + Row-Level Security) |
+| Edge Functions | `create-booking` (server-side total + email), `change-booking` (self-service reschedule + OTP-gated package change), `discount-preview`, `wa-webhook`, `wa-receipt` (Claude-Vision OCR), `wa-reminders` (cron), `send-whatsapp` |
 | Payments     | Moyasar SDK (CDN, Halalas) **+** Bank Transfer fallback |
 | Tax          | ZATCA Phase 1 Simplified Tax Invoice (TLV/Base64 QR) |
-| Hosting      | GitHub Pages (`gh-pages -d dist`) |
-| Comms        | WhatsApp deep-link (`wa.me`) for receipts & support |
+| Hosting      | GitHub Pages (auto-deploy from `master` via `.github/workflows/deploy.yml`) |
+| Comms — chat | Meta WhatsApp Cloud API (lifecycle reminders + Claude-Vision receipt OCR) |
+| Comms — email | Zoho Mail SMTP from `atema@atemastudio.xyz` (bilingual booking confirmation) |
 
 ---
 
 ## 2. Brand Identity
 
-Per `Photos/Identity.PNG`. Theme tokens are CSS custom properties declared in `index.html` (inline `<style>`) + `src/theme/themes.ts` (`getBookingPalette`); two themes (Couture Noir default, Atelier Ivory). See `CLAUDE.md` §4.1.
+ATEMA runs **two parallel palettes** — see [`docs/design.md`](./docs/design.md)
+for the full system. In short:
 
-| Token       | Hex       | Usage |
-|-------------|-----------|-------|
-| Soft Ivory  | `#F5EDE4` | Page background |
-| Champagne   | `#E8D9C5` | Cards, hover states |
-| Warm Sand   | `#D6BFA3` | Borders, dividers |
-| Deep Bronze | `#8C6B4F` | Prices, accents, primary CTA bg |
-| Deep Taupe  | `#6B5440` | Secondary text |
-| Mocha       | `#4A3728` | Body text |
-| Editorial Black | `#1A1A1A` | Headings, dark CTA bg |
+- **Screen palette** — `src/theme/themes.ts` + `getBookingPalette()` +
+  CSS custom properties on `:root`. Two themes (Couture Noir default,
+  Atelier Ivory) switchable from the admin panel. The values above for
+  Atelier Ivory live there.
+- **Stationery palette** — `src/theme/stationery.ts` (mirrored at
+  `supabase/functions/_shared/stationery.ts` for the email Edge Function).
+  Drives the contract, ZATCA invoice, booking-confirmation email, public
+  `/policy` page, and the booking-flow T&C/PDPL popups. Always wears the
+  same dress regardless of the admin theme toggle.
 
 **Typography**
-- Headings (decorative): `Cormorant Garamond` (Latin) · `Amiri` (Arabic)
+- Brand wordmark ("ATEMA STUDIO" in any script): `Amiri`, spaced letters
+- Display headlines: `Cormorant Garamond` (Latin) · `Amiri` (Arabic)
 - Body / UI: `Tajawal` (works for both Latin + Arabic)
-- Mono / numerals: `Inter`
+- Tabular numerals: `Tajawal` with `font-feature-settings:"tnum" 1`
+  (Inter was previously used as a third font on the invoice but was
+  dropped during the stationery convergence — commit `a2866ae`)
 
 ---
 
 ## 3. Folder Structure
 
 ```
-src/
-├── App.tsx                    Root router (HashRouter)
-├── main.tsx                   Entry point
-├── index.css                  Brand-aligned base styles
-├── components/
-│   ├── SiteHeader.tsx         Top nav (lang switcher, admin link)
-│   ├── PackageCard.tsx        Package tile with click-to-details modal
-│   ├── DatePicker.tsx         Customer date picker (public_booked_dates)
-│   ├── MoyasarForm.tsx        Online card payment (Moyasar SDK)
-│   ├── BankTransferPayment.tsx Bank-transfer flow with copy buttons + WA receipt
-│   ├── PaymentMethodChooser.tsx Card vs Transfer selector
-│   └── PLTab.tsx              P&L admin tab
-├── pages/
-│   ├── BookingPage.tsx        Customer booking flow (long file — modal lives here)
-│   ├── ManageBookingPage.tsx  Customer self-service (/#/manage/<token>)
-│   ├── MoodBoardPage.tsx      Private mood board (/#/board/<token>)
-│   ├── AdminLogin.tsx         Email/password gate
-│   ├── AdminDashboard.tsx     Bookings list + KPIs
-│   ├── PackagesManager.tsx    CRUD for packages + addons
-│   └── PaymentResultPage.tsx  Moyasar callback handler
-├── services/
-│   ├── supabase.ts            Supabase client (env-driven)
-│   ├── booking.ts             createBooking() — inserts booking row
-│   ├── manage.ts              self-service reads + change-booking Edge calls
-│   ├── moodboard.ts           mood-board compose/read
-│   ├── contract.ts            generateContractHTML() + saveContract()
-│   ├── invoice.ts             ZATCA TLV QR + generateInvoiceHTML() + saveInvoice()
-│   └── moyasar.ts             Moyasar SDK loader
-├── hooks/
-│   ├── useBreakpoint.ts       Responsive breakpoint hook
-│   ├── useAdminAuth.ts        Supabase auth wrapper
-│   ├── useAdminData.ts        Bookings/KPIs fetch
-│   ├── usePackagesData.ts     Packages fetch (with demo fallback)
-│   └── useAddonsData.ts       Addons fetch
-├── context/                   (auth providers if any)
-├── config/                    Static config (cities, etc)
-└── types/                     Shared TS types
+atema-studio/
+├── .github/workflows/
+│   ├── deploy.yml             CI auto-deploy master → gh-pages
+│   └── test.yml               Manual test run (workflow_dispatch)
+├── src/
+│   ├── App.tsx                Root router (HashRouter) + React.lazy admin
+│   ├── main.tsx               Entry point
+│   ├── index.css              Brand-aligned base styles
+│   ├── components/
+│   │   ├── SiteHeader.tsx     Top nav (lang switcher, admin link)
+│   │   ├── PackageCard.tsx    Package tile with click-to-details modal
+│   │   ├── DatePicker.tsx     Customer date picker (public_booked_dates)
+│   │   ├── MoyasarForm.tsx    Online card payment (Moyasar SDK)
+│   │   ├── BankTransferPayment.tsx
+│   │   ├── PaymentMethodChooser.tsx
+│   │   ├── PromotionModal.tsx Landing-page promo modal
+│   │   ├── MoodBoardComposer.tsx Admin mood-board editor (3rd booking tab)
+│   │   ├── PLTab.tsx          Per-booking P&L admin tab
+│   │   └── StudioPLDashboard.tsx Studio-wide P&L rollup
+│   ├── pages/
+│   │   ├── BookingPage.tsx    Customer booking flow (modal lives here)
+│   │   ├── ManageBookingPage.tsx /#/manage/<token> self-service
+│   │   ├── MoodBoardPage.tsx  /#/board/<token> noir mood board
+│   │   ├── PolicyPage.tsx     /#/policy T&C + PDPL public page
+│   │   ├── AboutPage.tsx · HomePage.tsx · PortfolioPage.tsx · JournalPage.tsx
+│   │   ├── AdminLogin.tsx · AdminDashboard.tsx
+│   │   ├── PackagesManager.tsx · PortfolioManager.tsx · JournalManager.tsx
+│   │   └── PaymentResultPage.tsx
+│   ├── services/
+│   │   ├── supabase.ts        Supabase client (env-driven)
+│   │   ├── booking.ts         createBooking() → Edge Function
+│   │   ├── manage.ts          self-service reads + change-booking calls
+│   │   ├── moodboard.ts       mood-board compose/read
+│   │   ├── contract.ts        generateContractHTML() — uses STATIONERY
+│   │   ├── invoice.ts         ZATCA QR + generateInvoiceHTML() — uses STATIONERY
+│   │   ├── moyasar.ts         Moyasar SDK loader
+│   │   └── pl/                P&L engine + config
+│   ├── theme/
+│   │   ├── themes.ts          Screen palettes (noir + ivory) + applyTheme()
+│   │   └── stationery.ts      Stationery palette (single source of truth)
+│   ├── content/
+│   │   └── legal.ts           T&C + PDPL HTML strings (uses STATIONERY)
+│   ├── hooks/                 useLang · useBreakpoint · useAdminAuth · …
+│   ├── utils/validation.ts    normalizeSaudiMobile · validEmail · clampText
+│   └── types/                 Shared TS types
+├── supabase/functions/
+│   ├── _shared/               Pure modules: pricing · reschedule · otp · change ·
+│   │                            validation · receipt · wa · signature ·
+│   │                            email · email-confirmation · stationery (mirror)
+│   ├── create-booking/        Server-side total + email fire-and-forget
+│   ├── change-booking/        Reschedule | request_otp | change_package
+│   ├── discount-preview/      Rate-limited preview_discount_code RPC
+│   ├── wa-webhook/            Meta webhook receiver (GET handshake + POST)
+│   ├── wa-receipt/            Claude 3.5 Sonnet Vision bank-receipt OCR
+│   ├── wa-reminders/          Cron-fired lifecycle reminders (every 30 min)
+│   └── send-whatsapp/         Ad-hoc admin send
+├── database/                  Idempotent migrations + UPSERT-by-id seeds
+├── scripts/optimise-images.mjs sharp → WebP + JPEG, ~91% size reduction
+├── public/                    CNAME + optimised photo pairs
+└── docs/                      Design system, manual, integrations, audits
 ```
 
 ---
@@ -98,7 +127,12 @@ Landing → Choose Package OR Design Your Package
        → Modal: Booking Form (name, phone, date, city, venue, notes)
                 Acknowledge T&C + PDPL (popups read full text)
        → handleSubmit:
-         1. createBooking()           → Supabase `bookings` row
+         1. createBooking() → POST /create-booking Edge Function
+            ├─ server-side recompute of subtotal/VAT/total (Patch C-3)
+            ├─ INSERT bookings row (resilient against missing columns)
+            ├─ fire-and-forget WhatsApp confirmation to owner
+            └─ fire-and-forget booking-confirmation EMAIL to customer
+               (Zoho SMTP, never throws, audited in email_messages)
          2. generateContractHTML()    → saveContract() → `contracts`
          3. generateInvoiceHTML()     → saveInvoice()  → `invoices`
          4. setState('choose' | 'transfer' if Moyasar disabled)
@@ -210,6 +244,21 @@ expires_at timestamptz, attempts int DEFAULT 0, consumed_at timestamptz,
 created_at timestamptz DEFAULT now()
 ```
 
+### `email_messages` — booking-confirmation email audit log
+```sql
+id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+booking_id uuid REFERENCES bookings(id) ON DELETE SET NULL,
+to_address text, subject text, template text,
+status text CHECK (status IN ('sent','skipped','failed')),
+error text, smtp_message_id text,
+created_at timestamptz DEFAULT now()
+```
+RLS: admin SELECT only; written by the `create-booking` Edge Function as service-role.
+
+> For the full schema (mood_boards, wa_messages, wa_reminders_sent,
+> discount_codes, portfolio_items, journal_posts, blocked_dates,
+> app_settings) see [`docs/MANUAL.md`](./docs/MANUAL.md) §9.
+
 ### `contracts` / `invoices`
 
 > ⚠ **No creating SQL for these two tables lives in `database/`.** They are
@@ -291,14 +340,31 @@ npm install
 npm run dev               # http://localhost:5173
 
 # type-check + build
-npm run build             # outputs to dist/
+npm run build             # tsc -b && vite build → dist/
 
-# deploy to GitHub Pages
-npm run deploy            # publishes dist/ to gh-pages branch
+# test
+npm test                  # 113 passing
 ```
 
-`vite.config.ts` sets `base: '/'` for the custom domain (atemastudio.xyz). Switch back to `/atema-studio/` if reverting to the github.io project URL.
-The router uses `HashRouter` because GH Pages cannot handle SPA paths server-side.
+**Deployment is CI-driven.** Every push to `master` triggers
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml):
+
+1. `npm ci`
+2. `npm test` — gates the build; a failing suite blocks deploy
+3. `npm run build`
+4. `peaceiris/actions-gh-pages@v4` publishes `dist/` to the `gh-pages`
+   branch (the `commit_message` defaults to the source commit's message)
+5. GitHub Pages serves the new HEAD at <https://atemastudio.xyz> within
+   ~1 minute
+
+A manual **Run workflow** button on the Actions tab covers redeploys
+without a code change. The legacy `npm run deploy` (`gh-pages -d dist`)
+still works for local emergency deploys.
+
+`vite.config.ts` sets `base: '/'` for the custom domain
+(atemastudio.xyz). Switch back to `/atema-studio/` if reverting to the
+github.io project URL. The router uses `HashRouter` because GH Pages
+cannot handle SPA paths server-side.
 
 ---
 
@@ -315,24 +381,35 @@ URL: `/#/admin/login`
 
 ## 11. Known Limitations / TODO
 
-- `SELLER.vatNum` in `invoice.ts` is a placeholder — needs real ZATCA VAT registration
-- Moyasar webhook → `bookings.payment_status='paid'` is currently client-side only (no server-side webhook handler since hosting is static GH Pages)
-- WhatsApp Business API integration for auto-sending PDF contract/invoice is **not yet wired** (currently a `wa.me` deep-link with prefilled message)
-- Contract & Invoice PDF export uses `window.print()` — no headless PDF generator on the client
-- Vitest suite covers pure logic (pricing, discounts, reschedule/OTP/change policy, validation); no browser/E2E tests yet
-- Self-service: manage-link delivery and top-up payment collection are not yet wired (see §4b / MANUAL §13g)
+- VAT number on invoices is a placeholder until Fatima registers with ZATCA.
+- Moyasar webhook → `bookings.payment_status='paid'` is currently client-side only (no server-side webhook handler since hosting is static GH Pages — Supabase Edge could host one in a follow-up).
+- Self-service follow-ups (deliberate scope cut — see `MANUAL.md` §13g):
+  - Manage-link delivery — auto-text `/#/manage/<token>` at booking time
+  - Top-up payment collection — an upgrade flags the balance due but does not yet open Moyasar / transfer to charge the difference
+  - Contract / invoice regeneration after a change (generators are client-side)
+- Contract & Invoice PDF export uses `window.print()` — no headless PDF generator on the client.
+- Email is **booking-confirmation only**; the WhatsApp lifecycle still carries deposit-received / final-due / mood-board-ready / shoot-day reminders. A channel-preference picker (WhatsApp / Email / Both) is parked.
+- Vitest suite covers pure logic (pricing, discounts, reschedule/OTP/change policy, validation); no browser/E2E tests yet.
 
 ---
 
-## 12. Recent Major Additions (this iteration)
+## 12. Recent Major Additions
 
-1. **Bank-transfer payment flow** — full UX with copy buttons, WA confirmation, awaiting-transfer status
-2. **ZATCA-compliant tax invoice** — TLV/Base64 QR encoder, printable HTML, saved per booking
-3. **PaymentMethodChooser** — graceful card/transfer pick, auto-skip if Moyasar disabled
-4. **Brand-aligned `index.css`** — replaced Vite template defaults (purple, dark mode, 1126px width) with brand palette
-5. **Contract template** — bilingual Arabic legal contract (11 articles) generated and stored per booking
-6. **T&C / PDPL popup acknowledgment** — clickable underlined links open full content modals
+**2026-05-28 iteration:**
+1. **Booking-confirmation email** — Zoho Mail SMTP from `atema@atemastudio.xyz`, bilingual HTML + plaintext, fire-and-forget from `create-booking`, audited in `email_messages`. See [`docs/integrations/email.md`](./docs/integrations/email.md).
+2. **Stationery palette convergence** — single `STATIONERY` token map drives contract + invoice + email + `/policy` + booking-flow popups. Inter dropped, Tailwind status badges replaced with brand tints. See [`docs/design.md`](./docs/design.md).
+3. **GitHub Actions auto-deploy** — `master → gh-pages` on every push, tests gate the build.
+4. **Promo modal case fix** — `Promotion.JPG` → `Promotion.jpg` (Linux case-sensitivity broke the JPEG fallback in prod and the OG / Twitter / schema.org link previews).
+
+**Prior iterations:**
+- **Customer self-service** — `/#/manage/<token>` with reschedule (link only) + OTP-gated package/add-on change. See [`docs/MANUAL.md`](./docs/MANUAL.md) §13g.
+- **Mood Board ritual page** — post-booking editorial board at `/#/board/<token>`. See `docs/MANUAL.md` §13b.
+- **Studio-wide P&L dashboard** — monthly / quarterly / yearly rollup with per-package breakdown. See `docs/MANUAL.md` §13c.
+- **Discount codes** — `LAUNCH15` + admin CRUD; preview/redeem RPCs prevent double-spend.
+- **Two screen themes** — Couture Noir (default) + Atelier Ivory, admin-toggleable.
+- **WhatsApp Cloud API platform** — lifecycle reminders + receipt vision OCR via Claude.
+- **ZATCA-compliant tax invoice** — TLV/Base64 QR encoder, printable HTML, saved per booking.
 
 ---
 
-*Generated for ATEMA Studio · Riyadh, KSA*
+*ATEMA STUDIO · Al-Jubail, Eastern Province, KSA · <https://atemastudio.xyz>*
