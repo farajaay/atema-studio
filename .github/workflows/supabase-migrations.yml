@@ -1,19 +1,28 @@
 name: Supabase — apply SQL migrations
 
-# Runs every database/migrations-*.sql file against the linked Supabase
-# project, in alphabetical order, via the Supabase Management API. Auth
-# uses the same SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF secrets the
-# other Supabase workflows use — no new credential required.
+# Applies the studio's SQL files to the linked Supabase project via the
+# Management API. Files run in an **explicit dependency order** (not
+# alphabetical) — see the FILES array below. Re-running is a no-op
+# because every migration is idempotent by convention.
 #
 # Manual trigger only. We deliberately do NOT auto-fire on a `database/`
 # push because applying SQL to production should always be a deliberate
 # click. Choose to also include seeds with the `include-seeds` input.
 #
-# Safety: every file in database/migrations-*.sql is idempotent by
-# convention (CREATE … IF NOT EXISTS / ALTER … ADD COLUMN IF NOT EXISTS /
-# CREATE OR REPLACE …) and every seed is UPSERT-by-stable-id, so
-# re-running this workflow on an already-applied schema is a no-op. We
-# also skip `database/schema.sql` and the superseded portfolio seed.
+# Why an explicit manifest (not a glob):
+#   • Alphabetical sort puts `migrations-2026-05.sql` LAST (because
+#     `-` < `.` in ASCII), which is the inverse of its purpose — it's
+#     supposed to be the first file applied after schema.sql.
+#   • `-booking-changes-otp.sql` sorts before `-booking-changes.sql` for
+#     the same reason, even though the OTP file depends on it.
+#   • `-audit-patches.sql` sorts FIRST but depends on rls-hardening,
+#     moodboard, discount-codes — so its H-6/H-7/H-9 fixes were silently
+#     skipped on every run.
+#
+# Files intentionally NOT applied here:
+#   • database/schema.sql        — base schema, run once manually
+#   • database/admin-setup.sql   — not idempotent (no DROP POLICY guards)
+#   • database/seed-portfolio-2026-05.sql — superseded by the expanded seed
 
 on:
   workflow_dispatch:
@@ -25,7 +34,7 @@ on:
         type: choice
         options: ['false', 'true']
       only-file:
-        description: 'Optional: just one file (e.g. migrations-2026-05-email.sql). Blank = all.'
+        description: 'Optional: just one file (e.g. migrations-2026-05-email.sql). Blank = full ordered run.'
         required: false
         default: ''
         type: string
@@ -51,10 +60,57 @@ jobs:
             exit 1
           fi
 
-          # ─── Collect files ──────────────────────────────────────────────
+          # ─── Explicit ordered manifest (dependency-aware) ───────────────
+          # Each block notes WHY a file sits where it does. Editing the
+          # order without re-reading these notes is a foot-gun.
+          MIGRATIONS=(
+            # ── 1. Foundation tables that everything else references ────
+            "database/app-settings.sql"                                # app_settings singleton (branding.sql needs it)
+            "database/migrations-2026-05.sql"                          # vat_enabled column on bookings + blocked_dates table
+
+            # ── 2. RLS + public view foundation ─────────────────────────
+            "database/migrations-2026-05-rls-hardening.sql"            # public_booked_dates view + constrained policies
+            "database/migrations-2026-05-bookings-rls-fix.sql"         # follow-up policy patches that reference rls-hardening
+
+            # ── 3. Schema features (mostly independent of each other) ───
+            "database/migrations-2026-05-branding.sql"                 # columns on app_settings / journal_posts / portfolio_items
+            "database/migrations-2026-05-custom-domain.sql"            # photo URL rewrite
+            "database/migrations-2026-05-features-en-backfill.sql"     # packages.features_en column + backfill
+            "database/migrations-2026-05-email.sql"                    # email_messages audit table
+            "database/migrations-2026-05-wa.sql"                       # wa_messages + wa_reminders_sent
+            "database/migrations-2026-05-moodboard.sql"                # mood_boards table + RPC
+
+            # ── 4. Discount codes (must precede launch-code seed + audit H-7) ──
+            "database/migrations-2026-05-discount-codes.sql"           # discount_codes table + preview/redeem RPCs
+            "database/migrations-2026-05-launch-code.sql"              # LAUNCH15 seed (INSERTs into discount_codes)
+
+            # ── 5. Customer self-service (booking-changes BEFORE its OTP) ──
+            "database/migrations-2026-05-booking-changes.sql"          # manage_token, reschedule_count, booking_changes
+            "database/migrations-2026-05-booking-changes-otp.sql"      # booking_otps (FK to bookings)
+
+            # ── 6. Repair pass ─────────────────────────────────────────
+            "database/migrations-2026-05-repair-audit.sql"             # addons schema repair
+
+            # ── 7. Cross-cutting audit patches LAST ────────────────────
+            # H-6/H-7/H-9 reference mood_boards, discount_codes,
+            # public_booked_dates — all must already exist for the
+            # do-block guards to fire instead of silently skipping.
+            "database/migrations-2026-05-audit-patches.sql"
+          )
+
+          SEEDS=(
+            # No inter-seed dependencies; order is cosmetic. Packages
+            # first because it's the revenue-critical one (new prices).
+            "database/seed-packages-2026-05.sql"
+            "database/seed-portfolio-2026-05-expanded.sql"
+            "database/seed-journal-2026-05.sql"
+          )
+
+          # ─── Build the list of files to apply ───────────────────────────
           files=()
           if [ -n "${ONLY_FILE:-}" ]; then
-            # User requested one specific file
+            # User requested one specific file — accept any path that
+            # exists under database/, regardless of order/manifest.
             f="database/${ONLY_FILE}"
             if [ ! -f "$f" ]; then
               echo "::error::File not found: $f"
@@ -62,21 +118,35 @@ jobs:
             fi
             files=("$f")
           else
-            # Every migration file, alphabetical
-            shopt -s nullglob
-            for f in database/migrations-*.sql; do
+            for f in "${MIGRATIONS[@]}"; do
+              if [ ! -f "$f" ]; then
+                echo "::error::Manifest references missing file: $f"
+                exit 1
+              fi
               files+=("$f")
             done
             if [ "${INCLUDE_SEEDS:-false}" = "true" ]; then
-              for f in database/seed-*.sql; do
-                # Skip the superseded portfolio seed
-                if [[ "$f" == *"seed-portfolio-2026-05.sql" ]]; then
-                  echo "Skipping superseded $f (use seed-portfolio-2026-05-expanded.sql instead)"
-                  continue
+              for f in "${SEEDS[@]}"; do
+                if [ ! -f "$f" ]; then
+                  echo "::error::Seed manifest references missing file: $f"
+                  exit 1
                 fi
                 files+=("$f")
               done
             fi
+
+            # Sanity check: warn if a new migration was added to the repo
+            # but not to the manifest above. Better to be loud than to
+            # silently skip a migration.
+            for f in database/migrations-*.sql; do
+              hit=0
+              for m in "${MIGRATIONS[@]}"; do
+                if [ "$f" = "$m" ]; then hit=1; break; fi
+              done
+              if [ "$hit" -eq 0 ]; then
+                echo "::warning::Migration on disk but not in manifest: $f (skipping — add it to MIGRATIONS)"
+              fi
+            done
           fi
 
           if [ ${#files[@]} -eq 0 ]; then

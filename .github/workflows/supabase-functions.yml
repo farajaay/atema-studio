@@ -64,10 +64,27 @@ jobs:
           echo "Deploying ${#FUNCTIONS[@]} function(s) to ${SUPABASE_PROJECT_REF}:"
           printf '  - %s\n' "${FUNCTIONS[@]}"
 
+          # We deploy all functions even if one fails: an unrelated WA or
+          # OTP function breaking should NEVER block a hotfix to
+          # create-booking from reaching production. Failures are
+          # collected and surfaced together at the end so the job still
+          # exits non-zero — just not before everything has been tried.
+          failed=()
           for fn in "${FUNCTIONS[@]}"; do
             echo "::group::deploy $fn"
-            supabase functions deploy "$fn" --project-ref "${SUPABASE_PROJECT_REF}"
+            if supabase functions deploy "$fn" --project-ref "${SUPABASE_PROJECT_REF}"; then
+              echo "✓ $fn"
+            else
+              echo "::error::Failed to deploy $fn"
+              failed+=("$fn")
+            fi
             echo "::endgroup::"
           done
+
+          if [ ${#failed[@]} -gt 0 ]; then
+            echo "::error::${#failed[@]} function(s) failed to deploy: ${failed[*]}"
+            echo "::notice::Deployed $(( ${#FUNCTIONS[@]} - ${#failed[@]} )) of ${#FUNCTIONS[@]} Edge Function(s); ${#failed[@]} failed."
+            exit 1
+          fi
 
           echo "::notice::Deployed ${#FUNCTIONS[@]} Edge Function(s)."
