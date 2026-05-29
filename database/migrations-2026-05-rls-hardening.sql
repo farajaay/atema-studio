@@ -164,6 +164,7 @@ create policy "Authenticated full access — bookings"
 -- ╚═══════════════════════════════════════════════════════════════════════════╝
 
 drop policy if exists "anon_insert_customers" on public.customers;
+drop policy if exists "Constrained anonymous customer insert" on public.customers;
 
 create policy "Constrained anonymous customer insert"
   on public.customers
