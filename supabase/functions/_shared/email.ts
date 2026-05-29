@@ -42,6 +42,20 @@ const PASS = Deno.env.get('ZOHO_SMTP_PASSWORD') ?? '';
 const FROM_NAME = Deno.env.get('ZOHO_SMTP_FROM_NAME') ?? 'ATEMA STUDIO';
 const FROM      = Deno.env.get('ZOHO_SMTP_FROM')      ?? USER;
 
+// Build a strict RFC 5322 mailbox-address for the From: header. Display
+// names with spaces or non-ASCII characters MUST be in a quoted-string
+// (or RFC 2047 encoded). Without quoting, denomailer 1.6.0 sometimes
+// emits a malformed message body and Gmail rejects with:
+//   5.7.1 'From' header is missing. ... not RFC 5322 compliant.
+// If FROM_NAME is empty, return just the bare address.
+function formatFromHeader(displayName: string, address: string): string {
+  const name = (displayName ?? '').trim();
+  if (!name) return address;
+  // Escape any embedded double-quotes or backslashes per RFC 5322.
+  const escaped = name.replace(/([\\"])/g, '\\$1');
+  return `"${escaped}" <${address}>`;
+}
+
 // Cheap structural check — we never want to ship a confirmation to a typo'd
 // address and we never want to log PII in error messages. Mirrors validation.ts.
 function looksLikeEmail(s: string): boolean {
@@ -91,7 +105,7 @@ export async function sendEmail(args: SendArgs): Promise<SendResult> {
 
   try {
     await client.send({
-      from:    `${FROM_NAME} <${FROM}>`,
+      from:    formatFromHeader(FROM_NAME, FROM),
       to:      args.to,
       replyTo: args.replyTo ?? FROM,
       subject: args.subject,
