@@ -93,8 +93,10 @@ jobs:
           for f in "${files[@]}"; do
             echo "::group::apply $f"
             # jq -Rs reads the whole file as a single JSON-encoded string,
-            # so multi-line / quote-laden SQL stays safe through curl.
-            payload=$(jq -Rs '{query: .}' < "$f")
+            # then we wrap it as { query, read_only:false }. The read_only
+            # flag is required when the SQL contains DDL (CREATE TABLE etc.)
+            # — Supabase rejects DDL in the default read-only mode with 400.
+            payload=$(jq -Rs '{query: ., read_only: false}' < "$f")
             response_file=$(mktemp)
             http_code=$(curl -sS -o "$response_file" -w '%{http_code}' \
               -X POST \
@@ -104,11 +106,24 @@ jobs:
               "$api" <<<"$payload" || echo "000")
 
             if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
-              echo "✓ $f"
+              echo "✓ $f (HTTP $http_code)"
             else
               echo "::error file=$f::HTTP $http_code"
-              echo "Response body:"
-              cat "$response_file"
+              echo "──────── Request ────────"
+              echo "POST $api"
+              echo "Payload size: $(wc -c < <(echo "$payload")) bytes"
+              echo "First 200 chars of SQL: $(head -c 200 "$f")"
+              echo "──────── Response ────────"
+              if [ -s "$response_file" ]; then
+                # Pretty-print if it's JSON, else raw
+                if jq -e . "$response_file" >/dev/null 2>&1; then
+                  jq . "$response_file"
+                else
+                  cat "$response_file"
+                fi
+              else
+                echo "(empty response body)"
+              fi
               echo ""
               failed=$((failed + 1))
             fi
