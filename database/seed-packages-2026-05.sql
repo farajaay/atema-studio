@@ -45,8 +45,8 @@ insert into public.packages
    description, features, badge, is_popular, active, sort_order, included_addon_ids)
 values
 
--- ── 1. Engagement Session — 1,800 SAR ────────────────────────────────────────
-(1, 'باقة الخطوبة', 'Engagement Session', 1800, 2, 30,
+-- ── 1. Engagement Session — 2,400 SAR ────────────────────────────────────────
+(1, 'باقة الخطوبة', 'Engagement Session', 2400, 2, 30,
  NULL, false,
  'جلسة خطوبة رومانسية بأسلوب راقٍ — مثالية لإعلان البداية.',
  array[
@@ -56,19 +56,24 @@ values
    'وحدة تخزين باسم العروسين',
    'تصميم Save the Date رقمي هدية'
  ],
- 'الأساسي', false, true, 10, array[]::text[]),
+ NULL, false, true, 10, array[]::text[]),
 
--- ── 2. Customise — 2,200 SAR ─────────────────────────────────────────────────
-(2, 'الباقة المخصّصة', 'Customise', 2200, 3, 150,
- 'صور JPG معالجة', false,
- 'تغطية فوتوغرافية مرنة تصمَّم حسب احتياج المناسبة.',
+-- ── 2. Base — 1,800 SAR — Customise-tab foundation, HIDDEN from Ready Packages ─
+-- The booking page picks the cheapest active package as the "design your own"
+-- starting point and filters it out of the Ready Packages grid + comparison
+-- view (see src/pages/BookingPage.tsx — predefinedPackages). This row must
+-- therefore stay the lowest-priced active package; renaming Engagement to
+-- 2,400 SAR above ensures Base (1,800) remains the cheapest.
+(2, 'الباقة الأساسية', 'Base', 1800, 2, 30,
+ NULL, false,
+ 'الأساس الذي تُبنى عليه باقتك المخصّصة — اختاري الإضافات حسب يومك.',
  array[
-   '٣ ساعات تصوير شاملة للحفل',
-   'تسليم جميع الصور بصيغة JPG معالجة',
+   'ساعتان من التصوير',
+   '٣٠ صورة معدّلة',
    'وحدة تخزين رقمية',
-   'اختيار أجمل اللقطات'
+   'أساس مرن لإضافة ما تشائين'
  ],
- 'محبوب', false, true, 20, array[]::text[]),
+ 'الأساسي', false, true, 5, array[]::text[]),
 
 -- ── 3. Classic — 4,200 SAR ───────────────────────────────────────────────────
 (3, 'الباقة الكلاسيكية', 'Classic', 4200, 4, 300,

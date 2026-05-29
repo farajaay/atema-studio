@@ -39,15 +39,18 @@ export function getLocalizedFeatures(
 // Fallback catalogue — mirrors database/seed-packages-2026-05.sql so the site
 // renders the same offering even when Supabase is unreachable.
 const DEMO: Package[] = [
-  { id: 1, name_ar: 'باقة الخطوبة',     name_en: 'Engagement Session', price: 1800,  duration_hours: 2, edited_photos: 30,  album: null,
+  { id: 1, name_ar: 'باقة الخطوبة',     name_en: 'Engagement Session', price: 2400,  duration_hours: 2, edited_photos: 30,  album: null,
     video: false, description: 'جلسة خطوبة رومانسية بأسلوب راقٍ — مثالية لإعلان البداية.',
     features: ['ساعتان من التصوير الاحترافي', '٣٠ صورة معدّلة بعناية', 'اختيار أجمل اللقطات', 'وحدة تخزين باسم العروسين', 'تصميم Save the Date رقمي هدية'],
-    badge: 'الأساسي', is_popular: false, active: true, included_addon_ids: [] },
+    badge: null, is_popular: false, active: true, included_addon_ids: [] },
 
-  { id: 2, name_ar: 'الباقة المخصّصة',  name_en: 'Customise',          price: 2200,  duration_hours: 3, edited_photos: 150, album: 'صور JPG معالجة',
-    video: false, description: 'تغطية فوتوغرافية مرنة تصمَّم حسب احتياج المناسبة.',
-    features: ['٣ ساعات تصوير شاملة للحفل', 'تسليم جميع الصور بصيغة JPG معالجة', 'وحدة تخزين رقمية', 'اختيار أجمل اللقطات'],
-    badge: 'محبوب', is_popular: false, active: true, included_addon_ids: [] },
+  // id=2 is the Customise-tab foundation — hidden from the Ready Packages
+  // grid because the booking page filters out the cheapest active package
+  // (see src/pages/BookingPage.tsx — predefinedPackages).
+  { id: 2, name_ar: 'الباقة الأساسية',  name_en: 'Base',               price: 1800,  duration_hours: 2, edited_photos: 30,  album: null,
+    video: false, description: 'الأساس الذي تُبنى عليه باقتك المخصّصة — اختاري الإضافات حسب يومك.',
+    features: ['ساعتان من التصوير', '٣٠ صورة معدّلة', 'وحدة تخزين رقمية', 'أساس مرن لإضافة ما تشائين'],
+    badge: 'الأساسي', is_popular: false, active: true, included_addon_ids: [] },
 
   { id: 3, name_ar: 'الباقة الكلاسيكية', name_en: 'Classic',            price: 4200,  duration_hours: 4, edited_photos: 300, album: 'ألبوم A4 ١٥ صفحة',
     video: false, description: 'الباقة المثالية للمناسبات الخاصة — ألبوم فاخر وذكريات تبقى.',

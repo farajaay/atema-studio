@@ -114,7 +114,13 @@ function getVisual(pkg: Package): { gradient: string; photo: string; position: s
   const pick = (tier: number, p: PkgPhoto) => ({ gradient: gradFor(tier), photo: p.file, position: p.position });
 
   if (n.includes('خطوبة') || n.includes('engagement'))                     return pick(0, PKG_PHOTO.engagement);
-  if (n.includes('مخصّص') || n.includes('مخصص') || n.includes('customis')) return pick(1, PKG_PHOTO.customise);
+  // The Customise-tab Base package (id=2) is named "الأساسية / Base"
+  // post-rename. Legacy 'مخصّص' / 'customis' matchers are kept so older
+  // package rows that haven't been re-seeded still render correctly. No
+  // other tier has "base" or "أساسي" in its name so a bare includes() is
+  // safe — Arabic tiers don't share the Latin substring either.
+  if (n.includes('أساسي') || n.includes('اساسي') || n.includes('base')
+   || n.includes('مخصّص') || n.includes('مخصص')  || n.includes('customis')) return pick(1, PKG_PHOTO.customise);
   if (n.includes('كلاسيك') || n.includes('classic'))                       return pick(2, PKG_PHOTO.classic);
   if (n.includes('ملكي')   || n.includes('royal'))                         return pick(3, PKG_PHOTO.royal);
   if (n.includes('توقيع')  || n.includes('signature'))                     return pick(4, PKG_PHOTO.signature);

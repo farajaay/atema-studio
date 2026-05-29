@@ -29,7 +29,7 @@ import type { BookingCostInputs, CostConfig } from './pl/types';
 // Per database/seed-packages-2026-05.sql (ids 1..6).
 export const PACKAGE_KEY_BY_ID: Record<number, string> = {
   1: 'engagement',
-  2: 'customise',
+  2: 'base',
   3: 'classic',
   4: 'royal',
   5: 'signature',
@@ -38,7 +38,7 @@ export const PACKAGE_KEY_BY_ID: Record<number, string> = {
 
 export const PACKAGE_NAME_AR: Record<number, string> = {
   1: 'الخطوبة',
-  2: 'المخصّصة',
+  2: 'الأساسية',
   3: 'الكلاسيكية',
   4: 'الملكية',
   5: 'التوقيع',
@@ -47,7 +47,7 @@ export const PACKAGE_NAME_AR: Record<number, string> = {
 
 export const PACKAGE_NAME_EN: Record<number, string> = {
   1: 'Engagement',
-  2: 'Customise',
+  2: 'Base',
   3: 'Classic',
   4: 'Royal',
   5: 'Signature',

@@ -35,9 +35,11 @@ export const PACKAGE_DEFAULTS: Record<string, PackageDefaults> = {
     includesVideo: false, includesAssistant: false, includesVideographer: false,
     albumIncluded: false, albumSize: 'none', albumPages: 0, miniFamilyAlbum: false,
   },
-  customise: {
-    coverageHours: 3, prepHours: 0,
-    includesVideo: false, includesAssistant: true, includesVideographer: false,
+  // The Base package — Customise-tab foundation. 2h, solo (same crew
+  // profile as Engagement); add-ons stack on top in actual P&L.
+  base: {
+    coverageHours: 2, prepHours: 0,
+    includesVideo: false, includesAssistant: false, includesVideographer: false,
     albumIncluded: false, albumSize: 'none', albumPages: 0, miniFamilyAlbum: false,
   },
   classic: {
