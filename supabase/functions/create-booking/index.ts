@@ -60,9 +60,31 @@ serve(async (req) => {
   try { body = await req.json(); }
   catch { return fail('invalid_json', 400); }
 
+  // Correlation id — echoed by src/services/booking.ts. Lets us match a
+  // single client-side [booking:xxxx] console group to one log stream
+  // here. Generated server-side if the client didn't supply one.
+  const reqId: string = typeof body._reqId === 'string' && body._reqId.length <= 16
+    ? body._reqId
+    : Math.random().toString(36).slice(2, 8).toUpperCase();
+  const t0 = Date.now();
+  const log = (...args: unknown[]) => console.log(`[booking:${reqId}]`, ...args);
+  const warn = (...args: unknown[]) => console.warn(`[booking:${reqId}]`, ...args);
+  const err  = (...args: unknown[]) => console.error(`[booking:${reqId}]`, ...args);
+
+  log('inbound request', {
+    customerName:  body.customerName,
+    customerPhone: body.customerPhone,
+    customerEmail: body.customerEmail,
+    packageId:     body.packageId,
+    addOnIds:      Array.isArray(body.addOnIds) ? body.addOnIds.length : 0,
+    eventDate:     body.eventDate,
+    city:          body.city,
+    discountCode:  body.discountCode ?? null,
+  });
+
   // ── Sanitise + validate inputs ────────────────────────────────────────
   const name = clampText(body.customerName, 120);
-  if (!name) return fail('name_required', 422);
+  if (!name) { warn('reject: name_required'); return fail('name_required', 422); }
 
   const phone = normalizeSaudiMobile(body.customerPhone ?? '');
   if (!phone) return fail('phone_invalid', 422);
@@ -217,9 +239,21 @@ serve(async (req) => {
   }
 
   if (insErr || !booking) {
-    console.error('insert error:', insErr);
+    err('✗ insert failed', {
+      message: insErr?.message,
+      code: (insErr as { code?: string })?.code,
+      details: (insErr as { details?: string })?.details,
+      hint: (insErr as { hint?: string })?.hint,
+      droppedColumns: dropped,
+      row: { ...attempt, customer_phone: '<redacted>', customer_email: '<redacted>' },
+    });
     return fail('insert_failed', 500, insErr?.message);
   }
+  log(`✓ insert success in ${Date.now() - t0}ms`, {
+    bookingId: booking.id,
+    ref: booking.booking_ref,
+    droppedColumns: dropped.length > 0 ? dropped : undefined,
+  });
 
   // ── Email confirmation (fire & forget; Zoho Mail SMTP) ─────────────────
   // Failure is non-fatal — sendEmail() logs to email_messages and returns

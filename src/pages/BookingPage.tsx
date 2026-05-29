@@ -853,7 +853,23 @@ function BookingFormModal({
       // Transition to method chooser (auto-skip to transfer if Moyasar disabled)
       setState(moyasarEnabled ? 'choose' : 'transfer');
     } catch (err) {
-      console.error('Booking error:', err);
+      // Comprehensive failure capture — the next failing booking should
+      // give us enough to fix the cause in one round-trip. Open the
+      // browser console (Inspect → Console) to see the [booking:xxxx]
+      // group; the request id matches the Supabase Edge Function log line.
+      console.error('[booking:client] handleSubmit caught error:', err);
+      if (err && typeof err === 'object') {
+        console.error('[booking:client] full error JSON:',
+          JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+      }
+      console.error('[booking:client] form snapshot at failure:', {
+        name, phone: normPhone, email: cleanEmail, date: form.date,
+        city: form.city, eventType: eventTypeClean, packageId: pkg?.id,
+        subtotal, vat, total: fullTotal,
+        addOnIds: Array.from(activeAddons),
+        discountCode: appliedDiscount?.code ?? null,
+        tcAccepted: agreed, pdplConsent: pdpl, whatsappOptIn: waOptIn,
+      });
       setState('error');
       const msg = err instanceof Error ? err.message : String(err);
       setErrMsg(tx(lang,'حدث خطأ: ','Error: ') + msg);
