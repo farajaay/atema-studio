@@ -128,21 +128,33 @@ serve(async (req) => {
   // ── Server-side recompute ─────────────────────────────────────────────
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 
+  log('→ db.packages.select', { packageId: pkgId });
   const { data: pkg, error: pkgErr } = await supabase
     .from('packages').select('id, price, active, name_ar, name_en').eq('id', pkgId).single();
-  if (pkgErr || !pkg) return fail('package_not_found', 422);
-  if (!pkg.active)    return fail('package_inactive', 422);
+  log('← db.packages.select', {
+    pkg: pkg ? { id: pkg.id, price: pkg.price, active: pkg.active } : null,
+    error: pkgErr ? { code: (pkgErr as { code?: string }).code, message: pkgErr.message, details: (pkgErr as { details?: string }).details } : null,
+  });
+  if (pkgErr || !pkg) { warn('reject: package_not_found'); return fail('package_not_found', 422, pkgErr?.message); }
+  if (!pkg.active)    { warn('reject: package_inactive'); return fail('package_inactive', 422); }
 
   let addonsTotal = 0;
   if (addOnIds.length > 0) {
+    log('→ db.addons.select', { addOnIds });
     const { data: addons, error: addErr } = await supabase
       .from('addons').select('id, price, active').in('id', addOnIds);
-    if (addErr) return fail('addons_lookup_failed', 500, addErr.message);
+    log('← db.addons.select', {
+      rowCount: addons?.length ?? 0,
+      rows: addons,
+      error: addErr ? { code: (addErr as { code?: string }).code, message: addErr.message } : null,
+    });
+    if (addErr) { warn('reject: addons_lookup_failed'); return fail('addons_lookup_failed', 500, addErr.message); }
     addonsTotal = sumActiveAddons((addons ?? []) as Array<{ price: number; active: boolean }>);
   }
 
   const cityFee = CITY_FEES[String(body.city ?? '')] ?? 0;
   const grossSubtotal = pkg.price + addonsTotal + cityFee;
+  log('computed grossSubtotal', { pkgPrice: pkg.price, addonsTotal, cityFee, grossSubtotal });
 
   // ── Discount redemption (atomic, single source of truth) ──────────────
   // The client may supply discountCode; we validate + redeem via the
@@ -154,15 +166,21 @@ serve(async (req) => {
   let discountKind: 'percent' | 'flat' | null = null;
   if (typeof body.discountCode === 'string' && body.discountCode.trim()) {
     const codeRaw = String(body.discountCode).trim().toUpperCase();
+    log('→ rpc.redeem_discount_code', { code: codeRaw, grossSubtotal });
     const { data: red, error: redErr } = await supabase
       .rpc('redeem_discount_code', { p_code: codeRaw, p_subtotal: grossSubtotal });
+    log('← rpc.redeem_discount_code', {
+      result: red,
+      error: redErr ? { code: (redErr as { code?: string }).code, message: redErr.message, details: (redErr as { details?: string }).details } : null,
+    });
     if (redErr) {
-      console.error('redeem RPC error:', redErr);
+      err('redeem RPC error:', redErr);
       return fail('discount_redeem_failed', 500, redErr.message);
     }
     const row = Array.isArray(red) ? red[0] : red;
     const reason = row?.reason as string | undefined;
     if (reason && reason !== 'ok') {
+      warn(`reject: discount_${reason}`);
       return fail('discount_' + reason, 422);
     }
     discountAmount = clampDiscount(Number(row?.applied_amount ?? 0), grossSubtotal);
@@ -170,10 +188,16 @@ serve(async (req) => {
     discountCode   = codeRaw;
   }
 
-  const { data: settings } = await supabase
+  log('→ db.app_settings.select');
+  const { data: settings, error: settingsErr } = await supabase
     .from('app_settings').select('vat_enabled').limit(1).single();
+  log('← db.app_settings.select', {
+    settings,
+    error: settingsErr ? { code: (settingsErr as { code?: string }).code, message: settingsErr.message } : null,
+  });
   const vatEnabled = settings?.vat_enabled ?? true;
   const { subtotal, vat, total } = computeBookingTotals({ grossSubtotal, discountAmount, vatEnabled });
+  log('computed totals', { vatEnabled, subtotal, vat, total });
 
   // ── Insert ────────────────────────────────────────────────────────────
   const ref = bookingRef();
@@ -220,6 +244,11 @@ serve(async (req) => {
   const dropped: string[] = [];
   let booking: any = null;
   let insErr: any = null;
+  log('→ db.bookings.insert (attempt 1)', {
+    columnCount: Object.keys(attempt).length,
+    columns: Object.keys(attempt),
+    row: { ...attempt, customer_phone: '<redacted>', customer_email: '<redacted>' },
+  });
   for (let i = 0; i < 8; i++) {
     // RETURNING only the columns the base schema guarantees. `manage_token`
     // is added by migrations-2026-05-booking-changes.sql; naming it here
@@ -232,16 +261,27 @@ serve(async (req) => {
       .insert([attempt])
       .select('id, booking_ref, status, created_at, event_date, total')
       .single());
+    log(`← db.bookings.insert (attempt ${i + 1})`, {
+      success: !insErr,
+      bookingId: booking?.id ?? null,
+      error: insErr ? {
+        code:    (insErr as { code?: string }).code,
+        message: insErr.message,
+        details: (insErr as { details?: string }).details,
+        hint:    (insErr as { hint?: string }).hint,
+      } : null,
+    });
     if (!insErr) break;
     const msg = (insErr as { message?: string }).message ?? '';
     const m = msg.match(COLUMN_NOT_FOUND_RE);
     const missing = m?.[1] || m?.[2] || m?.[3];
     if (!missing || !(missing in attempt)) break;
+    warn(`stripping unknown column "${missing}" — retrying`);
     dropped.push(missing);
     delete (attempt as Record<string, unknown>)[missing];
   }
   if (dropped.length > 0 && !insErr) {
-    console.warn(`[create-booking] succeeded after stripping unknown columns: ${dropped.join(', ')}.`);
+    warn(`succeeded after stripping unknown columns: ${dropped.join(', ')}.`);
   }
 
   if (insErr || !booking) {
