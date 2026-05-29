@@ -1237,12 +1237,15 @@ export default function BookingPage() {
 
   const activePackages = packages.filter(p => p.active);
 
-  // Auto-select the most popular (or first) package once data loads
+  // Auto-select the most popular (or first) package once data loads.
+  // Skip the cheapest active row — that's the Customise-tab base, not a
+  // predefined offering, so it should never be the default selection.
   useEffect(() => {
-    if (activePackages.length > 0 && selectedPkg === null) {
-      const popular = activePackages.find(p => p.is_popular) ?? activePackages[0];
-      setSelectedPkg(popular.id);
-    }
+    if (activePackages.length === 0 || selectedPkg !== null) return;
+    const base = [...activePackages].sort((a, b) => a.price - b.price)[0];
+    const pool = activePackages.filter(p => p.id !== base?.id);
+    const choice = pool.find(p => p.is_popular) ?? pool[0] ?? base;
+    if (choice) setSelectedPkg(choice.id);
   }, [activePackages, selectedPkg]);
 
   // ── Packages tab totals ────────────────────────────────────────────────────
@@ -1275,6 +1278,11 @@ export default function BookingPage() {
 
   // ── Custom tab totals ──────────────────────────────────────────────────────
   const basePkg        = [...activePackages].sort((a, b) => a.price - b.price)[0];
+  // The cheapest active package is the foundation for the Customise tab
+  // ("design your own"). It must NOT appear in the Ready Packages grid /
+  // comparison view — otherwise the same tier is offered twice (once as
+  // predefined, once as the build-from base) and brides see a duplicate.
+  const predefinedPackages = activePackages.filter(p => p.id !== basePkg?.id);
   const customGrossSubtotal = (basePkg?.price ?? 0) + addTotal;
   const customDiscountAmount = appliedDiscount
     ? Math.min(appliedDiscount.amount, customGrossSubtotal)
@@ -1465,7 +1473,7 @@ export default function BookingPage() {
             {/* ── Audit append (2026-05): view-mode toggle ────────────────
                 Cards remain default. Power users (or brides on desktop
                 doing real comparison) can flip to a side-by-side table. */}
-            {!pkgLoading && activePackages.length > 1 && (
+            {!pkgLoading && predefinedPackages.length > 1 && (
               <div role="group" aria-label={tx(lang,'طريقة العرض','View mode')}
                 style={{
                   display: 'inline-flex',
@@ -1518,7 +1526,7 @@ export default function BookingPage() {
               {viewMode === 'compare' && !pkgLoading ? (
                 <div className="fade-up">
                   <PackageComparison
-                    packages={activePackages}
+                    packages={predefinedPackages}
                     lang={lang}
                     vatEnabled={vatEnabled}
                     selectedId={selectedPkg}
@@ -1537,7 +1545,7 @@ export default function BookingPage() {
                     <Loader2 size={24} color={T.sand} style={{ animation:'spin 1s linear infinite', margin:'0 auto 12px', display:'block' }} />
                     {lang==='ar' ? 'جارٍ التحميل...' : 'Loading packages...'}
                   </div>
-                ) : activePackages.map((p, i) => (
+                ) : predefinedPackages.map((p, i) => (
                   <div key={p.id} className="fade-up"
                     style={{ animationDelay: `${i * 0.06}s` }}>
                     <PkgCard pkg={p} lang={lang}
