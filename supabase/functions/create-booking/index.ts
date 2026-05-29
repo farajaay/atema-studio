@@ -221,10 +221,16 @@ serve(async (req) => {
   let booking: any = null;
   let insErr: any = null;
   for (let i = 0; i < 8; i++) {
+    // RETURNING only the columns the base schema guarantees. `manage_token`
+    // is added by migrations-2026-05-booking-changes.sql; naming it here
+    // would make the entire INSERT fail with `column "manage_token" does
+    // not exist` on any environment where that migration hasn't run yet.
+    // We read manage_token in a separate, best-effort query below so the
+    // email step is fully independent of the insert.
     ({ data: booking, error: insErr } = await supabase
       .from('bookings')
       .insert([attempt])
-      .select('id, booking_ref, status, created_at, event_date, total, manage_token')
+      .select('id, booking_ref, status, created_at, event_date, total')
       .single());
     if (!insErr) break;
     const msg = (insErr as { message?: string }).message ?? '';
@@ -255,21 +261,36 @@ serve(async (req) => {
     droppedColumns: dropped.length > 0 ? dropped : undefined,
   });
 
-  // ── Email confirmation (fire & forget; Zoho Mail SMTP) ─────────────────
-  // Failure is non-fatal — sendEmail() logs to email_messages and returns
-  // a status object rather than throwing, so a flaky SMTP session never
-  // rolls back a successful booking. We don't await it.
+  // ── Email confirmation (independent of the insert) ─────────────────────
+  // The email step runs in its own async block — it never shares a query
+  // with the insert, so a SELECT error here (e.g. `manage_token` missing
+  // because the booking-changes migration hasn't run) can't roll back the
+  // booking. sendEmail() also logs every attempt to email_messages and
+  // returns rather than throws, so a flaky SMTP session is non-fatal too.
   if (email) {
+    const bookingId  = booking.id as string;
+    const bookingRef = booking.booking_ref as string;
     (async () => {
+      // Best-effort manage_token lookup. If the column isn't there yet,
+      // we just send the email without the manage link.
+      let manageToken: string | null = null;
+      const { data: tokRow, error: tokErr } = await supabase
+        .from('bookings')
+        .select('manage_token')
+        .eq('id', bookingId)
+        .single();
+      if (!tokErr && tokRow) {
+        manageToken = (tokRow as { manage_token?: string | null }).manage_token ?? null;
+      }
       const rendered = renderBookingConfirmation({
         customerName:  name,
-        bookingRef:    ref,
+        bookingRef,
         packageNameAr: pkg.name_ar,
         packageNameEn: pkg.name_en,
         eventDate,
         eventTime,
         total,
-        manageToken:   (booking as { manage_token?: string | null }).manage_token ?? null,
+        manageToken,
         siteOrigin:    SITE_ORIGIN,
       });
       await sendEmail({
@@ -278,7 +299,7 @@ serve(async (req) => {
         html:      rendered.html,
         text:      rendered.text,
         template:  'booking_confirmation',
-        bookingId: booking.id,
+        bookingId,
       });
     })().catch(err => console.error('email-confirm error:', (err as Error).message));
   }
