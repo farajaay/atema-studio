@@ -37,7 +37,42 @@ jobs:
         run: npm test
 
       - name: Type-check + build
-        run: npm run build
+        env:
+          # Vite bakes these into the JS bundle at build time. Without
+          # them src/services/supabase.ts evaluates to `supabase = null`
+          # and the entire booking flow silently mock-modes — no Edge
+          # Function call, no insert, no admin visibility. These MUST
+          # be set as GitHub Actions repository secrets, mirroring the
+          # local .env you use on your laptop.
+          VITE_SUPABASE_URL:            ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY:       ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Optional — Moyasar live publishable key. If unset the
+          # booking flow falls back to the bank-transfer path only.
+          VITE_MOYASAR_PUBLISHABLE_KEY: ${{ secrets.VITE_MOYASAR_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "${VITE_SUPABASE_URL:-}" ] || [ -z "${VITE_SUPABASE_ANON_KEY:-}" ]; then
+            echo "::error::VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is unset."
+            echo "::error::Without these, the customer-facing bundle ships in mock-only mode"
+            echo "::error::— no real bookings get written. Set them in Settings → Secrets"
+            echo "::error::and re-run the deploy."
+            exit 1
+          fi
+          npm run build
+
+      - name: Verify Supabase URL was baked into the bundle
+        # Defence-in-depth: if Vite silently dropped the env (e.g. wrong
+        # variable name, build cache, terser stripping), fail loudly
+        # BEFORE publishing to gh-pages so we never ship a mock-only
+        # bundle to atemastudio.xyz again.
+        run: |
+          if ! grep -q "${VITE_SUPABASE_URL}" dist/assets/*.js; then
+            echo "::error::Built bundle does not contain the configured Supabase URL."
+            echo "::error::Vite did not bake VITE_SUPABASE_URL into the JS. Refusing to publish."
+            exit 1
+          fi
+          echo "::notice::Supabase URL confirmed in bundle."
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
 
       - name: Publish dist/ to gh-pages
         uses: peaceiris/actions-gh-pages@v4
