@@ -1796,9 +1796,11 @@ export default function BookingPage() {
               </p>
             </div>
             <button onClick={() => setShowForm(true)}
-              style={{ background:'transparent', border:'1.5px solid rgba(201,179,147,0.5)',
-                color: T.champagne, fontFamily:'Tajawal,sans-serif', fontSize:'0.85rem',
-                padding:'9px 22px', borderRadius:'8px', cursor:'pointer',
+              style={{ background: T.ctaBg, border:`1.5px solid ${T.ctaBorder}`,
+                color: T.ctaText, fontFamily:'Tajawal,sans-serif', fontSize:'0.9rem',
+                fontWeight: 600, letterSpacing:'0.04em',
+                padding:'10px 26px', borderRadius:'8px', cursor:'pointer',
+                boxShadow:'0 2px 12px rgba(0,0,0,0.35)',
                 transition:'all 0.2s' }}>
               {tx(lang,'إتمام الحجز','Book Now')}
             </button>
