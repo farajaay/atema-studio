@@ -65,10 +65,17 @@ function looksLikeEmail(s: string): boolean {
 async function logToAudit(args: SendArgs, status: SendResult['status'], error?: string) {
   const url  = Deno.env.get('SUPABASE_URL');
   const key  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!url || !key) return;            // best-effort; never blow up the caller
+  if (!url || !key) {
+    console.warn('[email] audit insert skipped: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set');
+    return;                            // best-effort; never blow up the caller
+  }
   try {
     const supabase = createClient(url, key);
-    await supabase.from('email_messages').insert([{
+    // PostgREST returns errors in the result, NOT via throw. The previous
+    // bare `await` swallowed table-missing / RLS-blocked failures silently,
+    // making the empty email_messages table mysterious. Pull the error out
+    // and log it so future failures are visible in the function logs.
+    const { error: insErr } = await supabase.from('email_messages').insert([{
       booking_id: args.bookingId ?? null,
       to_address: args.to,
       subject:    args.subject,
@@ -76,6 +83,9 @@ async function logToAudit(args: SendArgs, status: SendResult['status'], error?: 
       status,
       error:      error ?? null,
     }]);
+    if (insErr) {
+      console.error('[email] audit insert rejected:', insErr.message, insErr.code ?? '', insErr.details ?? '');
+    }
   } catch (e) {
     console.error('[email] audit insert failed:', (e as Error).message);
   }

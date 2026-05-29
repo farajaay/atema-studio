@@ -46,6 +46,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Keep the Deno worker alive until a background task settles, instead of
+// letting it cancel when the HTTP response is returned. Without this,
+// awaits *after* a fast network send (e.g. the audit insert that follows
+// the SMTP send inside sendEmail) routinely lose the race to teardown,
+// silently dropping the email_messages row even though the email itself
+// went out. The Supabase Edge runtime exposes EdgeRuntime.waitUntil; in
+// other environments (unit tests, local Deno) we fall back to a no-op.
+function keepAlive(task: Promise<unknown>): void {
+  // deno-lint-ignore no-explicit-any
+  const rt = (globalThis as any).EdgeRuntime;
+  if (rt && typeof rt.waitUntil === 'function') {
+    try { rt.waitUntil(task); return; } catch { /* fall through */ }
+  }
+}
+
 function fail(error: string, status = 400, detail?: string): Response {
   return new Response(JSON.stringify({ error, detail }), {
     status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -307,10 +322,18 @@ serve(async (req) => {
   // because the booking-changes migration hasn't run) can't roll back the
   // booking. sendEmail() also logs every attempt to email_messages and
   // returns rather than throws, so a flaky SMTP session is non-fatal too.
+  //
+  // CRITICAL: a bare `(async () => {...})()` gets cancelled the moment
+  // the HTTP handler returns its response — the SMTP send may slip out
+  // ahead of teardown because the connection is already open, but the
+  // *audit insert* that follows the send is a fresh REST call and
+  // routinely loses the race, leaving email_messages empty. Register
+  // the promise with EdgeRuntime.waitUntil() so the worker stays alive
+  // until the whole chain (SMTP + audit insert) settles.
   if (email) {
     const bookingId  = booking.id as string;
     const bookingRef = booking.booking_ref as string;
-    (async () => {
+    const emailTask = (async () => {
       // Best-effort manage_token lookup. If the column isn't there yet,
       // we just send the email without the manage link.
       let manageToken: string | null = null;
@@ -342,22 +365,25 @@ serve(async (req) => {
         bookingId,
       });
     })().catch(err => console.error('email-confirm error:', (err as Error).message));
+    keepAlive(emailTask);
   }
 
   // ── WhatsApp notification (fire & forget; preserved from previous stub) ──
-  fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
-    body: JSON.stringify({
-      phone:      phone,
-      name,
-      bookingRef: ref,
-      packageAr:  pkg.name_ar,
-      packageEn:  pkg.name_en,
-      total,
-      eventDate,
-    }),
-  }).catch(err => console.error('wa-notify error:', err));
+  keepAlive(
+    fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({
+        phone:      phone,
+        name,
+        bookingRef: ref,
+        packageAr:  pkg.name_ar,
+        packageEn:  pkg.name_en,
+        total,
+        eventDate,
+      }),
+    }).catch(err => console.error('wa-notify error:', err)),
+  );
 
   return new Response(
     JSON.stringify({
