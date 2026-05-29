@@ -69,7 +69,13 @@ export function renderBookingConfirmation(d: ConfirmationData): RenderedEmail {
     ? `${origin}/#/manage/${encodeURIComponent(d.manageToken)}`
     : null;
 
-  const subject = `تأكيد الحجز · Booking confirmed — ${ref} — ATEMA STUDIO`;
+  // ASCII-only subject. denomailer 1.6.0 emits broken RFC 2047 encoded-words
+  // for mixed-script subjects (literal spaces inside the encoded-word, no
+  // closing `?=`), which strict receivers like Gmail interpret as a fully
+  // malformed header block — the parser bails before reaching the From: line
+  // and bounces the message with "5.7.1 'From' header is missing." The body
+  // itself stays bilingual; only the Subject line is now ASCII-safe.
+  const subject = `Booking confirmed - ${ref} - ATEMA STUDIO`;
 
   const text = [
     `عزيزتي ${name},`,
