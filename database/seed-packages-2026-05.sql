@@ -20,9 +20,13 @@ alter table public.addons
 -- Insert/update by id so re-running keeps prices in sync.
 insert into public.addons (id, name_ar, name_en, price, active, sort_order)
 values
-  ('extra-hour',     'ساعة تصوير إضافية',                       'Extra photo hour',                         700,  true, 10),
-  ('video-short',    'فيديو سينمائي قصير (إضافة للكلاسيكية)',    'Short cinematic video (Classic add-on)',  2200,  true, 20),
-  ('video-full',     'فيديو سينمائي كامل (إضافة للكلاسيكية)',    'Full cinematic video (Classic add-on)',   3200,  true, 30),
+  -- Extra hour now includes assistant cost (110/hr) + 25% margin on full loaded labour.
+  ('extra-hour',     'ساعة تصوير إضافية',                       'Extra photo hour',                         900,  true, 10),
+  -- Video add-ons follow the videography 50% margin rule:
+  --   short = ~5h × 450 × 1.5 ≈ 3,400 SAR
+  --   full  = ~7h × 450 × 1.5 ≈ 4,800 SAR
+  ('video-short',    'فيديو سينمائي قصير (إضافة للكلاسيكية)',    'Short cinematic video (Classic add-on)',  3400,  true, 20),
+  ('video-full',     'فيديو سينمائي كامل (إضافة للكلاسيكية)',    'Full cinematic video (Classic add-on)',   4800,  true, 30),
   ('henna',          'تغطية ليلة الحناء',                        'Henna night coverage',                    2400,  true, 40),
   ('bridal-prep',    'تصوير تحضيرات العروس',                     'Bridal prep session',                     1200,  true, 50),
   ('album-upgrade',  'ترقية الألبوم إلى A3',                     'Album upgrade to A3',                      800,  true, 60),
@@ -45,68 +49,78 @@ insert into public.packages
    description, features, badge, is_popular, active, sort_order, included_addon_ids)
 values
 
--- ── 1. Engagement Session — 2,400 SAR ────────────────────────────────────────
-(1, 'باقة الخطوبة', 'Engagement Session', 2400, 2, 30,
+-- ── 1. Engagement Session — 2,500 SAR ────────────────────────────────────────
+-- Pricing updated May-2026 (see migrations-2026-05-pricing-overhaul.sql).
+-- Editing-tier copy aligned with migrations-2026-05-editing-tiers.sql.
+(1, 'باقة الخطوبة', 'Engagement Session', 2500, 2, 30,
  NULL, false,
  'جلسة خطوبة رومانسية بأسلوب راقٍ — مثالية لإعلان البداية.',
  array[
    'ساعتان من التصوير الاحترافي',
-   '٣٠ صورة معدّلة بعناية',
+   '٣٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)',
    'اختيار أجمل اللقطات',
    'وحدة تخزين باسم العروسين',
    'تصميم Save the Date رقمي هدية'
  ],
- NULL, false, true, 10, array[]::text[]),
+ 'الأساسي', false, true, 10, array['save-date']::text[]),
 
--- ── 2. Base — 1,800 SAR — Customise-tab foundation, HIDDEN from Ready Packages ─
--- The booking page picks the cheapest active package as the "design your own"
--- starting point and filters it out of the Ready Packages grid + comparison
--- view (see src/pages/BookingPage.tsx — predefinedPackages). This row must
--- therefore stay the lowest-priced active package; renaming Engagement to
--- 2,400 SAR above ensures Base (1,800) remains the cheapest.
-(2, 'الباقة الأساسية', 'Base', 1800, 2, 30,
+-- ── 2. Custom Foundation — singleton base for "Design Your Package" tab ─────
+-- Set is_custom_base=true via migrations-2026-05-custom-base.sql after seeding.
+-- This row was previously "Customise" (2,200 SAR, 3h, partially-loaded).
+-- Now: minimal 1h foundation that customers build on with add-ons.
+(2, 'الأساس المرن', 'Custom Foundation', 1800, 1, 20,
  NULL, false,
- 'الأساس الذي تُبنى عليه باقتك المخصّصة — اختاري الإضافات حسب يومك.',
+ 'الأساس المرن لباقتك المخصّصة — ابدئي من هنا وأضيفي ما يلائم مناسبتك.',
  array[
-   'ساعتان من التصوير',
-   '٣٠ صورة معدّلة',
+   'ساعة واحدة من التصوير الاحترافي',
+   '٢٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)',
    'وحدة تخزين رقمية',
-   'أساس مرن لإضافة ما تشائين'
+   'أضيفي ساعات، فيديو، ألبوم، أو ليلة الحناء حسب احتياجك'
  ],
- 'الأساسي', false, true, 5, array[]::text[]),
+ NULL, false, true, 0, array[]::text[]),
 
--- ── 3. Classic — 4,200 SAR ───────────────────────────────────────────────────
-(3, 'الباقة الكلاسيكية', 'Classic', 4200, 4, 300,
+-- ── 3. Classic — 5,200 SAR ───────────────────────────────────────────────────
+-- Adds assistant (>2h rule) + printing 25% margin.
+(3, 'الباقة الكلاسيكية', 'Classic', 5200, 4, 300,
  'ألبوم A4 ١٥ صفحة', false,
- 'الباقة المثالية للمناسبات الخاصة — ألبوم فاخر وذكريات تبقى.',
+ 'الباقة المثالية للمناسبات الخاصة — ألبوم فاخر وذكريات تبقى، بفريق نسائي كامل.',
  array[
    '٤ ساعات تغطية شاملة للحفل',
-   'ألبوم A4 بـ ١٥ صفحة',
+   'مصوّرة رئيسية + مساعدة (فريق نسائي)',
+   '٣٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)',
+   'ألبوم A4 بـ ١٥ صفحة — طباعة فاخرة',
    '٥ صور عائلية معدّلة',
    'وحدة تخزين بجميع الصور المعدّلة'
  ],
- NULL, false, true, 30, array[]::text[]),
+ NULL, false, true, 30, array['second-photog']::text[]),
 
--- ── 4. Royal — 6,900 SAR — الأكثر طلباً ──────────────────────────────────────
-(4, 'الباقة الملكية', 'Royal', 6900, 5, 400,
+-- ── 4. Royal — 10,500 SAR — الأكثر طلباً ─────────────────────────────────────
+-- Video service now priced at hours × 450 × 1.5 (50% margin per owner rule).
+(4, 'الباقة الملكية', 'Royal', 10500, 5, 400,
  'ألبوم A4 + ميني ألبوم', true,
- 'تجربة تصوير ملكية مع فيديو سينمائي قصير وألبومين فاخرين.',
+ 'تجربة تصوير ملكية مع فيديو سينمائي قصير وألبومين فاخرين — الأكثر طلباً.',
  array[
    '٥ ساعات تغطية شاملة للحفل',
+   'مصوّرة رئيسية + مساعدة (فريق نسائي)',
+   '٤٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)',
+   '٤ صور بتعديل تحريري احترافي (رتوش متقدم وتدرّج سينمائي)',
    'فيديو سينمائي قصير (٣–٥ دقائق)',
-   'ألبوم A4 بـ ١٥ صفحة',
+   'ألبوم A4 بـ ١٥ صفحة — طباعة فاخرة',
    'ميني ألبوم عائلي',
    'وحدة تخزين باسم العروسين',
    'معاينة في نفس اليوم (٥ صور مختارة)'
  ],
- 'الأكثر طلباً', true, true, 40, array[]::text[]),
+ 'الأكثر طلباً', true, true, 40, array['second-photog','video-short']::text[]),
 
--- ── 5. Signature — 8,500 SAR ─────────────────────────────────────────────────
-(5, 'باقة التوقيع', 'Signature', 8500, 6, 500,
+-- ── 5. Signature — 12,500 SAR ────────────────────────────────────────────────
+(5, 'باقة التوقيع', 'Signature', 12500, 6, 500,
  'ألبوم فاخر A3 ١٢ صفحة + ميني', true,
- 'الباقة الاحترافية الشاملة — فيديو سينمائي كامل وألبوم A3 فاخر.',
+ 'الباقة الاحترافية الشاملة — فيديو سينمائي كامل، ألبوم A3 فاخر، وجلسة تحضيرات العروس.',
  array[
    '٦ ساعات تغطية شاملة للحفل',
+   'مصوّرة رئيسية + مساعدة (فريق نسائي)',
+   '٥٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)',
+   '٨ صور بتعديل تحريري احترافي (رتوش متقدم وتدرّج سينمائي)',
    'فيديو سينمائي كامل',
    'جلسة تصوير تحضيرات العروس',
    'ألبوم فاخر A3 بـ ١٢ صفحة',
@@ -114,15 +128,18 @@ values
    'وحدة تخزين منقوشة بالاسم',
    'معاينة في نفس اليوم (٥ صور مختارة)'
  ],
- 'فاخر', false, true, 50, array[]::text[]),
+ 'فاخر', false, true, 50, array['second-photog','video-full','bridal-prep','album-upgrade']::text[]),
 
--- ── 6. ATEMA Couture — 14,000 SAR — الأفخم ───────────────────────────────────
-(6, 'ATEMA Couture', 'ATEMA Couture', 14000, 8, 700,
+-- ── 6. ATEMA Couture — 19,500 SAR — الأفخم ───────────────────────────────────
+(6, 'ATEMA Couture', 'ATEMA Couture', 19500, 8, 700,
  'ألبوم فاخر A3 ٢٠ صفحة + ميني + لوحة جدارية', true,
- 'تجربة الفخامة الكاملة — كل تفاصيل اليوم بتوقيع كوتور حصري.',
+ 'تجربة الفخامة الكاملة — كل تفاصيل اليوم بتوقيع كوتور حصري، من الحناء إلى الحفل.',
  array[
-   'تغطية شاملة كاملة للحفل',
-   'فيديو سينمائي فاخر',
+   'تغطية شاملة كاملة للحفل (٨ ساعات)',
+   'مصوّرة رئيسية + مساعدة (فريق نسائي)',
+   '٧٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)',
+   '١٢ صورة بتعديل تحريري احترافي (رتوش متقدم وتدرّج سينمائي)',
+   'فيديو سينمائي فاخر — تغطية كاملة + ليلة الحناء',
    'جلسة تحضيرات العروس',
    'تغطية ليلة الحناء',
    'ألبوم فاخر A3 بـ ٢٠ صفحة',
@@ -132,7 +149,7 @@ values
    'معاينة في نفس اليوم (١٠ صور مختارة)',
    'خدمة عملاء ومتابعة خاصة'
  ],
- 'الأفخم', true, true, 60, array[]::text[])
+ 'الأفخم', true, true, 60, array['second-photog','video-full','bridal-prep','album-upgrade','henna','kosha']::text[])
 
 on conflict (id) do update set
   name_ar            = excluded.name_ar,

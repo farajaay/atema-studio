@@ -58,6 +58,12 @@ const ITEMS: FAQItem[] = [
     a_ar: 'العربون ٥٠٪ غير مسترد بمجرد تأكيد الحجز، لأننا نحجز التاريخ لكِ ونرفض حجوزات أخرى. ما تبقى من المبلغ يُسترد بالكامل إن أُلغي الحجز قبل ٤٨ ساعة من التصوير. التفاصيل الكاملة في الشروط والأحكام.',
     a_en: 'The 50% deposit is non-refundable once the booking is confirmed — we hold the date for you and decline other requests for it. The remainder is fully refundable if cancelled at least 48 hours before the shoot. Full terms apply.',
   },
+  {
+    q_ar: 'ماذا يعني "صمّمي باقتك"؟',
+    q_en: 'What does "Design Your Package" mean?',
+    a_ar: 'هي طريقة مرنة لبناء تجربتكِ من الصفر. نبدأ من الأساس المرن (ساعة تصوير + ٢٠ صورة معدّلة بـ ١٨٠٠ ر.س)، ثم تختارين الإضافات التي تناسب مناسبتكِ — ساعات تصوير، فيديو سينمائي، ألبوم فاخر، تغطية ليلة الحناء، أو جلسة تحضيرات العروس. تدفعين فقط لما تختارينه، والإجمالي يتحدث معكِ مباشرةً مع كل خيار.',
+    a_en: 'A flexible way to build your experience from the ground up. We start from the Custom Foundation (1 hour of photography + 20 edited photos at 1,800 SAR), then you choose the add-ons that fit your event — extra shoot hours, cinematic video, a couture album, henna-night coverage, or the bridal-prep session. You pay only for what you choose, and the total updates live as you decide.',
+  },
 ];
 
 interface FAQRowProps {

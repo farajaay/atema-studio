@@ -102,7 +102,10 @@ function gradFor(tier: number): string {
 interface PkgPhoto { file: string; position: string; }
 const PKG_PHOTO: Record<string, PkgPhoto> = {
   engagement: { file: 'B6B52466-B962-4C33-804E-135D26C25236.JPG', position: 'top left' },
-  customise:  { file: 'IMG_5506.JPG',                              position: 'center 25%' },
+  // Custom Foundation — the singleton base for "Design Your Package".
+  // Untitled-2.JPG is "Gilded silence" — minimal, calm, evokes "beginning".
+  // Distinct from every other package card so the base reads as its own thing.
+  customBase: { file: 'Untitled-2.JPG',                            position: 'center 28%' },
   classic:    { file: 'IMG_5620.JPG',                              position: 'center 25%' },
   royal:      { file: 'IMG_5607.JPG',                              position: 'center 28%' },
   signature:  { file: 'IMG_5525.JPG',                              position: 'center 22%' },
@@ -113,23 +116,22 @@ function getVisual(pkg: Package): { gradient: string; photo: string; position: s
   const n = (pkg.name_ar + ' ' + pkg.name_en).toLowerCase();
   const pick = (tier: number, p: PkgPhoto) => ({ gradient: gradFor(tier), photo: p.file, position: p.position });
 
+  // Short-circuit: the data flag wins over name-matching. Survives renames
+  // and is_custom_base swaps without code changes.
+  if (pkg.is_custom_base)                                                  return pick(1, PKG_PHOTO.customBase);
+
   if (n.includes('خطوبة') || n.includes('engagement'))                     return pick(0, PKG_PHOTO.engagement);
-  // The Customise-tab Base package (id=2) is named "الأساسية / Base"
-  // post-rename. Legacy 'مخصّص' / 'customis' matchers are kept so older
-  // package rows that haven't been re-seeded still render correctly. No
-  // other tier has "base" or "أساسي" in its name so a bare includes() is
-  // safe — Arabic tiers don't share the Latin substring either.
-  if (n.includes('أساسي') || n.includes('اساسي') || n.includes('base')
-   || n.includes('مخصّص') || n.includes('مخصص')  || n.includes('customis')) return pick(1, PKG_PHOTO.customise);
+  if (n.includes('أساس')  || n.includes('foundation') || n.includes('مخصّص') || n.includes('مخصص') || n.includes('customis'))
+                                                                            return pick(1, PKG_PHOTO.customBase);
   if (n.includes('كلاسيك') || n.includes('classic'))                       return pick(2, PKG_PHOTO.classic);
   if (n.includes('ملكي')   || n.includes('royal'))                         return pick(3, PKG_PHOTO.royal);
   if (n.includes('توقيع')  || n.includes('signature'))                     return pick(4, PKG_PHOTO.signature);
   if (n.includes('couture')|| n.includes('كوتور') || n.includes('كوتيور')) return pick(5, PKG_PHOTO.couture);
-  // Price-tier fallback for custom packages
+  // Price-tier fallback for ad-hoc custom packages without a name match.
   if (pkg.price < 2500)  return pick(0, PKG_PHOTO.engagement);
-  if (pkg.price < 5000)  return pick(2, PKG_PHOTO.classic);
-  if (pkg.price < 8000)  return pick(3, PKG_PHOTO.royal);
-  if (pkg.price < 12000) return pick(4, PKG_PHOTO.signature);
+  if (pkg.price < 5500)  return pick(2, PKG_PHOTO.classic);
+  if (pkg.price < 11000) return pick(3, PKG_PHOTO.royal);
+  if (pkg.price < 14000) return pick(4, PKG_PHOTO.signature);
   return pick(5, PKG_PHOTO.couture);
 }
 
@@ -799,29 +801,35 @@ function BookingFormModal({
       });
       setBooked({ id: response.id, ref: response.bookingRef, deposit, total: fullTotal });
 
-      // Generate and save contract
+      // Generate and save contract. The `pkg` prop here is already activePkg
+      // (the selected Ready Package on the Packages tab, or basePkg on the
+      // Design Your Package tab — resolved upstream in BookingPage). The
+      // editing-tier fields (editedPhotos / editorialPhotos) drive Article
+      // IV-bis in the contract (basic vs editorial editing declaration).
       const cHTML = generateContractHTML({
-        customerName:   name,
-        customerPhone:  normPhone,
-        bookingRef:     response.bookingRef,
-        bookingId:      response.id,
-        contractDate:   new Date().toISOString().split('T')[0],
-        eventDate:      form.date,
-        eventTime:      form.time || '18:00',
-        packageNameAr:  pkg?.name_ar ?? 'الباقة الأساسية',
-        packageNameEn:  pkg?.name_en ?? 'Base Package',
-        location:       cleanVenue || form.city,
-        durationHours:  pkg?.duration_hours ?? 0,
+        customerName:    name,
+        customerPhone:   normPhone,
+        bookingRef:      response.bookingRef,
+        bookingId:       response.id,
+        contractDate:    new Date().toISOString().split('T')[0],
+        eventDate:       form.date,
+        eventTime:       form.time || '18:00',
+        packageNameAr:   pkg?.name_ar ?? 'الباقة الأساسية',
+        packageNameEn:   pkg?.name_en ?? 'Base Package',
+        location:        cleanVenue || form.city,
+        durationHours:   pkg?.duration_hours ?? 0,
+        editedPhotos:    pkg?.edited_photos ?? 0,
+        editorialPhotos: pkg?.editorial_photos ?? 0,
         subtotal, vat, total: fullTotal, deposit,
-        remaining:      fullTotal - deposit,
-        addons:         addonLines.map(l => lang === 'ar' ? l.nameAr : l.nameEn),
-        discount:       appliedDiscount && discAmt > 0 ? {
+        remaining:       fullTotal - deposit,
+        addons:          addonLines.map(l => lang === 'ar' ? l.nameAr : l.nameEn),
+        discount:        appliedDiscount && discAmt > 0 ? {
           code:   appliedDiscount.code,
           amount: discAmt,
           kind:   appliedDiscount.kind,
           value:  appliedDiscount.value,
         } : null,
-        grossSubtotal:  grossSub,
+        grossSubtotal:   grossSub,
       });
       setContractHTML(cHTML);
       saveContract(response.id, response.bookingRef, cHTML);
@@ -1241,7 +1249,10 @@ export default function BookingPage() {
   const [stickyShow,     setStickyShow]     = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscountState | null>(null);
 
-  const activePackages = packages.filter(p => p.active);
+  // Ready Packages tab: every active package EXCEPT the Custom Foundation
+  // (the singleton that the "Design Your Package" tab uses as its base).
+  // See migrations-2026-05-custom-base.sql for the data contract.
+  const activePackages = packages.filter(p => p.active && !p.is_custom_base);
 
   // Auto-select the most popular (or first) package once data loads.
   // Skip the cheapest active row — that's the Customise-tab base, not a
@@ -1283,12 +1294,11 @@ export default function BookingPage() {
   });
 
   // ── Custom tab totals ──────────────────────────────────────────────────────
-  const basePkg        = [...activePackages].sort((a, b) => a.price - b.price)[0];
-  // The cheapest active package is the foundation for the Customise tab
-  // ("design your own"). It must NOT appear in the Ready Packages grid /
-  // comparison view — otherwise the same tier is offered twice (once as
-  // predefined, once as the build-from base) and brides see a duplicate.
-  const predefinedPackages = activePackages.filter(p => p.id !== basePkg?.id);
+  // The Custom Foundation is a distinct singleton (is_custom_base = true),
+  // NOT just the cheapest Ready Package. Falls back to cheapest active for
+  // safety if the migration hasn't been run yet against this DB.
+  const basePkg        = packages.find(p => p.active && p.is_custom_base)
+                       ?? [...activePackages].sort((a, b) => a.price - b.price)[0];
   const customGrossSubtotal = (basePkg?.price ?? 0) + addTotal;
   const customDiscountAmount = appliedDiscount
     ? Math.min(appliedDiscount.amount, customGrossSubtotal)
@@ -1346,6 +1356,14 @@ export default function BookingPage() {
   const activePkg      = activeTab === 'packages' ? pkg   : basePkg;
   const activeTotal    = activeTab === 'packages' ? total : customTotal;
   const activeAddonSet = activeAddons;
+
+  // Hide add-ons that are already bundled into the selected package's price
+  // (declared via packages.included_addon_ids — see migrations-2026-05-
+  // included-addons.sql). Prevents double-charging customers for services
+  // they've already paid for. On the Custom Foundation tab the included
+  // set is empty by design, so every add-on stays visible.
+  const includedAddonIds = new Set(activePkg?.included_addon_ids ?? []);
+  const visibleAddons    = addons.filter(a => !includedAddonIds.has(a.id));
 
   useEffect(() => {
     const onScroll = () => setStickyShow(window.scrollY > 380);
@@ -1479,7 +1497,7 @@ export default function BookingPage() {
             {/* ── Audit append (2026-05): view-mode toggle ────────────────
                 Cards remain default. Power users (or brides on desktop
                 doing real comparison) can flip to a side-by-side table. */}
-            {!pkgLoading && predefinedPackages.length > 1 && (
+            {!pkgLoading && activePackages.length > 1 && (
               <div role="group" aria-label={tx(lang,'طريقة العرض','View mode')}
                 style={{
                   display: 'inline-flex',
@@ -1532,7 +1550,7 @@ export default function BookingPage() {
               {viewMode === 'compare' && !pkgLoading ? (
                 <div className="fade-up">
                   <PackageComparison
-                    packages={predefinedPackages}
+                    packages={activePackages}
                     lang={lang}
                     vatEnabled={vatEnabled}
                     selectedId={selectedPkg}
@@ -1551,7 +1569,7 @@ export default function BookingPage() {
                     <Loader2 size={24} color={T.sand} style={{ animation:'spin 1s linear infinite', margin:'0 auto 12px', display:'block' }} />
                     {lang==='ar' ? 'جارٍ التحميل...' : 'Loading packages...'}
                   </div>
-                ) : predefinedPackages.map((p, i) => (
+                ) : activePackages.map((p, i) => (
                   <div key={p.id} className="fade-up"
                     style={{ animationDelay: `${i * 0.06}s` }}>
                     <PkgCard pkg={p} lang={lang}
@@ -1652,6 +1670,13 @@ export default function BookingPage() {
                           )}
                         </div>
                         <div style={{ textAlign: lang==='ar'?'left':'right' }}>
+                          {/* "Starts at" framing — explicit on the base so customers
+                              understand the price builds up via add-ons. */}
+                          <div style={{ fontSize:'0.65rem', letterSpacing:'0.18em',
+                            textTransform:'uppercase', color: T.taupe,
+                            fontFamily:"'Cinzel', serif", marginBottom:'4px' }}>
+                            {tx(lang,'ابتداءً من','Starts at')}
+                          </div>
                           <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'1.8rem',
                             color: T.gold, lineHeight:1 }}>
                             {basePkg.price.toLocaleString()}
@@ -1740,7 +1765,7 @@ export default function BookingPage() {
           </div>
 
           <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
-            {addons.map(a => (
+            {visibleAddons.map(a => (
               <AddonRow key={a.id} addon={a} lang={lang}
                 active={activeAddons.has(a.id)}
                 qty={hourQtys[a.id] ?? 0}

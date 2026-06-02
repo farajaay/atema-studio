@@ -36,10 +36,22 @@ const ROWS: Row[] = [
       : '—',
   },
   {
-    label_ar: 'صور معدّلة',
-    label_en: 'Edited photos',
+    label_ar: 'صور بتعديل أساسي',
+    label_en: 'Basic-edit photos',
     Icon: ImageIcon,
     render: (p) => p.edited_photos > 0 ? p.edited_photos.toLocaleString() : '—',
+  },
+  {
+    // Editorial retouch — premium upgrade on high-end tiers only. Counts
+    // are enforced in multiples of 4 at the DB level (Royal=4, Signature=8,
+    // Couture=12). Lower tiers show "—" rather than "0" to read as
+    // "not included" rather than "zero photos".
+    label_ar: 'صور بتعديل تحريري',
+    label_en: 'Editorial retouch',
+    Icon: ImageIcon,
+    render: (p) => (p.editorial_photos ?? 0) > 0
+      ? (p.editorial_photos ?? 0).toLocaleString()
+      : '—',
   },
   {
     label_ar: 'ألبوم',

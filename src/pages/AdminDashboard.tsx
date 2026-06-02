@@ -20,20 +20,30 @@ import {
 } from 'lucide-react';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
-const STATUS_CONFIG = {
+// Default fallback for any status the DB returns that we haven't mapped yet.
+// Prevents a single bad row from white-screening the entire admin dashboard
+// (the bug that caused "Cannot read properties of undefined (reading 'bg')"
+// when a booking landed with payment_status='awaiting_transfer').
+const STATUS_DEFAULT  = { label: '—',  bg: '#f3f4f6', color: '#6b7280', Icon: Clock };
+const PAYMENT_DEFAULT = { label: '—',  bg: '#f3f4f6', color: '#6b7280' };
+
+const STATUS_CONFIG: Record<string, typeof STATUS_DEFAULT> = {
   pending:   { label: 'قيد الانتظار', bg: '#fef3c7', color: '#d97706', Icon: Clock },
   confirmed: { label: 'مؤكد',         bg: '#d1fae5', color: '#059669', Icon: CheckCircle2 },
   completed: { label: 'مكتمل',        bg: '#dbeafe', color: '#2563eb', Icon: CheckCircle2 },
   cancelled: { label: 'ملغي',         bg: '#fee2e2', color: '#dc2626', Icon: XCircle },
 };
-const PAYMENT_CONFIG = {
-  unpaid:   { label: 'غير مدفوع', bg: '#fef3c7', color: '#d97706' },
-  paid:     { label: 'مدفوع',     bg: '#d1fae5', color: '#059669' },
-  refunded: { label: 'مُسترد',    bg: '#f3e8ff', color: '#7c3aed' },
+const PAYMENT_CONFIG: Record<string, typeof PAYMENT_DEFAULT> = {
+  unpaid:             { label: 'غير مدفوع',          bg: '#fef3c7', color: '#d97706' },
+  // Bank-transfer flow: customer chose transfer + receipt not yet verified.
+  // Set by BankTransferPayment.tsx; previously absent here, causing crash.
+  awaiting_transfer:  { label: 'بانتظار التحويل',    bg: '#fde68a', color: '#b45309' },
+  paid:               { label: 'مدفوع',              bg: '#d1fae5', color: '#059669' },
+  refunded:           { label: 'مُسترد',             bg: '#f3e8ff', color: '#7c3aed' },
 };
 
 function StatusBadge({ status }: { status: Booking['status'] }) {
-  const c = STATUS_CONFIG[status];
+  const c = STATUS_CONFIG[status] ?? { ...STATUS_DEFAULT, label: status || '—' };
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px',
       background: c.bg, color: c.color, padding: '3px 10px', borderRadius: '20px',
@@ -43,7 +53,7 @@ function StatusBadge({ status }: { status: Booking['status'] }) {
   );
 }
 function PayBadge({ status }: { status: Booking['payment_status'] }) {
-  const c = PAYMENT_CONFIG[status];
+  const c = PAYMENT_CONFIG[status] ?? { ...PAYMENT_DEFAULT, label: status || '—' };
   return (
     <span style={{ display: 'inline-block', background: c.bg, color: c.color,
       padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>

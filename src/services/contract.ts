@@ -19,6 +19,12 @@ export interface ContractData {
   deposit: number;
   remaining: number;
   addons: string[];            // Arabic names of selected addons
+  /** Count of photos covered by basic edit (lighting + JPG conversion). */
+  editedPhotos?: number;
+  /** Count of photos covered by editorial retouch (advanced retouching +
+   *  cinematic grade). 0 means no editorial retouch is included; this is
+   *  the default for all but Royal/Signature/Couture. */
+  editorialPhotos?: number;
   /** Discount applied to this booking — when null, no discount line is rendered. */
   discount?: {
     code: string;
@@ -228,12 +234,26 @@ export function generateContractHTML(d: ContractData): string {
     <div class="article">
       <h3>المادة الرابعة — مواعيد التسليم</h3>
       <table>
-        <tr><td>الصور المعدَّلة</td><td>١٢٠–١٨٠ يوماً من تاريخ المناسبة</td></tr>
+        <tr><td>الصور بالتعديل الأساسي</td><td>١٢٠–١٨٠ يوماً من تاريخ المناسبة</td></tr>
+        ${(d.editorialPhotos ?? 0) > 0
+          ? `<tr><td>الصور بالتعديل التحريري</td><td>١٢٠–١٨٠ يوماً من تاريخ المناسبة</td></tr>` : ''}
         <tr><td>الفيديو السينمائي</td><td>١٢٠ يوماً من تاريخ المناسبة</td></tr>
         <tr><td>الألبوم المطبوع</td><td>بعد اختيار الصور واعتمادها</td></tr>
         <tr><td>المعاينة نفس اليوم (إن وُجدت)</td><td>خلال نفس يوم المناسبة</td></tr>
       </table>
       <p style="margin-top:8px;font-size:12px;color:${STATIONERY.inkFaint}">تبدأ مدة التسليم من يوم انتهاء المناسبة، ولا يُعدّ التأخر ضمنها إخلالاً بالعقد.</p>
+    </div>
+
+    <div class="article">
+      <h3>المادة الرابعة (مكرّر) — مستويات تعديل الصور</h3>
+      <p>تُسلَّم الصور وفق مستويين متمايزين من التعديل، يلتزم بهما الطرف الأول صراحةً:</p>
+      <ul>
+        <li><strong>التعديل الأساسي (Basic Edit):</strong> يشمل تصحيح الإضاءة، موازنة الألوان، وتحويل الملفات من صيغة RAW إلى JPG عالية الجودة. يُطبَّق على <strong>جميع</strong> الصور المُسلَّمة في الباقة (${d.editedPhotos ? esc(String(d.editedPhotos)) : '—'} صورة).</li>
+        ${(d.editorialPhotos ?? 0) > 0
+          ? `<li><strong>التعديل التحريري (Editorial Retouch):</strong> رتوش متقدم يشمل تنعيم البشرة، وإزالة الشوائب، وتقنية Dodge &amp; Burn، والتدرّج اللوني السينمائي. هذا المستوى محدود في باقتك بـ <strong>${esc(String(d.editorialPhotos))} صورة</strong> فقط من إجمالي الصور المُسلَّمة، وتُختار بالتنسيق مع العميلة من بين الصور الأكثر تميّزاً في المناسبة.</li>`
+          : `<li><strong>التعديل التحريري (Editorial Retouch):</strong> غير مشمول في هذه الباقة. متوفّر كخدمة إضافية في الباقات العليا (الملكية، التوقيع، الكوتور) بأعداد ٤ / ٨ / ١٢ صورة على التوالي.</li>`}
+      </ul>
+      <div class="important">يُقرّ الطرف الثاني بأنه قد اطّلع على الفرق بين مستويَي التعديل ووافق على الحدود المحدَّدة لكلّ مستوى في الباقة المختارة، وأن أي طلب يتجاوز ذلك يُعدّ خدمةً إضافيةً تُسعَّر بشكلٍ منفصل.</div>
     </div>
 
     <div class="article">

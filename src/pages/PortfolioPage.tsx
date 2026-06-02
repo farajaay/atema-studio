@@ -28,6 +28,24 @@ export default function PortfolioPage() {
 
   const visible = filter === 'all' ? items : items.filter(i => i.category === filter);
 
+  // Hide category chips that have zero items. The portfolio seed only
+  // populates bride/couture/editorial today; Family and Maternity were
+  // pre-defined categories with no curated work yet, so clicking them used
+  // to dead-end on an empty state. Better UX: don't advertise empty rooms.
+  // The "All" chip is always shown.
+  const nonEmptyCategories = CATEGORIES.filter(c =>
+    items.some(i => i.category === c.key)
+  );
+
+  // If the current filter no longer has items (e.g. admin unpublished the
+  // last item in that category), reset to "all" so the page doesn't stay
+  // stuck on an empty filter the user can't see.
+  useEffect(() => {
+    if (filter !== 'all' && !items.some(i => i.category === filter)) {
+      setFilter('all');
+    }
+  }, [filter, items]);
+
   return (
     <div style={{ background: 'var(--a-bg)', color: 'var(--a-text)', minHeight: '100vh' }}>
       <SiteHeader lang={lang} setLang={setLang} solidOnScroll />
@@ -64,7 +82,7 @@ export default function PortfolioPage() {
         display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 12,
         padding: '0 24px 40px',
       }}>
-        {([{ key: 'all', ar: 'الكل', en: 'All' }, ...CATEGORIES] as const).map(c => (
+        {[{ key: 'all' as const, ar: 'الكل', en: 'All' }, ...nonEmptyCategories].map(c => (
           <button key={c.key} onClick={() => setFilter(c.key as any)}
             style={{
               padding: '8px 22px', borderRadius: 2, cursor: 'pointer',

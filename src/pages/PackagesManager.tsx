@@ -109,6 +109,7 @@ function FeaturesEditor({ features, onChange }: {
 // ── Empty state ───────────────────────────────────────────────────────────────
 const EMPTY: Omit<Package, 'id'> = {
   name_ar: '', name_en: '', price: 2000, duration_hours: 3, edited_photos: 150,
+  editorial_photos: 0,
   album: '', video: false, description: '', features: [], badge: '', is_popular: false, active: true,
   included_addon_ids: [],
 };
@@ -388,8 +389,18 @@ export default function PackagesManager() {
         </div>
 
         <div>
-          <Label icon={<Camera size={13} />} text="الصور المعدّلة المُسلّمة" tip="عدد الصور النهائية بعد الاختيار والتعديل. القاعدة: ٧٠-٧٥ صورة لكل ساعة تصوير. أقل من ٦٠/ساعة يبدو قليلاً. أكثر من ٩٠/ساعة يرهق وقت التعديل بدون تسعير إضافي." />
+          <Label icon={<Camera size={13} />} text="صور بالتعديل الأساسي" tip="عدد الصور التي تُسلَّم بعد التعديل الأساسي (إضاءة + موازنة ألوان + تحويل JPG). القاعدة: ٧٠-٧٥ صورة لكل ساعة تصوير. أقل من ٦٠/ساعة يبدو قليلاً. أكثر من ٩٠/ساعة يرهق وقت التعديل بدون تسعير إضافي." />
           <input type="number" min={0} value={draft.edited_photos} onChange={e => setField('edited_photos', Number(e.target.value))} style={inp} />
+        </div>
+
+        <div>
+          <Label icon={<Camera size={13} />} text="صور بالتعديل التحريري (مضاعفات الـ ٤)" tip="رتوش متقدم (تنعيم بشرة، Dodge & Burn، تدرّج سينمائي). يجب أن يكون من مضاعفات الـ ٤ (٠، ٤، ٨، ١٢). متاح في الباقات العليا فقط: الملكية ٤، التوقيع ٨، الكوتور ١٢. اتركيه ٠ في الباقات الأدنى." />
+          <input type="number" min={0} step={4} value={draft.editorial_photos ?? 0}
+            onChange={e => {
+              const v = Number(e.target.value);
+              // Enforce factor-of-4 on the client too — DB has the same CHECK.
+              setField('editorial_photos', v >= 0 && v % 4 === 0 ? v : (draft.editorial_photos ?? 0));
+            }} style={inp} />
         </div>
 
         <div>

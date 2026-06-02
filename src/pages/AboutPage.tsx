@@ -1,6 +1,7 @@
 // ATEMA STUDIO — The Atelier (about) page.
 // Story of the studio, founder tribute, philosophy, and a private invitation.
 
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
@@ -15,6 +16,11 @@ export default function AboutPage() {
   const { isMobile } = useBreakpoint();
 
   const bodyFont = lang === 'ar' ? "'Tajawal', sans-serif" : "'Montserrat', sans-serif";
+
+  // Portrait of Fatima. Falls back to the editorial placeholder if the file
+  // isn't yet in /public/photos/. Drop fatima-portrait.jpeg (+ .webp) and the
+  // image takes over with no code change required.
+  const [portraitOk, setPortraitOk] = useState(true);
 
   return (
     <div style={{ background: 'var(--a-bg)', color: 'var(--a-text)', minHeight: '100vh' }}>
@@ -136,19 +142,46 @@ export default function AboutPage() {
               <div style={{
                 aspectRatio: '3 / 4', background: 'var(--a-surface)',
                 border: '1px solid var(--a-border)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 position: 'relative', overflow: 'hidden',
               }}>
-                <div aria-hidden style={{
-                  position: 'absolute', inset: 0,
-                  background: 'linear-gradient(135deg, rgba(212,175,122,0.06), transparent 60%)',
-                }} />
-                <div className="display-serif" style={{
-                  fontSize: isMobile ? '2.2rem' : '3rem',
-                  color: 'var(--a-gold)', letterSpacing: '0.05em',
-                }}>
-                  ATEMA
-                </div>
+                {portraitOk ? (
+                  <picture>
+                    <source type="image/webp"
+                      srcSet="/photos/fatima-portrait.webp" />
+                    <img
+                      src="/photos/fatima-portrait.jpeg"
+                      alt={tx(lang, 'فاطمة بوحسن — مؤسِّسة استوديو ATEMA',
+                                    'Fatima Bohassan — founder of ATEMA Studio')}
+                      loading="lazy"
+                      decoding="async"
+                      onError={() => setPortraitOk(false)}
+                      style={{
+                        position: 'absolute', inset: 0,
+                        width: '100%', height: '100%',
+                        objectFit: 'cover',
+                        objectPosition: 'center 25%',
+                      }}
+                    />
+                  </picture>
+                ) : (
+                  <>
+                    <div aria-hidden style={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(135deg, rgba(212,175,122,0.06), transparent 60%)',
+                    }} />
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <div className="display-serif" style={{
+                        fontSize: isMobile ? '2.2rem' : '3rem',
+                        color: 'var(--a-gold)', letterSpacing: '0.05em',
+                      }}>
+                        ATEMA
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
               <div style={{
                 padding: '18px 22px',
@@ -157,7 +190,7 @@ export default function AboutPage() {
                 textAlign: 'center',
               }}>
                 <div className="editorial-eyebrow" style={{ marginBottom: 6 }}>
-                  {tx(lang,'منذ ٢٠٢٤','Est. 2024')}
+                  {tx(lang,'منذ ٢٠١٨','Est. 2018')}
                 </div>
                 <p style={{
                   fontSize: '0.82rem', lineHeight: 1.8,

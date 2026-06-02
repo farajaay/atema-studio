@@ -2,7 +2,7 @@
 // Cinematic hero → portfolio strip + trust band (first-paint visible) →
 // Experience scroll-story → Packages teaser → Journal preview → Portfolio preview.
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
@@ -11,35 +11,32 @@ import PromotionModal from '../components/PromotionModal';
 import { useLang } from '../hooks/useLang';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { fetchPortfolio } from '../services/portfolio';
-import type { PortfolioItem } from '../services/portfolio';
 import { Users, MapPin, CreditCard } from 'lucide-react';
 
 const tx = (l: 'ar' | 'en', ar: string, en: string) => l === 'ar' ? ar : en;
 
-// Static fallback so the strip is never empty on first paint — overridden by
-// the live Supabase fetch when it lands. Files exist in /public/photos/ and
-// are already paired with WebP variants.
-const FALLBACK_THUMBS = [
-  'IMG_5620.JPG', 'IMG_5607.JPG', 'IMG_5525.JPG',
-  'IMG_5506.JPG', 'IMG_5623.JPG', 'B6B52466-B962-4C33-804E-135D26C25236.JPG',
+// Curated single-subject bride portraits for the homepage strip. We do NOT
+// let the live portfolio override this because portfolio items include
+// couples and group/detail shots that don't compose well in a tight 6-thumb
+// strip (caused visible double-subject thumbnails in earlier iterations).
+// To rotate the homepage selection, edit this array directly.
+const HOMEPAGE_THUMBS = [
+  'F41A818D-D3EF-419E-A002-DC76C76BF59D.JPG', // pearl veil — close-up
+  'IMG_5607.JPG',                              // when the room turns toward her
+  'IMG_5525.JPG',                              // the look she keeps
+  '7CC155A1-8BFC-49B7-ADC2-CF8346A3E535.JPG', // studio in silver — black backdrop
+  'IMG_5506.JPG',                              // roses in winter white
+  'IMG_5538.JPG',                              // a laugh between two breaths
 ];
 
 export default function HomePage() {
   const { lang, setLang } = useLang();
   const { isMobile } = useBreakpoint();
 
-  // 6 portfolio thumbs to fill the first-scroll void below the hero. We start
-  // from the static fallback (no flash), then upgrade to the live Supabase
-  // picks once they arrive.
-  const [thumbs, setThumbs] = useState<string[]>(
-    FALLBACK_THUMBS.map(f => `/photos/${f}`),
-  );
-  useEffect(() => {
-    fetchPortfolio().then((items: PortfolioItem[]) => {
-      const urls = items.slice(0, 6).map(i => i.image_url).filter(Boolean);
-      if (urls.length >= 3) setThumbs(urls);
-    });
-  }, []);
+  const thumbs = HOMEPAGE_THUMBS.map(f => `/photos/${f}`);
+  // Live fetch retained only so the portfolio data stays warm in the React
+  // Query cache for the /portfolio route navigation.
+  useEffect(() => { fetchPortfolio().catch(() => {}); }, []);
 
   return (
     <div style={{ background: 'var(--a-bg)', color: 'var(--a-text)', minHeight: '100vh' }}>
@@ -129,11 +126,11 @@ export default function HomePage() {
         padding: isMobile ? '60px 16px 0' : '90px 60px 0',
         background: 'var(--a-bg)',
       }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
           <div style={{
             display: 'grid',
             gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)',
-            gap: isMobile ? 6 : 10,
+            gap: isMobile ? 8 : 14,
           }}>
             {thumbs.slice(0, 6).map((src, i) => (
               <Link key={i} to="/portfolio" style={{ display: 'block', textDecoration: 'none' }}>
@@ -176,27 +173,29 @@ export default function HomePage() {
         background: 'var(--a-bg)',
       }}>
         <div style={{
-          maxWidth: 1100, margin: '0 auto',
+          maxWidth: 780, margin: '0 auto',
           border: '1px solid var(--a-border)',
           background: 'var(--a-surface)',
-          padding: isMobile ? '22px 18px' : '28px 36px',
-          display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-          gap: isMobile ? 18 : 22,
+          padding: isMobile ? '22px 20px' : '24px 36px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: isMobile ? 18 : 40,
         }}>
           {[
             { Icon: Users,       ar: 'فريق نسائي بالكامل', en: 'All-female team' },
             { Icon: MapPin,      ar: 'الجبيل والشرقية',    en: 'Jubail & Eastern Province' },
-            /*{ Icon: ShieldCheck, ar: 'مسجَّل ضريبياً (زاتكا)', en: 'ZATCA-registered' },*/
             { Icon: CreditCard,  ar: 'مدى · Apple Pay · تحويل', en: 'Mada · Apple Pay · transfer' },
           ].map(({ Icon, ar, en }) => (
             <div key={en} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
+              display: 'flex', alignItems: 'center', gap: 10,
               color: 'var(--a-text-soft)',
               fontFamily: lang === 'ar' ? "'Tajawal', sans-serif" : "'Montserrat', sans-serif",
               fontSize: '0.82rem', fontWeight: 400, lineHeight: 1.4,
+              whiteSpace: 'nowrap',
             }}>
-              <Icon size={18} color="#D4AF7A" style={{ flexShrink: 0 }} />
+              <Icon size={16} color="#D4AF7A" style={{ flexShrink: 0 }} />
               <span>{tx(lang, ar, en)}</span>
             </div>
           ))}
