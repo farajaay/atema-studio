@@ -79,6 +79,11 @@ jobs:
             "database/migrations-2026-05-email.sql"                    # email_messages audit table
             "database/migrations-2026-05-wa.sql"                       # wa_messages + wa_reminders_sent
             "database/migrations-2026-05-moodboard.sql"                # mood_boards table + RPC
+            "database/migrations-2026-05-editing-tiers.sql"            # ADD COLUMN editorial_photos + rewrite features text
+            "database/migrations-2026-05-pricing-overhaul.sql"         # update prices to margin model; deactivates old Customise (id=2)
+            "database/migrations-2026-05-custom-base.sql"              # ADD COLUMN is_custom_base; re-activates id=2 as Custom Foundation
+            "database/migrations-2026-05-included-addons.sql"          # declares bundled add-ons per package (included_addon_ids)
+            "database/migrations-2026-05-journal-additions.sql"        # two new journal essays (entries 7 & 8)
 
             # ── 4. Discount codes (must precede launch-code seed + audit H-7) ──
             "database/migrations-2026-05-discount-codes.sql"           # discount_codes table + preview/redeem RPCs
