@@ -16,7 +16,7 @@ import {
   Search, Eye, Trash2, CheckCircle2,
   Clock, XCircle, CircleDollarSign, Users, AlertCircle,
   Loader2, X, Phone, Mail, MapPin, StickyNote, Save, TrendingUp, Layers,
-  Image as ImageIcon, BookOpen, Sparkles, BarChart3, Tag
+  Image as ImageIcon, BookOpen, Sparkles, BarChart3, Tag, Sliders
 } from 'lucide-react';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
@@ -405,6 +405,12 @@ export default function AdminDashboard() {
               border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
               fontSize: '13px', fontFamily: 'inherit', color: 'var(--a-text)', fontWeight: 600 }}>
             <Tag size={14} />{!isMobile && 'الأكواد'}
+          </button>
+          <button onClick={() => navigate('/admin/addons')}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'var(--a-surface-alt)',
+              border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
+              fontSize: '13px', fontFamily: 'inherit', color: 'var(--a-text)', fontWeight: 600 }}>
+            <Sliders size={14} />{!isMobile && 'الإضافات'}
           </button>
           <button onClick={fetchBookings} style={{ background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--a-text-muted)', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px' }}>

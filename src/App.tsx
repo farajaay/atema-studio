@@ -27,6 +27,7 @@ const PackagesManager      = lazy(() => import('./pages/PackagesManager'));
 const PortfolioManager     = lazy(() => import('./pages/PortfolioManager'));
 const JournalManager       = lazy(() => import('./pages/JournalManager'));
 const DiscountCodesManager = lazy(() => import('./pages/DiscountCodesManager'));
+const AddonsManager        = lazy(() => import('./pages/AddonsManager'));
 
 function AdminFallback() {
   return (
@@ -84,6 +85,8 @@ export default function App() {
         <Suspense fallback={<AdminFallback />}><JournalManager /></Suspense>} />
       <Route path="/admin/discount-codes" element={
         <Suspense fallback={<AdminFallback />}><DiscountCodesManager /></Suspense>} />
+      <Route path="/admin/addons" element={
+        <Suspense fallback={<AdminFallback />}><AddonsManager /></Suspense>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
