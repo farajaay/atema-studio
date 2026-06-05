@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { parseMoyasarCallback } from './services/moyasar';
 import { useTheme } from './hooks/useTheme';
+import PromotionModal from './components/PromotionModal';
 
 // ─── Public routes (loaded eagerly — first-paint critical) ───────────────────
 import HomePage         from './pages/HomePage';
@@ -60,6 +61,8 @@ export default function App() {
   }
 
   return (
+    <>
+    <PromotionModal />
     <Routes>
       {/* Public — eager */}
       <Route path="/"                element={<HomePage />} />
@@ -90,5 +93,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }
