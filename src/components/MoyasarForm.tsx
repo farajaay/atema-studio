@@ -9,16 +9,18 @@ const PUBLISHABLE_KEY = import.meta.env.VITE_MOYASAR_PUBLISHABLE_KEY ?? '';
 const SITE_BASE       = 'https://atemastudio.xyz/';
 
 interface Props {
-  depositSAR:  number;   // amount to charge (SAR)
-  description: string;
-  bookingRef:  string;
-  bookingId:   string;
-  lang:        'ar' | 'en';
+  depositSAR:     number;   // amount to charge (SAR)
+  description:    string;
+  bookingRef:     string;
+  bookingId:      string;
+  lang:           'ar' | 'en';
   /** 'booking' = initial 50% deposit; 'topup' = post-upgrade balance payment. Defaults to 'booking'. */
-  purpose?:    'booking' | 'topup';
+  purpose?:       'booking' | 'topup';
+  /** Moyasar method identifiers to enable (e.g. ['creditcard','mada','applepay']). Defaults to creditcard + stcpay. */
+  allowedMethods?: Array<'creditcard' | 'stcpay' | 'applepay' | 'mada'>;
 }
 
-export default function MoyasarForm({ depositSAR, description, bookingRef, bookingId, lang, purpose = 'booking' }: Props) {
+export default function MoyasarForm({ depositSAR, description, bookingRef, bookingId, lang, purpose = 'booking', allowedMethods }: Props) {
   const containerRef  = useRef<HTMLDivElement>(null);
   const initialized   = useRef(false);
   const [sdkReady,   setSdkReady]   = useState(false);
@@ -52,7 +54,7 @@ export default function MoyasarForm({ depositSAR, description, bookingRef, booki
       description,
       publishable_api_key: PUBLISHABLE_KEY,
       callback_url:        callbackUrl,
-      methods:             ['creditcard', 'stcpay'],
+      methods:             allowedMethods && allowedMethods.length > 0 ? allowedMethods : ['creditcard', 'stcpay'],
       metadata:            { booking_id: bookingId, booking_ref: bookingRef, purpose },
     });
   }, [sdkReady]);

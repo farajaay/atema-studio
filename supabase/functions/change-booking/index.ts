@@ -72,16 +72,22 @@ serve(async (req) => {
 
   if (booking.status === 'cancelled') return fail('booking_cancelled', 422);
 
+  // Global WA gate — read once, passed to notify-capable handlers.
+  // request_otp is security-critical and intentionally ungated.
+  const { data: settingsRow } = await supabase
+    .from('app_settings').select('wa_enabled').limit(1).maybeSingle();
+  const waEnabled = settingsRow?.wa_enabled ?? false;
+
   switch (action) {
-    case 'reschedule':     return await handleReschedule(supabase, booking, body);
+    case 'reschedule':     return await handleReschedule(supabase, booking, body, waEnabled);
     case 'request_otp':    return await handleRequestOtp(supabase, booking);
-    case 'change_package': return await handleChangePackage(supabase, booking, body);
+    case 'change_package': return await handleChangePackage(supabase, booking, body, waEnabled);
     default:               return fail('unsupported_action', 400);
   }
 });
 
 // ── Reschedule (Phase 1) ─────────────────────────────────────────────────────
-async function handleReschedule(supabase: any, booking: any, body: any): Promise<Response> {
+async function handleReschedule(supabase: any, booking: any, body: any, waEnabled: boolean): Promise<Response> {
   const newDate = String(body.newDate ?? '');
   if (!ISO_DATE.test(newDate)) return fail('date_invalid', 422);
   const newTime = clampText(body.newTime, 10) || '18:00';
@@ -109,10 +115,12 @@ async function handleReschedule(supabase: any, booking: any, body: any): Promise
     { event_date: booking.event_date, event_time: booking.event_time },
     { event_date: newDate, event_time: newTime }, 0);
 
-  await notify(booking.customer_phone,
-    `✓ تم تأجيل حجزك\nرقم الحجز: ${booking.booking_ref}\nالموعد الجديد: ${newDate} الساعة ${newTime}\nبانتظارك 🤍`);
-  await notify(OWNER_PHONE,
-    `↻ ATEMA · تأجيل من العميلة\n${booking.booking_ref}\n${booking.event_date} → ${newDate} (${newTime})`);
+  if (waEnabled) {
+    await notify(booking.customer_phone,
+      `✓ تم تأجيل حجزك\nرقم الحجز: ${booking.booking_ref}\nالموعد الجديد: ${newDate} الساعة ${newTime}\nبانتظارك 🤍`);
+    await notify(OWNER_PHONE,
+      `↻ ATEMA · تأجيل من العميلة\n${booking.booking_ref}\n${booking.event_date} → ${newDate} (${newTime})`);
+  }
 
   return ok({
     ok: true, bookingRef: booking.booking_ref,
@@ -144,7 +152,7 @@ async function handleRequestOtp(supabase: any, booking: any): Promise<Response> 
 }
 
 // ── Change package / add-ons (Phase 2) ───────────────────────────────────────
-async function handleChangePackage(supabase: any, booking: any, body: any): Promise<Response> {
+async function handleChangePackage(supabase: any, booking: any, body: any, waEnabled: boolean): Promise<Response> {
   // Money path → require a valid, unexpired, unconsumed OTP.
   const otpCode = clampText(body.otp, 12);
   const { data: otpRow } = await supabase.from('booking_otps')
@@ -223,10 +231,12 @@ async function handleChangePackage(supabase: any, booking: any, body: any): Prom
     dueLine = `\nالمبلغ المتبقّي للدفع: ${change.topUpDue.toLocaleString('ar-SA')} ر.س`;
     if (manageLink) dueLine += `\nادفعي الآن: ${manageLink}`;
   }
-  await notify(booking.customer_phone,
-    `✓ تم تعديل باقتك\nرقم الحجز: ${booking.booking_ref}\nالإجمالي الجديد: ${change.total.toLocaleString('ar-SA')} ر.س${dueLine}`);
-  await notify(OWNER_PHONE,
-    `✎ ATEMA · تعديل باقة من العميلة\n${booking.booking_ref}\nالإجمالي: ${booking.total} → ${change.total} (${change.direction})`);
+  if (waEnabled) {
+    await notify(booking.customer_phone,
+      `✓ تم تعديل باقتك\nرقم الحجز: ${booking.booking_ref}\nالإجمالي الجديد: ${change.total.toLocaleString('ar-SA')} ر.س${dueLine}`);
+    await notify(OWNER_PHONE,
+      `✎ ATEMA · تعديل باقة من العميلة\n${booking.booking_ref}\nالإجمالي: ${booking.total} → ${change.total} (${change.direction})`);
+  }
 
   return ok({
     ok: true, bookingRef: booking.booking_ref,

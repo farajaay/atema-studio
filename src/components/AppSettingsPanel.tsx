@@ -2,7 +2,7 @@
 // Global VAT toggle + seller VAT# / CR# (required when enabling).
 
 import { useState } from 'react';
-import { Settings, Receipt, Building, X, Save, AlertCircle, CheckCircle2, Loader2, Palette } from 'lucide-react';
+import { Settings, Receipt, Building, X, Save, AlertCircle, CheckCircle2, Loader2, Palette, MessageCircle, CreditCard } from 'lucide-react';
 import type { AppSettings, ThemeName } from '../services/settings';
 
 // Theme-aware tokens — values resolve from document CSS custom properties.
@@ -24,14 +24,23 @@ export default function AppSettingsPanel({ settings, onSave }: {
   const [editing, setEditing] = useState(false);
 
   const vatBadge = settings.vat_enabled ? (
-    <span style={pill('#059669')}>
-      <CheckCircle2 size={11} /> مفعّلة (15%)
-    </span>
+    <span style={pill('#059669')}><CheckCircle2 size={11} /> مفعّلة (15%)</span>
   ) : (
-    <span style={pill('#dc2626')}>
-      <X size={11} /> معطّلة
-    </span>
+    <span style={pill('#dc2626')}><X size={11} /> معطّلة</span>
   );
+
+  const waBadge = settings.wa_enabled ? (
+    <span style={pill('#059669')}><CheckCircle2 size={11} /> مفعّلة</span>
+  ) : (
+    <span style={pill('#dc2626')}><X size={11} /> معطّلة</span>
+  );
+
+  const paymentMethodsList = [
+    settings.payment_transfer_enabled && 'تحويل بنكي',
+    settings.payment_card_enabled     && 'بطاقة',
+    settings.payment_mada_enabled     && 'مدى',
+    settings.payment_applepay_enabled && 'Apple Pay',
+  ].filter(Boolean).join(' · ') || 'لا يوجد';
 
   return (
     <div dir="rtl" style={cardStyle}>
@@ -43,29 +52,22 @@ export default function AppSettingsPanel({ settings, onSave }: {
             <Settings size={18} color={ICON_GOLD} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, color: C.black, fontSize: 15 }}>
-              إعدادات النظام
-            </div>
+            <div style={{ fontWeight: 700, color: C.black, fontSize: 15 }}>إعدادات النظام</div>
             <div style={{ fontSize: 11, color: 'var(--a-text-soft)' }}>
-              ضريبة القيمة المضافة · معلومات البائع
+              VAT · واتساب · طرق الدفع · معلومات البائع
             </div>
           </div>
         </div>
-        <button onClick={() => setEditing(true)} style={editBtn}>
-          تعديل
-        </button>
+        <button onClick={() => setEditing(true)} style={editBtn}>تعديل</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
         gap: 12, fontSize: 13 }}>
-        <Field icon={<Receipt size={14} />} label="ضريبة القيمة المضافة" valueNode={vatBadge} />
-        <Field icon={<Building size={14} />} label="الرقم الضريبي"
-          value={settings.vat_number || '—'} mono />
-        <Field icon={<Building size={14} />} label="السجل التجاري"
-          value={settings.cr_number || '—'} mono />
-        <Field icon={<Building size={14} />} label="اسم البائع"
-          value={settings.seller_name_ar} />
-        <Field icon={<Palette size={14} />} label="ثيم الموقع"
+        <Field icon={<Receipt size={14} />}        label="ضريبة القيمة المضافة" valueNode={vatBadge} />
+        <Field icon={<MessageCircle size={14} />}  label="رسائل واتساب التلقائية" valueNode={waBadge} />
+        <Field icon={<CreditCard size={14} />}     label="طرق الدفع المفعّلة" value={paymentMethodsList} />
+        <Field icon={<Building size={14} />}       label="اسم البائع" value={settings.seller_name_ar} />
+        <Field icon={<Palette size={14} />}        label="ثيم الموقع"
           value={settings.theme === 'noir' ? 'Couture Noir (أسود فاخر)' : 'Atelier Ivory (عاجي كلاسيكي)'} />
       </div>
 
@@ -76,7 +78,7 @@ export default function AppSettingsPanel({ settings, onSave }: {
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
           <AlertCircle size={14} />
-          ضريبة القيمة المضافة معطّلة على مستوى النظام — جميع الفواتير والباقات تُعرض بدون ضريبة
+          ضريبة القيمة المضافة معطّلة — جميع الفواتير والعقود تُعرض بدون ضريبة
         </div>
       )}
 
@@ -98,19 +100,29 @@ export default function AppSettingsPanel({ settings, onSave }: {
 // ── Edit modal ─────────────────────────────────────────────────────────────────
 
 function SettingsEditModal({ initial, onClose, onSave }: {
-  initial: { vat_enabled: boolean; vat_number: string; cr_number: string;
-             seller_name_ar: string; seller_name_en: string; theme: ThemeName };
+  initial: {
+    vat_enabled: boolean; vat_number: string; cr_number: string;
+    seller_name_ar: string; seller_name_en: string; theme: ThemeName;
+    wa_enabled: boolean;
+    payment_card_enabled: boolean; payment_mada_enabled: boolean;
+    payment_applepay_enabled: boolean; payment_transfer_enabled: boolean;
+  };
   onClose: () => void;
   onSave: (patch: Partial<typeof initial>) => Promise<boolean>;
 }) {
-  const [vatOn,     setVatOn]     = useState(initial.vat_enabled);
-  const [vatNum,    setVatNum]    = useState(initial.vat_number);
-  const [crNum,     setCrNum]     = useState(initial.cr_number);
-  const [nameAr,    setNameAr]    = useState(initial.seller_name_ar);
-  const [nameEn,    setNameEn]    = useState(initial.seller_name_en);
-  const [theme,     setTheme]     = useState<ThemeName>(initial.theme);
-  const [saving,    setSaving]    = useState(false);
-  const [err,       setErr]       = useState('');
+  const [vatOn,         setVatOn]         = useState(initial.vat_enabled);
+  const [vatNum,        setVatNum]        = useState(initial.vat_number);
+  const [crNum,         setCrNum]         = useState(initial.cr_number);
+  const [nameAr,        setNameAr]        = useState(initial.seller_name_ar);
+  const [nameEn,        setNameEn]        = useState(initial.seller_name_en);
+  const [theme,         setTheme]         = useState<ThemeName>(initial.theme);
+  const [waOn,          setWaOn]          = useState(initial.wa_enabled);
+  const [cardOn,        setCardOn]        = useState(initial.payment_card_enabled);
+  const [madaOn,        setMadaOn]        = useState(initial.payment_mada_enabled);
+  const [appleOn,       setAppleOn]       = useState(initial.payment_applepay_enabled);
+  const [transferOn,    setTransferOn]    = useState(initial.payment_transfer_enabled);
+  const [saving,        setSaving]        = useState(false);
+  const [err,           setErr]           = useState('');
 
   async function handleSave() {
     setErr('');
@@ -127,12 +139,17 @@ function SettingsEditModal({ initial, onClose, onSave }: {
     }
     setSaving(true);
     const ok = await onSave({
-      vat_enabled:    vatOn,
-      vat_number:     vatNum.trim(),
-      cr_number:      crNum.trim(),
-      seller_name_ar: nameAr.trim(),
-      seller_name_en: nameEn.trim(),
+      vat_enabled:               vatOn,
+      vat_number:                vatNum.trim(),
+      cr_number:                 crNum.trim(),
+      seller_name_ar:            nameAr.trim(),
+      seller_name_en:            nameEn.trim(),
       theme,
+      wa_enabled:                waOn,
+      payment_card_enabled:      cardOn,
+      payment_mada_enabled:      madaOn,
+      payment_applepay_enabled:  appleOn,
+      payment_transfer_enabled:  transferOn,
     });
     setSaving(false);
     if (!ok) setErr('فشل في حفظ الإعدادات');
@@ -159,7 +176,7 @@ function SettingsEditModal({ initial, onClose, onSave }: {
               تعديل إعدادات النظام
             </div>
             <div style={{ fontSize: 11, color: C.taupe, marginTop: 2 }}>
-              ضريبة القيمة المضافة + معلومات البائع
+              VAT · واتساب · طرق الدفع · معلومات البائع
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none',
@@ -208,6 +225,68 @@ function SettingsEditModal({ initial, onClose, onSave }: {
                 placeholder="رقم السجل التجاري" mono />
             </div>
           )}
+
+          {/* WhatsApp automated sends toggle */}
+          <div style={{
+            background: waOn ? '#ecfdf5' : '#fef3c7',
+            border: `1px solid ${waOn ? '#86efac' : '#fcd34d'}`,
+            borderRadius: 12, padding: '14px 16px', marginBottom: 18,
+          }}>
+            <label style={{ display: 'flex', justifyContent: 'space-between',
+              alignItems: 'center', cursor: 'pointer' }}>
+              <div>
+                <div style={{ fontWeight: 700, color: C.black, fontSize: 14, marginBottom: 4 }}>
+                  رسائل واتساب التلقائية
+                </div>
+                <div style={{ fontSize: 12, color: C.taupe }}>
+                  {waOn
+                    ? 'تُرسَل رسائل تأكيد الحجز والتذكيرات تلقائياً عبر واتساب'
+                    : 'معطّلة — لن تُرسَل أي رسائل واتساب تلقائية (رابط الدردشة المباشر لا يزال نشطاً)'}
+                </div>
+              </div>
+              <Toggle on={waOn} onChange={setWaOn} />
+            </label>
+            {waOn && (
+              <div style={{ marginTop: 10, fontSize: 11, color: '#065f46',
+                padding: '8px 12px', borderRadius: 8, background: 'rgba(5,150,105,0.08)' }}>
+                تأكّدي من إعداد متغيّرات البيئة META_WA_* في Supabase وأن قوالب الرسائل معتمدة من Meta
+              </div>
+            )}
+          </div>
+
+          {/* Payment methods toggles */}
+          <div style={{
+            padding: '14px 16px', borderRadius: 12, background: C.ivory,
+            border: `1px solid ${C.sand}`, marginBottom: 18,
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.bronze,
+              marginBottom: 12, letterSpacing: '0.05em',
+              display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CreditCard size={13} /> طرق الدفع المتاحة للعملاء
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <PayToggle on={transferOn} onChange={setTransferOn}
+                label="تحويل بنكي (بنك الراجحي)"
+                note="متاح دائماً — لا يحتاج إلى تكوين" />
+              <PayToggle on={cardOn} onChange={setCardOn}
+                label="بطاقة — فيزا · ماستركارد · STC Pay"
+                note="يتطلب تفعيل Moyasar Live Mode + VITE_MOYASAR_PUBLISHABLE_KEY" />
+              <PayToggle on={madaOn} onChange={setMadaOn}
+                label="مدى (Mada)"
+                note="يتطلب موافقة Moyasar على قبول مدى" />
+              <PayToggle on={appleOn} onChange={setAppleOn}
+                label="Apple Pay"
+                note="يتطلب موافقة Moyasar على Apple Pay" />
+            </div>
+            {!transferOn && !cardOn && !madaOn && !appleOn && (
+              <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8,
+                background: '#fee2e2', color: '#991b1b', fontSize: 11,
+                display: 'flex', alignItems: 'center', gap: 6 }}>
+                <AlertCircle size={12} />
+                تحذير: لا توجد طريقة دفع مفعّلة — لن يتمكن العملاء من إتمام الحجز
+              </div>
+            )}
+          </div>
 
           {/* Theme picker */}
           <div style={{
@@ -261,6 +340,21 @@ function SettingsEditModal({ initial, onClose, onSave }: {
 }
 
 // ── tiny presentational helpers ────────────────────────────────────────────────
+
+function PayToggle({ on, onChange, label, note }: {
+  on: boolean; onChange: (v: boolean) => void; label: string; note: string;
+}) {
+  return (
+    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+      cursor: 'pointer', gap: 12 }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 600, fontSize: 13, color: C.black }}>{label}</div>
+        <div style={{ fontSize: 11, color: C.taupe, marginTop: 2 }}>{note}</div>
+      </div>
+      <Toggle on={on} onChange={onChange} />
+    </label>
+  );
+}
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (

@@ -205,12 +205,13 @@ serve(async (req) => {
 
   log('→ db.app_settings.select');
   const { data: settings, error: settingsErr } = await supabase
-    .from('app_settings').select('vat_enabled').limit(1).single();
+    .from('app_settings').select('vat_enabled, wa_enabled').limit(1).single();
   log('← db.app_settings.select', {
     settings,
     error: settingsErr ? { code: (settingsErr as { code?: string }).code, message: settingsErr.message } : null,
   });
   const vatEnabled = settings?.vat_enabled ?? true;
+  const waEnabled  = settings?.wa_enabled  ?? false;
   const { subtotal, vat, total } = computeBookingTotals({ grossSubtotal, discountAmount, vatEnabled });
   log('computed totals', { vatEnabled, subtotal, vat, total });
 
@@ -365,21 +366,23 @@ serve(async (req) => {
       });
     }
 
-    // WhatsApp — include manage link so the bride can self-serve from day one.
-    await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
-      body: JSON.stringify({
-        phone,
-        name,
-        bookingRef,
-        packageAr:  pkg.name_ar,
-        packageEn:  pkg.name_en,
-        total,
-        eventDate,
-        manageLink,
-      }),
-    }).catch((e: unknown) => console.error('wa-notify error:', (e as Error).message));
+    // WhatsApp booking confirmation — only when WA is enabled globally AND customer opted in.
+    if (waEnabled && whatsappOptIn) {
+      await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({
+          phone,
+          name,
+          bookingRef,
+          packageAr:  pkg.name_ar,
+          packageEn:  pkg.name_en,
+          total,
+          eventDate,
+          manageLink,
+        }),
+      }).catch((e: unknown) => console.error('wa-notify error:', (e as Error).message));
+    }
   })().catch((e: unknown) => console.error('notify error:', (e as Error).message));
   keepAlive(notifyTask);
 

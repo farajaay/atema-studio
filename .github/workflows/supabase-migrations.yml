@@ -101,6 +101,10 @@ jobs:
             # public_booked_dates — all must already exist for the
             # do-block guards to fire instead of silently skipping.
             "database/migrations-2026-05-audit-patches.sql"
+
+            # ── 8. June 2026 additions ──────────────────────────────
+            "database/migrations-2026-06-topup.sql"             # topup_amount_due on bookings (post-upgrade payment)
+            "database/migrations-2026-06-feature-flags.sql"     # wa_enabled + payment_*_enabled on app_settings
           )
 
           SEEDS=(

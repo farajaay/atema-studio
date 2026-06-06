@@ -62,6 +62,14 @@ serve(async (req) => {
   }
 
   const supa = db();
+
+  // Global WA gate — skip all reminders if WA automated sends are disabled.
+  const { data: settingsRow } = await supa
+    .from('app_settings').select('wa_enabled').limit(1).maybeSingle();
+  if (!settingsRow?.wa_enabled) {
+    return jsonResponse({ ok: true, skipped: true, reason: 'wa_disabled' });
+  }
+
   const now = new Date();
   const todayIso = now.toISOString().slice(0, 10);
 
