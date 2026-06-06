@@ -20,7 +20,7 @@ export default function AboutPage() {
   // Portrait of Fatima. Falls back to the editorial placeholder if the file
   // isn't yet in /public/photos/. Drop fatima-portrait.jpeg (+ .webp) and the
   // image takes over with no code change required.
-  const [portraitOk, setPortraitOk] = useState(true);
+  const [portraitOk, setPortraitOk] = useState(false);
 
   return (
     <div style={{ background: 'var(--a-bg)', color: 'var(--a-text)', minHeight: '100vh' }}>

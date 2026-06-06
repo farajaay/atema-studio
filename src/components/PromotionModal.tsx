@@ -11,7 +11,7 @@ import { X } from 'lucide-react';
 const STORAGE_KEY   = 'atema:promo-dismissed';
 const BASE          = import.meta.env.BASE_URL;
 const PROMO_WEBP    = `${BASE}photos/promo-card.webp`;
-const PROMO_JPEG    = `${BASE}photos/promo-card.optimised.jpg`;
+const PROMO_JPEG    = `${BASE}photos/promo-card.jpg`;
 const REVEAL_DELAY_MS = 700;
 
 export default function PromotionModal() {
