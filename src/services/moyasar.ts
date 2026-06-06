@@ -45,6 +45,8 @@ export interface MoyasarCallbackParams {
   message: string;
   bookingId: string;
   bookingRef: string;
+  /** 'booking' for initial deposit; 'topup' for post-upgrade balance payment. */
+  purpose: 'booking' | 'topup';
 }
 
 // ── SDK Loader ────────────────────────────────────────────────────────────────
@@ -78,11 +80,13 @@ export function parseMoyasarCallback(): MoyasarCallbackParams | null {
   const id = p.get('id');
   const status = p.get('status');
   if (!id || !status) return null;
+  const purposeRaw = p.get('purpose');
   return {
     id,
     status,
     message:    p.get('message')    ?? '',
     bookingId:  p.get('booking_id') ?? '',
     bookingRef: p.get('booking_ref') ?? '',
+    purpose:    purposeRaw === 'topup' ? 'topup' : 'booking',
   };
 }

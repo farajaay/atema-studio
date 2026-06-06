@@ -15,6 +15,30 @@
 
 ---
 
+## Status update — 2026-06-05
+
+Four fixes landed:
+
+| Area | What changed |
+|---|---|
+| **Manage-link WhatsApp delivery** | `create-booking` now fetches `manage_token` once before sending both the confirmation email and the booking WhatsApp, then passes `manageLink` to `send-whatsapp`. `send-whatsapp` appends `🔗 إدارة حجزك: <url>` to the bride's message. The bride receives her self-service link on the same message she gets at booking time — no admin intervention required. |
+| **Top-up payment flow** | `change-booking` stores `topup_amount_due` on the booking after an upgrade. `ManageBookingPage` now shows a live `MoyasarForm` (with `purpose="topup"`) instead of the old "we'll be in touch" message. After payment, `verify-payment` detects `purpose: topup` in the Moyasar metadata and clears `topup_amount_due = 0` instead of re-confirming the booking. `PaymentResultPage` shows a different success message for top-ups. **Requires `database/migrations-2026-06-topup.sql` to be applied and `supabase functions deploy change-booking verify-payment`.** |
+| **M-11 (security)** | `verify-payment` Edge Function + `PaymentResultPage` refactored — see previous entry. |
+| **M-8 (invoice number)** | ✅ Already patched — see previous entry. |
+
+---
+
+## Status update — 2026-06-05 (security)
+
+Two security fixes landed:
+
+| Patch | What changed | Security note |
+|---|---|---|
+| **M-11** | `supabase/functions/verify-payment/index.ts` (new Edge Function) + `PaymentResultPage.tsx` refactored | Closes the forged-callback attack: booking status is now updated only after `verify-payment` fetches the payment from Moyasar using `MOYASAR_SECRET_KEY` and confirms `metadata.booking_id` matches. URL `?status=` param is used for optimistic UI only — never for DB writes. **Requires new Supabase secret `MOYASAR_SECRET_KEY` and `supabase functions deploy verify-payment`.** |
+| **M-8** | `src/services/invoice.ts:generateInvoiceNumber()` | ✅ Already patched — `crypto.getRandomValues` + Crockford base32 is in place. Bug tracker entry below updated to reflect resolved status. |
+
+---
+
 ## Status update — 2026-05-28
 
 Four shipments landed after the last full audit; none introduce new
@@ -179,26 +203,11 @@ and have not regressed.
 
 ## 🟡 MEDIUM (fix before production load)
 
-### M-8 · `generateInvoiceNumber` uses `Math.random`
-- **File:** `src/services/invoice.ts:77`
-- **Defect:** `INV-${yy}${mm}-${5-digit Math.random suffix}` —
-  90 000 possible suffixes per month. Birthday paradox: ~50%
-  collision chance at ~300 bookings/month. `invoices.invoice_number
-  UNIQUE` constraint means collisions **throw** at insert time,
-  breaking the customer flow.
-- **Severity:** MEDIUM (functional reliability + ZATCA — every
-  Phase-1 simplified tax invoice must have a unique number).
-- **Fix:** Use `crypto.getRandomValues` + Crockford base32 (same
-  pattern as `booking.ts`), or a server-side sequence. Suggested:
-  ```ts
-  const tail = (() => {
-    const b = new Uint8Array(5); crypto.getRandomValues(b);
-    return Array.from(b, x => CROCKFORD[x & 31]).join('');
-  })();
-  return `INV-${yy}${mm}-${tail}`;
-  ```
-  Crockford base32 over 5 bytes → 40 bits → ~1.1 T possibilities.
-  Collision probability negligible at ATEMA's volume.
+### ~~M-8 · `generateInvoiceNumber` uses `Math.random`~~ ✅ PATCHED
+- **Patched in:** `src/services/invoice.ts` (Patch M-8 comment in file)
+- `generateInvoiceNumber()` now uses `crypto.getRandomValues` + Crockford
+  base32 (5 bytes → 40 bits → ~1.1 T possibilities per month). Confirmed
+  no `Math.random` in the invoice or booking-ref path.
 
 ### M-9 · Discount fields not persisted in booking.ts fallback path
 - **File:** `src/services/booking.ts:88-109`

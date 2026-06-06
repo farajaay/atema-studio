@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toEastern, parseEastern, easternize } from '../utils/numerals';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import { usePackagesData } from '../hooks/usePackagesData';
 import type { Package } from '../hooks/usePackagesData';
@@ -81,7 +82,7 @@ function FeaturesEditor({ features, onChange }: {
       {features.map((f, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '7px' }}>
           <CheckCircle2 size={13} color="#D4AF7A" style={{ flexShrink: 0 }} />
-          <input value={f} onChange={e => { const a = [...features]; a[i] = e.target.value; onChange(a); }}
+          <input value={f} onChange={e => { const a = [...features]; a[i] = easternize(e.target.value); onChange(a); }}
             style={{ ...inp, flex: 1, padding: '7px 10px' }} />
           <button onClick={() => onChange(features.filter((_, j) => j !== i))}
             style={{ background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.28)',
@@ -92,7 +93,7 @@ function FeaturesEditor({ features, onChange }: {
         </div>
       ))}
       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-        <input value={newItem} onChange={e => setNewItem(e.target.value)} placeholder="ميزة جديدة..."
+        <input value={newItem} onChange={e => setNewItem(easternize(e.target.value))} placeholder="ميزة جديدة..."
           onKeyDown={e => { if (e.key === 'Enter' && newItem.trim()) { onChange([...features, newItem.trim()]); setNewItem(''); } }}
           style={{ ...inp, flex: 1, padding: '7px 10px' }} />
         <button onClick={() => { if (newItem.trim()) { onChange([...features, newItem.trim()]); setNewItem(''); } }}
@@ -385,21 +386,24 @@ export default function PackagesManager() {
 
         <div>
           <Label icon={<Clock size={13} />} text="ساعات التصوير" tip="عدد ساعات التصوير الفعلية على أرض الحدث. لا تشمل وقت التنقل أو التجهيز. المعيار: خطوبة ٢ساعة | كلاسيكية ٤ | ملكية ٥ | توقيع ٦ساعات." />
-          <input type="number" min={1} max={24} value={draft.duration_hours} onChange={e => setField('duration_hours', Number(e.target.value))} style={inp} />
+          <input type="text" inputMode="numeric" value={toEastern(draft.duration_hours)}
+            onChange={e => { const v = parseEastern(e.target.value); if (v >= 1 && v <= 24) setField('duration_hours', v); }}
+            style={inp} />
         </div>
 
         <div>
           <Label icon={<Camera size={13} />} text="صور بالتعديل الأساسي" tip="عدد الصور التي تُسلَّم بعد التعديل الأساسي (إضاءة + موازنة ألوان + تحويل JPG). القاعدة: ٧٠-٧٥ صورة لكل ساعة تصوير. أقل من ٦٠/ساعة يبدو قليلاً. أكثر من ٩٠/ساعة يرهق وقت التعديل بدون تسعير إضافي." />
-          <input type="number" min={0} value={draft.edited_photos} onChange={e => setField('edited_photos', Number(e.target.value))} style={inp} />
+          <input type="text" inputMode="numeric" value={toEastern(draft.edited_photos)}
+            onChange={e => { const v = parseEastern(e.target.value); if (v >= 0) setField('edited_photos', v); }}
+            style={inp} />
         </div>
 
         <div>
           <Label icon={<Camera size={13} />} text="صور بالتعديل التحريري (مضاعفات الـ ٤)" tip="رتوش متقدم (تنعيم بشرة، Dodge & Burn، تدرّج سينمائي). يجب أن يكون من مضاعفات الـ ٤ (٠، ٤، ٨، ١٢). متاح في الباقات العليا فقط: الملكية ٤، التوقيع ٨، الكوتور ١٢. اتركيه ٠ في الباقات الأدنى." />
-          <input type="number" min={0} step={4} value={draft.editorial_photos ?? 0}
+          <input type="text" inputMode="numeric" value={toEastern(draft.editorial_photos ?? 0)}
             onChange={e => {
-              const v = Number(e.target.value);
-              // Enforce factor-of-4 on the client too — DB has the same CHECK.
-              setField('editorial_photos', v >= 0 && v % 4 === 0 ? v : (draft.editorial_photos ?? 0));
+              const v = parseEastern(e.target.value);
+              if (v >= 0 && v % 4 === 0) setField('editorial_photos', v);
             }} style={inp} />
         </div>
 

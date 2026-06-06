@@ -186,7 +186,7 @@ export default function HomePage() {
           {[
             { Icon: Users,       ar: 'فريق نسائي بالكامل', en: 'All-female team' },
             { Icon: MapPin,      ar: 'الجبيل والشرقية',    en: 'Jubail & Eastern Province' },
-            { Icon: CreditCard,  ar: 'مدى · Apple Pay · تحويل', en: 'Mada · Apple Pay · transfer' },
+            { Icon: CreditCard,  ar: 'بطاقة ائتمانية · تحويل بنكي', en: 'Card payment · bank transfer' },
           ].map(({ Icon, ar, en }) => (
             <div key={en} style={{
               display: 'flex', alignItems: 'center', gap: 10,

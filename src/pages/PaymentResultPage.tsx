@@ -1,5 +1,9 @@
 // ── Payment Result Page ───────────────────────────────────────────────────────
-// Shown when Moyasar redirects back after payment attempt
+// Shown when Moyasar redirects back after payment attempt.
+// Patch M-11: booking status is now updated only after the verify-payment
+// Edge Function confirms the payment with the Moyasar API using the secret
+// key — the URL ?status= param is used only for initial display while the
+// server check is in flight and is never trusted for DB writes.
 import { useEffect, useState } from 'react';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { supabase } from '../services/supabase';
@@ -13,29 +17,47 @@ const T = {
 };
 
 interface Props {
-  paymentId:   string;
+  paymentId:     string;
   paymentStatus: string;
-  bookingId:   string;
-  bookingRef:  string;
+  bookingId:     string;
+  bookingRef:    string;
+  /** 'topup' shows a balance-paid message instead of booking-confirmed. */
+  purpose?:      'booking' | 'topup';
 }
 
-export default function PaymentResultPage({ paymentId, paymentStatus, bookingId, bookingRef }: Props) {
-  const isPaid = paymentStatus === 'paid' || paymentStatus === 'authorized';
-  const [updating, setUpdating] = useState(isPaid);
-  const [dbError,  setDbError]  = useState('');
+export default function PaymentResultPage({ paymentId, paymentStatus, bookingId, bookingRef, purpose = 'booking' }: Props) {
+  // optimistic hint from URL — replaced by server-verified result
+  const urlHintPaid = paymentStatus === 'paid' || paymentStatus === 'authorized';
+
+  const [verifying,     setVerifying]     = useState(true);
+  const [verified,      setVerified]      = useState(false);
+  const [verifiedStatus, setVerifiedStatus] = useState('');
+  const [verifyError,   setVerifyError]   = useState('');
 
   useEffect(() => {
-    if (!isPaid || !bookingId || !supabase) { setUpdating(false); return; }
+    if (!paymentId || !bookingId || !supabase) {
+      // No payment to verify (e.g. failed before gateway)
+      setVerifying(false);
+      setVerifiedStatus(paymentStatus);
+      return;
+    }
 
-    supabase
-      .from('bookings')
-      .update({ payment_status: 'paid', status: 'confirmed' })
-      .eq('id', bookingId)
-      .then(({ error }) => {
-        if (error) setDbError(error.message);
-        setUpdating(false);
-      });
-  }, [isPaid, bookingId]);
+    supabase.functions
+      .invoke('verify-payment', { body: { paymentId, bookingId } })
+      .then(({ data, error }) => {
+        if (error) {
+          setVerifyError(error.message);
+        } else {
+          setVerified(data?.verified === true);
+          setVerifiedStatus(data?.status ?? paymentStatus);
+          if (data?.error) setVerifyError(data.error);
+        }
+      })
+      .catch((e: Error) => setVerifyError(e.message))
+      .finally(() => setVerifying(false));
+  }, [paymentId, bookingId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isPaid = verifying ? urlHintPaid : verified;
 
   const card: React.CSSProperties = {
     background: 'white',
@@ -86,15 +108,18 @@ export default function PaymentResultPage({ paymentId, paymentStatus, bookingId,
           ATEMA
         </div>
 
-        {isPaid ? (
+        {verifying ? (
+          <div style={{ padding: '24px 0' }}>
+            <Loader2 size={48} color={T.gold}
+              style={{ animation: 'spin 1s linear infinite', margin: '0 auto 16px', display: 'block' }} />
+            <p style={{ ...body, textAlign: 'center' }}>جارٍ التحقق من حالة الدفع…</p>
+          </div>
+        ) : isPaid ? (
           <>
-            {updating ? (
-              <Loader2 size={48} color={T.gold}
-                style={{ animation: 'spin 1s linear infinite', margin: '0 auto 16px', display: 'block' }} />
-            ) : (
-              <CheckCircle2 size={52} color={T.gold} style={{ marginBottom: '4px' }} />
-            )}
-            <h2 style={heading}>تم الدفع بنجاح!</h2>
+            <CheckCircle2 size={52} color={T.gold} style={{ marginBottom: '4px' }} />
+            <h2 style={heading}>
+              {purpose === 'topup' ? 'تم سداد المبلغ المتبقّي!' : 'تم الدفع بنجاح!'}
+            </h2>
             <p style={body}>
               رقم الحجز:{' '}
               <strong style={{ color: T.gold, fontFamily: "'Cormorant Garamond', serif", fontSize: '1.05rem' }}>
@@ -106,12 +131,13 @@ export default function PaymentResultPage({ paymentId, paymentStatus, bookingId,
               Payment ID: {paymentId}
             </p>
             <p style={{ ...body, maxWidth: '340px', margin: '0 auto 28px' }}>
-              سيتواصل معكِ فريق ATEMA قريباً لتأكيد تفاصيل مناسبتكِ.
-              شكراً جزيلاً على ثقتكِ بنا!
+              {purpose === 'topup'
+                ? 'تم تحديث حجزك بالكامل. سيتواصل معكِ فريق ATEMA بتأكيد نهائي.'
+                : 'سيتواصل معكِ فريق ATEMA قريباً لتأكيد تفاصيل مناسبتكِ. شكراً جزيلاً على ثقتكِ بنا!'}
             </p>
-            {dbError && (
+            {verifyError && (
               <p style={{ fontSize: '0.75rem', color: '#dc2626', marginBottom: '16px' }}>
-                ملاحظة: الحجز سُجّل ولكن لم يتم تحديث الحالة تلقائياً ({dbError}).
+                ملاحظة: الحجز سُجّل ولكن حدث خطأ في التحديث التلقائي ({verifyError}).
                 سنتولى ذلك يدوياً.
               </p>
             )}
@@ -130,9 +156,9 @@ export default function PaymentResultPage({ paymentId, paymentStatus, bookingId,
             <XCircle size={52} color="#dc2626" style={{ marginBottom: '4px' }} />
             <h2 style={heading}>لم تكتمل عملية الدفع</h2>
             <p style={{ ...body, marginBottom: '6px' }}>
-              {paymentStatus === 'failed'
+              {verifiedStatus === 'failed'
                 ? 'تعذّر تنفيذ الدفع. لم يتم خصم أي مبلغ من حسابكِ.'
-                : `حالة الدفع: ${paymentStatus}`}
+                : `حالة الدفع: ${verifiedStatus || paymentStatus}`}
             </p>
             {bookingRef && (
               <p style={{ ...body, marginBottom: '24px' }}>

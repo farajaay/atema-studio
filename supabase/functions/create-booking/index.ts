@@ -316,35 +316,34 @@ serve(async (req) => {
     droppedColumns: dropped.length > 0 ? dropped : undefined,
   });
 
-  // ── Email confirmation (independent of the insert) ─────────────────────
-  // The email step runs in its own async block — it never shares a query
-  // with the insert, so a SELECT error here (e.g. `manage_token` missing
-  // because the booking-changes migration hasn't run) can't roll back the
-  // booking. sendEmail() also logs every attempt to email_messages and
-  // returns rather than throws, so a flaky SMTP session is non-fatal too.
-  //
-  // CRITICAL: a bare `(async () => {...})()` gets cancelled the moment
-  // the HTTP handler returns its response — the SMTP send may slip out
-  // ahead of teardown because the connection is already open, but the
-  // *audit insert* that follows the send is a fresh REST call and
-  // routinely loses the race, leaving email_messages empty. Register
-  // the promise with EdgeRuntime.waitUntil() so the worker stays alive
-  // until the whole chain (SMTP + audit insert) settles.
-  if (email) {
-    const bookingId  = booking.id as string;
-    const bookingRef = booking.booking_ref as string;
-    const emailTask = (async () => {
-      // Best-effort manage_token lookup. If the column isn't there yet,
-      // we just send the email without the manage link.
-      let manageToken: string | null = null;
-      const { data: tokRow, error: tokErr } = await supabase
-        .from('bookings')
-        .select('manage_token')
-        .eq('id', bookingId)
-        .single();
-      if (!tokErr && tokRow) {
-        manageToken = (tokRow as { manage_token?: string | null }).manage_token ?? null;
-      }
+  // ── Post-insert notifications (email + WhatsApp) ────────────────────────
+  // Both notifications run in a single async block so the manage_token
+  // lookup happens once and the link is shared between them. The block
+  // is registered with EdgeRuntime.waitUntil() so the worker stays alive
+  // until both sends and the email audit-insert settle — without this the
+  // worker tears down when the HTTP response is flushed and the audit row
+  // (a fresh REST call issued inside sendEmail) is silently lost.
+  const bookingId  = booking.id as string;
+  const bookingRef = booking.booking_ref as string;
+
+  const notifyTask = (async () => {
+    // Best-effort manage_token lookup. If the migration hasn't been run
+    // yet the column won't exist and we fall back to no manage link.
+    let manageToken: string | null = null;
+    const { data: tokRow, error: tokErr } = await supabase
+      .from('bookings')
+      .select('manage_token')
+      .eq('id', bookingId)
+      .single();
+    if (!tokErr && tokRow) {
+      manageToken = (tokRow as { manage_token?: string | null }).manage_token ?? null;
+    }
+    const manageLink = manageToken
+      ? `${SITE_ORIGIN}/#/manage/${manageToken}`
+      : null;
+
+    // Email
+    if (email) {
       const rendered = renderBookingConfirmation({
         customerName:  name,
         bookingRef,
@@ -364,26 +363,25 @@ serve(async (req) => {
         template:  'booking_confirmation',
         bookingId,
       });
-    })().catch(err => console.error('email-confirm error:', (err as Error).message));
-    keepAlive(emailTask);
-  }
+    }
 
-  // ── WhatsApp notification (fire & forget; preserved from previous stub) ──
-  keepAlive(
-    fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {
+    // WhatsApp — include manage link so the bride can self-serve from day one.
+    await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
       body: JSON.stringify({
-        phone:      phone,
+        phone,
         name,
-        bookingRef: ref,
+        bookingRef,
         packageAr:  pkg.name_ar,
         packageEn:  pkg.name_en,
         total,
         eventDate,
+        manageLink,
       }),
-    }).catch(err => console.error('wa-notify error:', err)),
-  );
+    }).catch((e: unknown) => console.error('wa-notify error:', (e as Error).message));
+  })().catch((e: unknown) => console.error('notify error:', (e as Error).message));
+  keepAlive(notifyTask);
 
   return new Response(
     JSON.stringify({

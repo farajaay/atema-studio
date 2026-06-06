@@ -79,8 +79,9 @@ export default function PaymentMethodChooser({ lang, depositSAR, moyasarEnabled,
                 {tx(lang,'الدفع الإلكتروني','Online Card Payment')}
               </div>
               <div style={{ fontSize:'0.74rem', color: C.sand, opacity:0.85, lineHeight:1.6 }}>
-                {tx(lang,'مدى · فيزا · ماستركارد · STC Pay · Apple Pay',
-                         'mada · Visa · Mastercard · STC Pay · Apple Pay')}
+                {/* mada · Apple Pay — to be enabled once Moyasar live mode is active */}
+                {tx(lang,'فيزا · ماستركارد · STC Pay',
+                         'Visa · Mastercard · STC Pay')}
               </div>
               <div style={{
                 display:'inline-block', marginTop:'7px',

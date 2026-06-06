@@ -362,6 +362,7 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
     800 SAR, valid 20 days from when the SQL is applied)
   - `database/migrations-2026-05-email.sql` (email_messages audit table —
     booking-confirmation email via Zoho Mail SMTP)
+  - `database/migrations-2026-06-topup.sql` (adds `topup_amount_due` to `bookings` — required for self-service top-up payments after package upgrades)
   - `database/seed-packages-2026-05.sql` (6 packages + 11 add-ons — required
     if `packages` table is empty; the booking flow falls back to the DEMO
     catalogue without it, but the Edge Function still needs real rows to
@@ -373,8 +374,9 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - Submit 6 WA templates to Meta (copy from `docs/integrations/wa-platform.md` §6).
 - Supabase secrets: `META_WA_*`, `ANTHROPIC_API_KEY`, `OWNER_WA_NUMBER`,
   `CRON_SECRET`, `ZOHO_SMTP_*` (see `docs/integrations/email.md` §2.4),
-  `SITE_ORIGIN`.
+  `SITE_ORIGIN`, **`MOYASAR_SECRET_KEY`** (the `sk_...` key from Moyasar dashboard — required by `verify-payment`).
 - Deploy WA Edge Functions: `supabase functions deploy wa-webhook wa-receipt wa-reminders`.
+- Deploy payment-verification Edge Function: `supabase functions deploy verify-payment`.
 - Deploy the self-service Edge Function: `supabase functions deploy change-booking`.
 - Schedule cron at `*/30 * * * *`.
 - Drop the legacy public bookings INSERT RLS policy after `create-booking`
@@ -416,6 +418,9 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - Tap Payments as a secondary gateway (only when Mada volume justifies)
 
 **Done in recent sessions (do not re-build):**
+- ✅ Manage-link WhatsApp delivery — `create-booking` fetches `manage_token` once, passes `manageLink` to `send-whatsapp`; bride receives self-service link in her booking WhatsApp.
+- ✅ Top-up payment flow — `change-booking` stores `topup_amount_due`; `ManageBookingPage` shows live `MoyasarForm` (purpose=topup) after upgrade; `verify-payment` clears the amount once Moyasar confirms. Requires `migrations-2026-06-topup.sql`.
+- ✅ Client-side payment verification hardened (M-11) — `verify-payment` Edge Function; `PaymentResultPage` uses server result, not URL params.
 - ✅ Mood Board (post-booking ritual page) — shipped commit `dc1655b`
 - ✅ Expanded portfolio (23 items) — shipped commit `0a99efc`
 - ✅ Customer self-service: reschedule (Phase 1) + OTP-gated package/add-on

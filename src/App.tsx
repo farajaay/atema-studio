@@ -56,6 +56,7 @@ export default function App() {
         paymentStatus={callback.status}
         bookingId={callback.bookingId}
         bookingRef={callback.bookingRef}
+        purpose={callback.purpose}
       />
     );
   }

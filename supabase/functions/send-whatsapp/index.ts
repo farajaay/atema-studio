@@ -14,18 +14,25 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { phone, name, bookingRef, package: pkg, total, eventDate } = await req.json();
+    const { phone, name, bookingRef, package: pkg, packageAr, total, eventDate, manageLink } = await req.json();
+    // Support both legacy `package` field and newer `packageAr` field.
+    const packageName = packageAr || pkg || '';
 
     const toPhone = phone.startsWith('+') ? phone : `+966${phone.replace(/^0/, '')}`;
+
+    const manageLine = manageLink
+      ? `\n🔗 إدارة حجزك: ${manageLink}`
+      : '';
 
     const message =
       `مرحباً ${name} 👋\n\n` +
       `تم استلام طلب حجزك في *ATEMA STUDIO* بنجاح ✅\n\n` +
       `📋 رقم الحجز: *${bookingRef}*\n` +
-      `📦 الباقة: *${pkg}*\n` +
+      `📦 الباقة: *${packageName}*\n` +
       `📅 التاريخ: *${eventDate}*\n` +
-      `💰 المجموع: *${Number(total).toLocaleString()} ر.س*\n\n` +
-      `سيتواصل معك فريقنا قريباً لتأكيد التفاصيل.\n` +
+      `💰 المجموع: *${Number(total).toLocaleString()} ر.س*\n` +
+      manageLine +
+      `\nسيتواصل معك فريقنا قريباً لتأكيد التفاصيل.\n` +
       `للاستفسار: 📞 +966 54 832 3496`;
 
     // Send via Twilio

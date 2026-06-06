@@ -12,6 +12,7 @@ import { useParams } from 'react-router-dom';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
 import DatePicker from '../components/DatePicker';
+import MoyasarForm from '../components/MoyasarForm';
 import { useLang } from '../hooks/useLang';
 import {
   getBookingByToken,
@@ -283,11 +284,24 @@ export default function ManageBookingPage() {
               <p>{ar ? 'الإجمالي الجديد: ' : 'New total: '}
                 {(changeResult.total ?? 0).toLocaleString(ar ? 'ar-SA' : 'en-US')} {ar ? 'ر.س' : 'SAR'}</p>
               {changeResult.topUpDue && changeResult.topUpDue > 0 ? (
-                <p style={{ color: 'var(--a-text)' }}>
-                  {ar ? 'المبلغ المتبقّي للدفع: ' : 'Balance to pay: '}
-                  {changeResult.topUpDue.toLocaleString(ar ? 'ar-SA' : 'en-US')} {ar ? 'ر.س' : 'SAR'}
-                  {' — '}{ar ? 'سنتواصل معك لإتمام الدفع.' : "we'll be in touch to complete it."}
-                </p>
+                <div>
+                  <p style={{ color: 'var(--a-text)', marginBottom: 16 }}>
+                    {ar ? 'المبلغ المتبقّي للدفع: ' : 'Balance to pay: '}
+                    <strong style={{ color: 'var(--a-gold)' }}>
+                      {changeResult.topUpDue.toLocaleString(ar ? 'ar-SA' : 'en-US')} {ar ? 'ر.س' : 'SAR'}
+                    </strong>
+                  </p>
+                  <MoyasarForm
+                    depositSAR={changeResult.topUpDue}
+                    description={ar
+                      ? `تسوية رصيد الحجز ${booking?.booking_ref ?? ''}`
+                      : `Balance top-up for booking ${booking?.booking_ref ?? ''}`}
+                    bookingRef={booking?.booking_ref ?? ''}
+                    bookingId={booking?.id ?? ''}
+                    lang={lang}
+                    purpose="topup"
+                  />
+                </div>
               ) : (
                 <p style={{ color: 'var(--a-text-soft)', fontSize: '0.85rem' }}>
                   {ar ? 'لا توجد مبالغ إضافية مستحقة.' : 'No additional payment is due.'}

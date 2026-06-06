@@ -8,6 +8,7 @@
 import { supabase } from './supabase';
 
 export interface ManagedBooking {
+  id:               string;   // UUID — needed to reference the booking in payment flows
   booking_ref:      string;
   status:           string;
   payment_status:   string;

@@ -28,6 +28,7 @@ import { sendText } from '../_shared/wa.ts';
 const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const OWNER_PHONE           = Deno.env.get('OWNER_WA_NUMBER');
+const SITE_ORIGIN           = Deno.env.get('SITE_ORIGIN') ?? 'https://atemastudio.xyz';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
@@ -200,13 +201,28 @@ async function handleChangePackage(supabase: any, booking: any, body: any): Prom
   }).eq('id', booking.id);
   if (updErr) return fail('update_failed', 500, updErr.message);
 
+  // Best-effort: persist outstanding top-up amount (silently skips if
+  // migrations-2026-06-topup.sql hasn't been run yet).
+  if (change.topUpDue > 0) {
+    await supabase.from('bookings')
+      .update({ topup_amount_due: change.topUpDue }).eq('id', booking.id)
+      .then(undefined, (e: unknown) => console.warn('topup_amount_due update skipped:', e));
+  }
+
   await audit(supabase, booking.id, 'package',
     { package_id: booking.package_id, addon_ids: booking.addon_ids, total: booking.total },
     { package_id: pkgId, addon_ids: addOnIds, total: change.total }, change.delta);
 
-  const dueLine = change.topUpDue > 0
-    ? `\nالمبلغ المتبقّي للدفع: ${change.topUpDue.toLocaleString('ar-SA')} ر.س`
-    : '';
+  // Build manage link for WA notification so the bride can return to pay.
+  const manageLink = booking.manage_token
+    ? `${SITE_ORIGIN}/#/manage/${booking.manage_token}`
+    : null;
+
+  let dueLine = '';
+  if (change.topUpDue > 0) {
+    dueLine = `\nالمبلغ المتبقّي للدفع: ${change.topUpDue.toLocaleString('ar-SA')} ر.س`;
+    if (manageLink) dueLine += `\nادفعي الآن: ${manageLink}`;
+  }
   await notify(booking.customer_phone,
     `✓ تم تعديل باقتك\nرقم الحجز: ${booking.booking_ref}\nالإجمالي الجديد: ${change.total.toLocaleString('ar-SA')} ر.س${dueLine}`);
   await notify(OWNER_PHONE,
