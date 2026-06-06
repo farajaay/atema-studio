@@ -11,6 +11,7 @@ import PromotionModal from '../components/PromotionModal';
 import { useLang } from '../hooks/useLang';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { fetchPortfolio } from '../services/portfolio';
+import { useAppSettings } from '../hooks/useAppSettings';
 import { Users, MapPin, CreditCard } from 'lucide-react';
 
 const tx = (l: 'ar' | 'en', ar: string, en: string) => l === 'ar' ? ar : en;
@@ -32,6 +33,7 @@ const HOMEPAGE_THUMBS = [
 export default function HomePage() {
   const { lang, setLang } = useLang();
   const { isMobile } = useBreakpoint();
+  const { settings } = useAppSettings();
 
   const thumbs = HOMEPAGE_THUMBS.map(f => `/photos/${f}`);
   // Live fetch retained only so the portfolio data stays warm in the React
@@ -184,9 +186,18 @@ export default function HomePage() {
           gap: isMobile ? 18 : 40,
         }}>
           {[
-            { Icon: Users,       ar: 'فريق نسائي بالكامل', en: 'All-female team' },
-            { Icon: MapPin,      ar: 'الجبيل والشرقية',    en: 'Jubail & Eastern Province' },
-            { Icon: CreditCard,  ar: 'بطاقة ائتمانية · تحويل بنكي', en: 'Card payment · bank transfer' },
+            { Icon: Users,      ar: 'فريق نسائي بالكامل', en: 'All-female team' },
+            { Icon: MapPin,     ar: 'الجبيل والشرقية',    en: 'Jubail & Eastern Province' },
+            ...((() => {
+              const parts = { ar: [] as string[], en: [] as string[] };
+              if (settings.payment_transfer_enabled)  { parts.ar.push('تحويل بنكي');  parts.en.push('bank transfer'); }
+              if (settings.payment_card_enabled)      { parts.ar.push('بطاقة');        parts.en.push('card'); }
+              if (settings.payment_mada_enabled)      { parts.ar.push('مدى');          parts.en.push('Mada'); }
+              if (settings.payment_applepay_enabled)  { parts.ar.push('Apple Pay');    parts.en.push('Apple Pay'); }
+              const ar = parts.ar.join(' · ');
+              const en = parts.en.join(' · ');
+              return ar ? [{ Icon: CreditCard, ar, en }] : [];
+            })()),
           ].map(({ Icon, ar, en }) => (
             <div key={en} style={{
               display: 'flex', alignItems: 'center', gap: 10,
