@@ -10,7 +10,8 @@ import { X } from 'lucide-react';
 
 const STORAGE_KEY   = 'atema:promo-dismissed';
 const BASE          = import.meta.env.BASE_URL;
-const PROMO_IMAGE   = `${BASE}photos/promo-card.png`;
+const PROMO_WEBP    = `${BASE}photos/promo-card.webp`;
+const PROMO_JPEG    = `${BASE}photos/promo-card.optimised.jpg`;
 const REVEAL_DELAY_MS = 700;
 
 export default function PromotionModal() {
@@ -86,16 +87,19 @@ export default function PromotionModal() {
           borderRadius: '14px', overflow: 'hidden',
           boxShadow: '0 32px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(212,175,122,0.22)',
         }}>
-          <img src={PROMO_IMAGE}
-            alt="ATEMA Studio — Design Your Package promotion"
-            decoding="async"
-            fetchPriority="high"
-            style={{
-              display: 'block',
-              width: 'auto', maxWidth: '100%',
-              height: 'auto', maxHeight: '82vh',
-              objectFit: 'contain',
-            }} />
+          <picture>
+            <source srcSet={PROMO_WEBP} type="image/webp" />
+            <img src={PROMO_JPEG}
+              alt="ATEMA Studio — Design Your Package promotion"
+              decoding="async"
+              fetchPriority="high"
+              style={{
+                display: 'block',
+                width: 'auto', maxWidth: '100%',
+                height: 'auto', maxHeight: '82vh',
+                objectFit: 'contain',
+              }} />
+          </picture>
         </button>
 
         {/* Hint pill below image */}
