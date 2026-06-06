@@ -20,6 +20,7 @@ describe('parseMoyasarCallback', () => {
       message: 'Approved',
       bookingId: 'b-1',
       bookingRef: 'ATEMA-260101-ABCDEFGH',
+      purpose: 'booking',
     });
   });
 
@@ -31,7 +32,13 @@ describe('parseMoyasarCallback', () => {
       message: '',
       bookingId: '',
       bookingRef: '',
+      purpose: 'booking',
     });
+  });
+
+  it('parses purpose=topup from URL', () => {
+    setSearch('?id=pay_5&status=paid&message=ok&booking_id=b-2&booking_ref=REF&purpose=topup');
+    expect(parseMoyasarCallback()).toMatchObject({ purpose: 'topup' });
   });
 
   it('returns null when id or status is missing', () => {
