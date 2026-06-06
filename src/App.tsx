@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { parseMoyasarCallback } from './services/moyasar';
 import { useTheme } from './hooks/useTheme';
 import PromotionModal from './components/PromotionModal';
@@ -44,8 +44,9 @@ function AdminFallback() {
 }
 
 export default function App() {
-  // Sync the active theme with admin settings.
   useTheme();
+  const { pathname } = useLocation();
+  const isAdmin = pathname.startsWith('/admin');
 
   // Detect Moyasar payment redirect (arrives as query params on any route)
   const callback = parseMoyasarCallback();
@@ -63,7 +64,7 @@ export default function App() {
 
   return (
     <>
-    <PromotionModal />
+    {!isAdmin && <PromotionModal />}
     <Routes>
       {/* Public — eager */}
       <Route path="/"                element={<HomePage />} />
