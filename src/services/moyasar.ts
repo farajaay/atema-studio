@@ -16,7 +16,7 @@ export interface MoyasarInitOptions {
   description: string;
   publishable_api_key: string;
   callback_url: string;
-  methods: Array<'creditcard' | 'stcpay' | 'applepay'>;
+  methods: Array<'creditcard' | 'stcpay' | 'applepay' | 'mada'>;
   metadata?: Record<string, string>;
   on_completed?: (payment: MoyasarPayment) => void;
   on_failure?: (error: { type: string; message: string }) => void;

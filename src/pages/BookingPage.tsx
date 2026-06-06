@@ -695,9 +695,29 @@ function BookingFormModal({
   // createBooking() requests before the first one updates `state`.
   const submittingRef = useRef(false);
 
-  // Whether Moyasar is configured (real publishable key present)
+  // Whether Moyasar SDK key is present
   const moyasarKey = (import.meta.env.VITE_MOYASAR_PUBLISHABLE_KEY as string | undefined) ?? '';
-  const moyasarEnabled = !!moyasarKey && !moyasarKey.includes('your_key_here');
+  const keyPresent  = !!moyasarKey && !moyasarKey.includes('your_key_here');
+
+  // Online payment is enabled when the key is present AND at least one method is turned on in settings
+  const onlineMethodKeys: Array<'creditcard' | 'stcpay' | 'applepay' | 'mada'> = [];
+  if (settings.payment_card_enabled)     onlineMethodKeys.push('creditcard', 'stcpay');
+  if (settings.payment_mada_enabled)     onlineMethodKeys.push('mada');
+  if (settings.payment_applepay_enabled) onlineMethodKeys.push('applepay');
+  const moyasarEnabled = keyPresent && onlineMethodKeys.length > 0;
+
+  // Build the subtitle label for the online payment button
+  const onlineSubtitleParts = { ar: [] as string[], en: [] as string[] };
+  if (settings.payment_card_enabled) {
+    onlineSubtitleParts.ar.push('فيزا · ماستركارد · STC Pay');
+    onlineSubtitleParts.en.push('Visa · Mastercard · STC Pay');
+  }
+  if (settings.payment_mada_enabled)     { onlineSubtitleParts.ar.push('مدى');       onlineSubtitleParts.en.push('Mada'); }
+  if (settings.payment_applepay_enabled) { onlineSubtitleParts.ar.push('Apple Pay'); onlineSubtitleParts.en.push('Apple Pay'); }
+  const onlineSubtitle = {
+    ar: onlineSubtitleParts.ar.join(' · '),
+    en: onlineSubtitleParts.en.join(' · '),
+  };
 
   const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
@@ -935,6 +955,8 @@ function BookingFormModal({
                 lang={lang}
                 depositSAR={booked.deposit}
                 moyasarEnabled={moyasarEnabled}
+                transferEnabled={settings.payment_transfer_enabled}
+                onlineSubtitle={onlineSubtitle}
                 onSelect={(m) => setState(m === 'card' ? 'card' : 'transfer')}
               />
             )}
@@ -959,6 +981,7 @@ function BookingFormModal({
                   bookingRef={booked.ref}
                   bookingId={booked.id}
                   lang={lang}
+                  allowedMethods={onlineMethodKeys}
                 />
               </div>
             )}
@@ -1487,12 +1510,12 @@ export default function BookingPage() {
               color: T.coffee, margin:0 }}>
               {tx(lang,'اختاري باقتك','Choose Your Package')}
             </h2>
-            <p style={{ fontSize:'0.82rem', color: T.taupe, marginTop:'8px',
-              fontFamily:"'Tajawal',sans-serif" }}>
-              {vatEnabled
-                ? tx(lang,'جميع الأسعار بدون ضريبة القيمة المضافة ١٥٪','All prices exclude 15% VAT')
-                : tx(lang,'جميع الأسعار غير شاملة الضريبة','All prices are tax-free')}
-            </p>
+            {vatEnabled && (
+              <p style={{ fontSize:'0.82rem', color: T.taupe, marginTop:'8px',
+                fontFamily:"'Tajawal',sans-serif" }}>
+                {tx(lang,'جميع الأسعار بدون ضريبة القيمة المضافة ١٥٪','All prices exclude 15% VAT')}
+              </p>
+            )}
 
             {/* ── Audit append (2026-05): view-mode toggle ────────────────
                 Cards remain default. Power users (or brides on desktop

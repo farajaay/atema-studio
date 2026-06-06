@@ -6,22 +6,34 @@ import { supabase } from './supabase';
 export type ThemeName = 'noir' | 'ivory';
 
 export interface AppSettings {
-  vat_enabled:     boolean;
-  vat_number:      string;
-  cr_number:       string;
-  seller_name_ar:  string;
-  seller_name_en:  string;
-  theme:           ThemeName;
-  updated_at?:     string;
+  vat_enabled:               boolean;
+  vat_number:                string;
+  cr_number:                 string;
+  seller_name_ar:            string;
+  seller_name_en:            string;
+  theme:                     ThemeName;
+  // WhatsApp automated-send gate
+  wa_enabled:                boolean;
+  // Payment method gates
+  payment_card_enabled:      boolean;
+  payment_mada_enabled:      boolean;
+  payment_applepay_enabled:  boolean;
+  payment_transfer_enabled:  boolean;
+  updated_at?:               string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  vat_enabled:    false,
-  vat_number:     '',
-  cr_number:      '',
-  seller_name_ar: 'ATEMA Studio — فاطمة بوحسن',
-  seller_name_en: 'ATEMA Studio',
-  theme:          'noir',
+  vat_enabled:               false,
+  vat_number:                '',
+  cr_number:                 '',
+  seller_name_ar:            'ATEMA Studio — فاطمة بوحسن',
+  seller_name_en:            'ATEMA Studio',
+  theme:                     'noir',
+  wa_enabled:                false,
+  payment_card_enabled:      false,
+  payment_mada_enabled:      false,
+  payment_applepay_enabled:  false,
+  payment_transfer_enabled:  true,
 };
 
 export const VAT_RATE = 0.15;
@@ -40,13 +52,18 @@ export async function fetchSettings(): Promise<AppSettings> {
   }
   if (!data) return DEFAULT_SETTINGS;
   return {
-    vat_enabled:    !!data.vat_enabled,
-    vat_number:     data.vat_number    ?? '',
-    cr_number:      data.cr_number     ?? '',
-    seller_name_ar: data.seller_name_ar ?? DEFAULT_SETTINGS.seller_name_ar,
-    seller_name_en: data.seller_name_en ?? DEFAULT_SETTINGS.seller_name_en,
-    theme:          (data.theme === 'ivory' ? 'ivory' : 'noir') as ThemeName,
-    updated_at:     data.updated_at,
+    vat_enabled:               !!data.vat_enabled,
+    vat_number:                data.vat_number    ?? '',
+    cr_number:                 data.cr_number     ?? '',
+    seller_name_ar:            data.seller_name_ar ?? DEFAULT_SETTINGS.seller_name_ar,
+    seller_name_en:            data.seller_name_en ?? DEFAULT_SETTINGS.seller_name_en,
+    theme:                     (data.theme === 'ivory' ? 'ivory' : 'noir') as ThemeName,
+    wa_enabled:                !!data.wa_enabled,
+    payment_card_enabled:      !!data.payment_card_enabled,
+    payment_mada_enabled:      !!data.payment_mada_enabled,
+    payment_applepay_enabled:  !!data.payment_applepay_enabled,
+    payment_transfer_enabled:  data.payment_transfer_enabled !== false,
+    updated_at:                data.updated_at,
   };
 }
 

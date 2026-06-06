@@ -56,7 +56,7 @@ const ITEMS: FAQItem[] = [
     q_ar: 'هل يمكنني تأجيل الحجز؟',
     q_en: 'Can I reschedule my booking?',
     a_ar: 'يُسمح بتأجيل واحد فقط طوال مدة العقد، بشرط إشعارنا قبل ٧ أيام على الأقل، ويخضع التأجيل لتوفر الطرف الأول في التاريخ الجديد. لا تُستردّ أي مبالغ عند التأجيل ولا تُحتسب كمناسبة جديدة.',
-    a_en: 'One reschedule is permitted per contract, provided we receive at least 7 days' notice and the new date is available. No refunds are issued for rescheduling, and it does not count as a new booking.',
+    a_en: "One reschedule is permitted per contract, provided we receive at least 7 days' notice and the new date is available. No refunds are issued for rescheduling, and it does not count as a new booking.",
   },
   {
     q_ar: 'ما هي سياسة الإلغاء؟',

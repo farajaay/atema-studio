@@ -22,13 +22,16 @@ const ICON_CHAMPAGNE = '#EFE3D1';
 export type PaymentMethod = 'card' | 'transfer';
 
 interface Props {
-  lang:           Lang;
-  depositSAR:     number;
-  moyasarEnabled: boolean;
-  onSelect:       (m: PaymentMethod) => void;
+  lang:              Lang;
+  depositSAR:        number;
+  moyasarEnabled:    boolean;
+  transferEnabled?:  boolean;
+  /** Display names for enabled online methods (e.g. 'فيزا · مدى · Apple Pay'). */
+  onlineSubtitle?:   { ar: string; en: string };
+  onSelect:          (m: PaymentMethod) => void;
 }
 
-export default function PaymentMethodChooser({ lang, depositSAR, moyasarEnabled, onSelect }: Props) {
+export default function PaymentMethodChooser({ lang, depositSAR, moyasarEnabled, transferEnabled = true, onlineSubtitle, onSelect }: Props) {
   return (
     <div dir={lang === 'ar' ? 'rtl' : 'ltr'}
       style={{ padding:'24px 22px', background:'var(--a-surface)', fontFamily:'Tajawal,sans-serif' }}>
@@ -79,9 +82,9 @@ export default function PaymentMethodChooser({ lang, depositSAR, moyasarEnabled,
                 {tx(lang,'الدفع الإلكتروني','Online Card Payment')}
               </div>
               <div style={{ fontSize:'0.74rem', color: C.sand, opacity:0.85, lineHeight:1.6 }}>
-                {/* mada · Apple Pay — to be enabled once Moyasar live mode is active */}
-                {tx(lang,'فيزا · ماستركارد · STC Pay',
-                         'Visa · Mastercard · STC Pay')}
+                {onlineSubtitle
+                  ? (lang === 'ar' ? onlineSubtitle.ar : onlineSubtitle.en)
+                  : tx(lang,'فيزا · ماستركارد · STC Pay','Visa · Mastercard · STC Pay')}
               </div>
               <div style={{
                 display:'inline-block', marginTop:'7px',
@@ -101,7 +104,7 @@ export default function PaymentMethodChooser({ lang, depositSAR, moyasarEnabled,
         )}
 
         {/* Bank transfer */}
-        <button onClick={() => onSelect('transfer')}
+        {transferEnabled && <button onClick={() => onSelect('transfer')}
           style={{
             display:'flex', alignItems:'center', gap:'14px', padding:'18px 18px',
             borderRadius:'14px', cursor:'pointer', textAlign:'right',
@@ -145,7 +148,7 @@ export default function PaymentMethodChooser({ lang, depositSAR, moyasarEnabled,
             transform: lang==='ar' ? 'none' : 'rotate(180deg)',
             flexShrink:0,
           }} />
-        </button>
+        </button>}
       </div>
 
       {!moyasarEnabled && (

@@ -184,7 +184,7 @@ export function generateContractHTML(d: ContractData): string {
     </div>` : ''}
     <div class="financial">
       <div class="fin-box">
-        <div class="fin-label">المبلغ الإجمالي (شامل VAT)</div>
+        <div class="fin-label">${d.vat > 0 ? 'المبلغ الإجمالي (شامل VAT)' : 'المبلغ الإجمالي'}</div>
         <div class="fin-val">${fmt(d.total)}</div>
         <div class="fin-cur">ر.س</div>
       </div>
@@ -215,7 +215,7 @@ export function generateContractHTML(d: ContractData): string {
         <li>الدفعة الثانية تُسدَّد قبل المناسبة بيوم واحد على الأقل، وللطرف الأول رفض تنفيذ الخدمة في حالة عدم السداد.</li>
         <li>التحويل إلى: بنك الراجحي — فاطمة بوحسن — رقم الحساب: 329608010885626 أو عبر سداد.</li>
         <li>تُرسَل صورة الحوالة فور التحويل عبر واتساب على: 0548323496.</li>
-        <li>الأسعار شاملة ضريبة القيمة المضافة ١٥٪ وفق متطلبات هيئة الزكاة والضريبة والجمارك.</li>
+        ${d.vat > 0 ? '<li>الأسعار شاملة ضريبة القيمة المضافة ١٥٪ وفق متطلبات هيئة الزكاة والضريبة والجمارك.</li>' : ''}
       </ul>
     </div>
 
