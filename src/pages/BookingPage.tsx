@@ -906,7 +906,14 @@ function BookingFormModal({
       });
       setState('error');
       const msg = err instanceof Error ? err.message : String(err);
-      setErrMsg(tx(lang,'حدث خطأ: ','Error: ') + msg);
+      if (msg === 'booking_unavailable') {
+        setErrMsg(tx(lang,
+          'عذراً، تعذّر إتمام الحجز حالياً. يُرجى التواصل معنا مباشرةً عبر واتساب.',
+          'Sorry, booking is temporarily unavailable. Please contact us directly via WhatsApp.'
+        ));
+      } else {
+        setErrMsg(tx(lang,'حدث خطأ: ','Error: ') + msg);
+      }
     } finally {
       submittingRef.current = false;
     }

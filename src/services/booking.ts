@@ -298,10 +298,17 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
       // (PostgREST RLS rejections, NOT NULL violations, FK errors, etc.)
       // rather than a generic "booking_insert_failed".
       const e = error as { message?: string; code?: string; details?: string; hint?: string } | null;
+      const code = e?.code ?? '';
+      // RLS rejection (42501) means the direct-insert fallback is blocked by
+      // the database's row-level security policy. Surface a user-friendly
+      // message rather than the raw Postgres error.
+      if (code === '42501' || (e?.message ?? '').includes('row-level security')) {
+        throw new Error('booking_unavailable');
+      }
       const detail = e?.details ? ` (${e.details})` : '';
       const hint   = e?.hint    ? ` — hint: ${e.hint}` : '';
-      const code   = e?.code    ? ` [${e.code}]` : '';
-      throw new Error((e?.message ?? 'booking_insert_failed') + code + detail + hint);
+      const codeStr = code ? ` [${code}]` : '';
+      throw new Error((e?.message ?? 'booking_insert_failed') + codeStr + detail + hint);
     }
     console.log(`[booking:${reqId}] ✓ direct insert success (${Math.round(performance.now() - t0)}ms)`, data);
     console.groupEnd();
