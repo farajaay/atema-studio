@@ -105,6 +105,7 @@ jobs:
             # ── 8. June 2026 additions ──────────────────────────────
             "database/migrations-2026-06-topup.sql"             # topup_amount_due on bookings (post-upgrade payment)
             "database/migrations-2026-06-feature-flags.sql"     # wa_enabled + payment_*_enabled on app_settings
+            "database/migrations-2026-06-rls-remaining.sql"     # enable RLS on packages, addons, payments, whatsapp_logs
           )
 
           SEEDS=(

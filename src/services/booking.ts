@@ -151,6 +151,7 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
 
   if (supabase) {
     // ── Preferred path: Edge Function ────────────────────────────────
+    let edgeFnErr: string | null = null;   // set inside try, thrown outside
     try {
       console.log(`[booking:${reqId}] → invoking create-booking Edge Function`);
       const invokePromise = supabase.functions.invoke('create-booking', {
@@ -205,17 +206,22 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
           } else {
             console.error(`[booking:${reqId}] ✗ Edge Function returned error:`, error);
             console.error(`[booking:${reqId}]    response data:`, data);
-            const surfaced = typeof (data as { error?: string })?.error === 'string'
+            edgeFnErr = typeof (data as { error?: string })?.error === 'string'
               ? (data as { error: string }).error
               : msg || 'create_booking_failed';
-            console.groupEnd();
-            throw new Error(surfaced);
           }
         }
       }
     } catch (err) {
       // Network / unknown — fall through to direct insert
       console.warn(`[booking:${reqId}] Edge Function unreachable, falling back:`, err);
+    }
+
+    // Non-404 Edge Function error — surface it directly; do NOT fall through
+    // to direct insert (the throw was previously swallowed by the catch above).
+    if (edgeFnErr) {
+      console.groupEnd();
+      throw new Error(edgeFnErr);
     }
 
     // ── Fallback path: direct insert (pre-C-3 behaviour) ─────────────
