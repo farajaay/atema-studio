@@ -12,7 +12,7 @@
 //   - Manual dot navigation always works.
 //   - Each card is in an aria-labelled region.
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useLang } from '../hooks/useLang';
 
 interface Testimonial {
@@ -60,26 +60,29 @@ export default function Testimonials() {
   const { lang } = useLang();
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
-  const reducedMotionRef = useRef(false);
+  // State (not a ref) so a mid-session preference change re-renders and
+  // actually stops the rotation + animation.
+  const [reducedMotion, setReducedMotion] = useState(() =>
+    typeof window !== 'undefined'
+    && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 
-  // Respect prefers-reduced-motion at mount and on change
+  // Respect prefers-reduced-motion on change (initial value comes from state init)
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () => { reducedMotionRef.current = mq.matches; };
-    update();
+    const update = () => setReducedMotion(mq.matches);
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
   }, []);
 
   // Auto-rotate — paused on hover, focus, or reduced-motion preference
   useEffect(() => {
-    if (paused || reducedMotionRef.current) return;
+    if (paused || reducedMotion) return;
     const id = window.setInterval(() => {
       setActive(prev => (prev + 1) % TESTIMONIALS.length);
     }, ROTATE_MS);
     return () => window.clearInterval(id);
-  }, [paused]);
+  }, [paused, reducedMotion]);
 
   const item = TESTIMONIALS[active];
   const quote      = lang === 'ar' ? item.quote_ar       : item.quote_en;
@@ -115,7 +118,7 @@ export default function Testimonials() {
         aria-live="polite"
         style={{
           minHeight: '180px',
-          animation: reducedMotionRef.current
+          animation: reducedMotion
             ? 'none'
             : 'atema-testimonial-fade 0.5s ease',
         }}

@@ -18,6 +18,7 @@
 //   Subscribe to: messages
 
 // deno-lint-ignore-file no-explicit-any
+/* eslint-disable @typescript-eslint/no-explicit-any -- Meta webhook envelopes are structural */
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import {
   db, sendText, verifySignature, jsonResponse, corsHeaders,

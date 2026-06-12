@@ -36,7 +36,7 @@ export default function FadeUp({
     return () => io.disconnect();
   }, []);
 
-  const Comp: any = as ?? 'div';
+  const Comp: ElementType = as ?? 'div';
   return (
     <Comp ref={ref} style={{
       opacity: shown ? 1 : 0,

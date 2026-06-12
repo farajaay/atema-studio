@@ -150,7 +150,7 @@ export default function PortfolioManager() {
 
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginRight: 'auto' }}>
             {([{ key: 'all', ar: 'الكل' }, ...CATEGORIES] as const).map(c => (
-              <button key={c.key} onClick={() => setFilter(c.key as any)} style={{
+              <button key={c.key} onClick={() => setFilter(c.key as PortfolioCategory | 'all')} style={{
                 padding: '7px 14px', borderRadius: 8, cursor: 'pointer',
                 fontSize: 12, fontFamily: 'inherit', fontWeight: 600,
                 background: filter === c.key ? ATEMA_COLORS.champagne : 'var(--a-surface-alt)',

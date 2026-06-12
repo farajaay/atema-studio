@@ -56,7 +56,7 @@ export async function fetchJournalAll(): Promise<JournalPost[]> {
 export async function upsertJournalPost(post: Partial<JournalPost> & { id?: string }): Promise<boolean> {
   if (!supabase) return false;
   // Stamp published_at when publishing for the first time.
-  const payload: any = { ...post };
+  const payload: Partial<JournalPost> = { ...post };
   if (post.published && !post.published_at) payload.published_at = new Date().toISOString();
   const { error } = post.id
     ? await supabase.from('journal_posts').update(payload).eq('id', post.id)

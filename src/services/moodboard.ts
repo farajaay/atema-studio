@@ -107,7 +107,7 @@ export async function autoSelectImages(
     .eq('published', true)
     .order('sort_order', { ascending: true });
 
-  let urls: string[] = [];
+  let urls: string[];
   if (!error && data && data.length > 0) {
     urls = data.map(r => r.image_url as string);
   } else {

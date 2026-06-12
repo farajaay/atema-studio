@@ -83,7 +83,7 @@ export default function PortfolioPage() {
         padding: '0 24px 40px',
       }}>
         {[{ key: 'all' as const, ar: 'الكل', en: 'All' }, ...nonEmptyCategories].map(c => (
-          <button key={c.key} onClick={() => setFilter(c.key as any)}
+          <button key={c.key} onClick={() => setFilter(c.key as PortfolioCategory | 'all')}
             style={{
               padding: '8px 22px', borderRadius: 2, cursor: 'pointer',
               background: filter === c.key ? 'var(--a-gold)' : 'transparent',

@@ -142,13 +142,13 @@ export default function PackagesManager() {
     if (!authLoading && !user) navigate('/admin', { replace: true });
   }, [user, authLoading, navigate]);
 
-  // Select first package on load
+  // Select first package on load (the !selected guard makes re-runs no-ops)
   useEffect(() => {
     if (packages.length > 0 && !selected && !isNew) {
       setSelected(packages[0]);
       setDraft(packages[0]);
     }
-  }, [packages]);
+  }, [packages, selected, isNew]);
 
   function selectPackage(pkg: Package) {
     setSelected(pkg); setDraft(pkg); setIsNew(false);

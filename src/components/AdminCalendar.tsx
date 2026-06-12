@@ -2,7 +2,7 @@
 // Shows all bookings on their dates + admin-blocked dates.
 // Click empty cell -> block dialog; click blocked cell -> unblock.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Ban, Calendar, X, Loader2 } from 'lucide-react';
 // Admin surface — uses the authenticated path so booking_ref + customer_name
 // are included for the tooltip/expanded view.
@@ -43,7 +43,7 @@ export default function AdminCalendar() {
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState<{ date: string; existing?: BlockedDate; bookings?: BookedDate[] } | null>(null);
 
-  async function reload() {
+  const reload = useCallback(async () => {
     setLoading(true);
     const { from, to } = monthRange(cursor.year, cursor.month);
     const [bk, bl] = await Promise.all([
@@ -53,9 +53,9 @@ export default function AdminCalendar() {
     setBooked(bk);
     setBlocked(bl);
     setLoading(false);
-  }
+  }, [cursor.year, cursor.month]);
 
-  useEffect(() => { reload(); /* eslint-disable-next-line */ }, [cursor.year, cursor.month]);
+  useEffect(() => { reload(); }, [reload]);
 
   // Index for fast lookup
   const bookedMap = useMemo(() => {

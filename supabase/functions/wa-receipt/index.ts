@@ -10,7 +10,10 @@
 //   • amount within 5% → mark needs_review, ping owner with a quick-reply
 //   • no match → mark unmatched, ping owner with the photo
 
+// Parsed webhook payloads and Claude responses flow through as `any` —
+// structural, same pattern as the other Edge Functions.
 // deno-lint-ignore-file no-explicit-any
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import {
   db, sendText, fetchMediaUrl, downloadMedia, jsonResponse, corsHeaders,
@@ -74,7 +77,7 @@ serve(async (req) => {
   const base64 = bytesToBase64(media.bytes);
   const inferredMime = mime ?? media.mime;
 
-  let rawExtracted: any = null;
+  let rawExtracted: any;
   try {
     rawExtracted = await callClaude(inferredMime, base64);
   } catch (err) {
@@ -198,7 +201,7 @@ async function callClaude(mime: string, base64: string): Promise<any> {
   try { return JSON.parse(cleaned); }
   catch (e) {
     console.warn('claude returned non-JSON:', text);
-    throw new Error('parse_failed');
+    throw new Error('parse_failed', { cause: e });
   }
 }
 

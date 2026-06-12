@@ -21,7 +21,10 @@
 //
 // Existing WhatsApp notification trigger preserved at the bottom.
 
+// Parsed request bodies and Supabase rows flow through as `any` — structural,
+// same pattern as the other Edge Functions.
 // deno-lint-ignore-file no-explicit-any
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import {
@@ -29,7 +32,6 @@ import {
   validEmail,
   isFutureOrToday,
   clampText,
-  bookingRef,
   CITY_FEES,
 } from '../_shared/validation.ts';
 import { sumActiveAddons, clampDiscount, computeBookingTotals } from '../_shared/pricing.ts';
@@ -256,7 +258,7 @@ serve(async (req) => {
   const COLUMN_NOT_FOUND_RE =
     /Could not find the ['"`]?([\w]+)['"`]? column|column ['"`]?([\w]+)['"`]? of relation .* does not exist|column ['"`]?([\w]+)['"`]? does not exist/i;
 
-  let attempt: Record<string, unknown> = { ...fullRow };
+  const attempt: Record<string, unknown> = { ...fullRow };
   const dropped: string[] = [];
   let booking: any = null;
   let insErr: any = null;

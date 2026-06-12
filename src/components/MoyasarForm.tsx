@@ -36,6 +36,9 @@ export default function MoyasarForm({ depositSAR, description, bookingRef, booki
         ? 'فشل تحميل نموذج الدفع. تحقق من الاتصال وأعيدي المحاولة.'
         : 'Failed to load payment form. Check your connection and try again.'
       ));
+    // The SDK loads exactly once (initialized ref guards re-entry); `lang`
+    // only flavours the error string of that one load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Once SDK is ready and container exists, initialize Moyasar
@@ -57,6 +60,10 @@ export default function MoyasarForm({ depositSAR, description, bookingRef, booki
       methods:             allowedMethods && allowedMethods.length > 0 ? allowedMethods : ['creditcard', 'stcpay'],
       metadata:            { booking_id: bookingId, booking_ref: bookingRef, purpose },
     });
+    // Moyasar.init mounts the payment form into the container exactly once,
+    // when the SDK becomes ready. Re-running on prop changes would re-mount
+    // the form mid-payment — the props are fixed for the life of the modal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sdkReady]);
 
   // Key not configured yet

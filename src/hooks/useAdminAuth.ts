@@ -65,7 +65,6 @@ export function useAdminAuth() {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           // Always log the raw error for DevTools debugging.
-          // eslint-disable-next-line no-console
           console.error('[admin login] supabase auth error', {
             status: error.status,
             name:   error.name,
@@ -81,7 +80,6 @@ export function useAdminAuth() {
         return null;
       } catch (e: unknown) {
         // Network / CORS / project-paused failures land here.
-        // eslint-disable-next-line no-console
         console.error('[admin login] network / unexpected error', e);
         const msg = e instanceof Error ? e.message : String(e);
         return `تعذّر الاتصال بالخادم. تحقّق من اتصال الإنترنت ومن أن مشروع Supabase نشط. (${msg})`;

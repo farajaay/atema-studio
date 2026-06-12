@@ -1314,7 +1314,7 @@ export default function BookingPage() {
   const total    = subtotal + vat;
 
   const setHourQty  = (id: string, q: number) => setHourQtys(prev => ({ ...prev, [id]: Math.max(0, q) }));
-  const toggleAddon = (id: string) => setActiveAddons(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleAddon = (id: string) => setActiveAddons(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   // Addon lines for SummaryPanel
   const addonLines: AddonLine[] = addons.flatMap(a => {
