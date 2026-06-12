@@ -127,39 +127,48 @@ negative, you essentially worked below your target wage on this booking.
 
 ## 4. Worked examples (current price list)
 
-Assuming Jubail (free travel), no add-ons, all VAT-on:
+> **Updated 2026-06-12.** The May-2026 pricing overhaul
+> (`database/migrations-2026-05-pricing-overhaul.sql`) repriced every tier
+> against this cost model. The previous table — kept in git history — showed
+> 5 of 6 tiers with **negative** true profit; that is what the overhaul fixed.
+> The cost columns below come from the overhaul migration's worked math
+> (assistant at 110/hr for shoots >2h, printing at supplier cost × 1.25,
+> video at hours × 450 × 1.5, owner at 150/hr, Jubail travel, no add-ons).
 
-| Package | Price | Owner hrs | Direct costs | Overhead | Owner cost | True profit | True margin |
-|---|---|---|---|---|---|---|---|
-| Engagement (1,800) | 1,800 | 11.8 | 80 | 184 | 1,770 | **-234** | -13% |
-| Customise (2,200) | 2,200 | 14.2 | 80 | 184 | 2,130 | **-194** | -9% |
-| Classic (4,200) | 4,200 | 18.6 | 1,310 | 184 | 2,790 | **-84** | -2% |
-| Royal (6,900) | 6,900 | 25.5 | 3,710 | 184 | 3,825 | **-819** | -12% |
-| Signature (8,500) | 8,500 | 27.4 | 4,790 | 184 | 4,110 | **-584** | -7% |
-| Couture (14,000) | 14,000 | 34.5 | 7,650 | 184 | 5,175 | **+991** | +7% |
+| Package | Price | Fully-loaded cost | True profit | True margin |
+|---|---|---|---|---|
+| Custom Foundation (1h base) | 1,800 | ~1,374 | **+426** | +24% |
+| Engagement | 2,500 | 1,884 | **+616** | +25% |
+| Classic | 5,200 | 4,638 | **+562** | +11% |
+| Royal | 10,500 | 9,708 | **+792** | +8% |
+| Signature | 12,500 | 11,184 | **+1,316** | +11% |
+| ATEMA Couture | 19,500 | 18,169 | **+1,331** | +7% |
 
 **Reading this table:**
 
-- **Engagement at 1,800 SAR is structurally unprofitable.** It's a loss
-  leader / entry-point package. Fine as a brand-awareness vehicle, but the
-  studio should not aim to fill its calendar with these.
-- **Royal at 6,900 SAR shows -819 true profit** — but only because the
-  videographer fee (2,250 SAR) is the real margin killer. If ATEMA can shoot
-  the cinematic with in-house equipment instead of hiring out, Royal flips
-  to +1,431 true profit.
-- **Couture at 14,000 is genuinely profitable** at +991 true profit (7%
-  margin) and that's with conservative cost assumptions.
+- **Every tier now clears its fully-loaded cost**, including Fatima's
+  owner time at 150 SAR/hr. Nothing in the catalogue is a structural
+  loss-maker any more.
+- **Margins on the video tiers (Royal, Signature, Couture) are the
+  thinnest (7–8%)** because the outsourced videographer is priced
+  through at cost + 50%. The price covers the cost, but the *margin
+  ceiling* stays low while video is hired out.
+- **The entry tiers carry the fattest percentage margins** (~25%) —
+  by design, since their absolute profit is small and they exist to
+  start relationships that upgrade.
 
-### The fix — three levers the owner can pull
+### The remaining levers the owner can pull
 
-1. **Raise the Engagement price to 2,400 SAR** — same true-profit math
-   yields +366 instead of -234. The package is still the cheapest entry point
-   and won't deter customers who already chose ATEMA.
-2. **Bring videographer in-house** (training + a second camera) — turns Royal
-   and Signature from loss-makers into the studio's most profitable per-hour
-   tiers.
-3. **Track real overhead** annually — if actual bookings/year run higher than
-   35, per-booking overhead drops and every tier improves.
+1. **Bring videography in-house** (training + a second body) — converts
+   the 450/hr pass-through into owner margin and makes Royal/Signature
+   the most profitable tiers per hour. This is the single biggest open
+   commercial lever.
+2. **Track real overhead annually** — if actual bookings/year run higher
+   than 35, per-booking overhead drops and every tier improves; if lower,
+   the thin video-tier margins are the first to go red.
+3. **Mind the warning chips** (§5) on discounted bookings — a 15%
+   discount on Royal (-1,575 SAR) is double its true profit. Percent
+   codes should be capped below each tier's true-profit figure.
 
 ---
 

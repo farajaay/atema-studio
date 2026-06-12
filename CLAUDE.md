@@ -289,8 +289,9 @@ src/
 - `booking_otps` is RLS-on with **no** anon/authenticated policies (service
   role only). `booking_changes` is the audit log (admin SELECT only). Don't
   loosen either.
-- Not yet wired (deliberate): manage-link delivery, top-up payment collection,
-  contract/invoice regeneration after a change. See `docs/MANUAL.md` §13g.
+- Not yet wired (deliberate): contract/invoice regeneration after a change.
+  (Manage-link delivery + top-up collection shipped June 2026 — see §6 "Done".)
+  See `docs/MANUAL.md` §13g.
 
 ---
 
@@ -383,28 +384,19 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   Edge Function is deployed and stable (Patch C-3 finish).
 - Activate Moyasar live mode + update callback URL to atemastudio.xyz.
 
+### Owner attention (time-sensitive)
+- **LAUNCH15 has likely expired** — it was valid 20 days from when
+  `migrations-2026-05-launch-code.sql` was applied (May 2026). Verify in the
+  admin discount panel and retire or replace it before any campaign.
+
 ### Code-side (low-priority bug-tracker items)
-- M-1: `dangerouslySetInnerHTML` guarded constant cleanup
-- L-3: `@types/node` minor bump
 - L-5: `useBreakpoint` SSR-safety guard
 - L-6: VAT registration in invoice seller block (cosmetic — placeholder
   until Fatima registers)
+- L-9: document the monolithic-admin assumption on `discount_codes` UPDATE policy
 
 ### Design parking lot (not built — discuss before starting)
-**Pre-discussed order from last session:**
-1. **Studio-wide P&L dashboard (monthly aggregate rollup)** — next when
-   owner is ready. Currently only per-booking P&L exists. Big shape calls
-   before building: route (`/admin/pnl` vs new tab), time bucket
-   (month-only vs month+quarter+year), per-tier breakdown depth.
-2. **/policy public page** (T&C + refund + PDPL) — required for Moyasar
-   live activation. ~2 hr build, lifts existing TC_CONTENT / PDPL_CONTENT
-   constants out of `BookingPage.tsx` popups into a standalone page.
-
 **Self-service follow-ups (Phase 1+2 shipped; these are the remaining slices):**
-- Manage-link delivery — auto-text `/#/manage/<token>` at booking time
-  (extend `create-booking`) or an admin "send link" button.
-- Top-up payment collection — an upgrade flags the balance due but doesn't yet
-  open a Moyasar/transfer flow to charge the difference.
 - Contract/invoice regeneration after a change (generators are client-side).
 - Edge-function path tests (OTP/availability with a mocked Supabase) — the pure
   policy engines are fully tested; the function's glue isn't.
@@ -418,6 +410,16 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - Tap Payments as a secondary gateway (only when Mada volume justifies)
 
 **Done in recent sessions (do not re-build):**
+- ✅ Studio-wide P&L dashboard — built and wired as the admin "P&L" view
+  (`src/components/StudioPLDashboard.tsx`, rendered from `AdminDashboard.tsx`).
+- ✅ `/policy` public page — `src/pages/PolicyPage.tsx`, sharing T&C/PDPL copy
+  with the booking popups via `src/content/legal.ts`, plus an
+  official-channels / anti-impersonation notice (June 2026).
+- ✅ Anti-fraud copy hardening (June 2026) — OTP WhatsApp text now states
+  ATEMA will never ask for the code; transfer screen pins the official IBAN
+  and points at `/policy` for verification.
+- ✅ Full system review (2026-06-12) — status, gap analysis, phased plan at
+  `docs/reviews/2026-06-12-full-system-review.md`.
 - ✅ Manage-link WhatsApp delivery — `create-booking` fetches `manage_token` once, passes `manageLink` to `send-whatsapp`; bride receives self-service link in her booking WhatsApp.
 - ✅ Top-up payment flow — `change-booking` stores `topup_amount_due`; `ManageBookingPage` shows live `MoyasarForm` (purpose=topup) after upgrade; `verify-payment` clears the amount once Moyasar confirms. Requires `migrations-2026-06-topup.sql`.
 - ✅ Client-side payment verification hardened (M-11) — `verify-payment` Edge Function; `PaymentResultPage` uses server result, not URL params.
@@ -468,6 +470,8 @@ the canonical voice samples.
 
 ---
 
-*Last updated: 2026-05-28 — Phase 7: booking-confirmation email (Zoho SMTP),
-stationery palette convergence (one token map across contract + invoice + email +
-/policy + legal popups), GitHub Actions auto-deploy on push to master.*
+*Last updated: 2026-06-12 — full system review + Phase-0 housekeeping:
+PROFITABILITY.md re-based on the post-overhaul price list, parking lot
+reconciled with shipped code (Studio P&L + /policy are DONE), tracker items
+M-1 / L-3 / L-10 closed, anti-impersonation copy on /policy + transfer screen,
+OTP message hardened.*

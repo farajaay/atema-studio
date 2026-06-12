@@ -15,6 +15,22 @@
 
 ---
 
+## Status update — 2026-06-12 (Phase-0 housekeeping)
+
+Full system review pass (report: `docs/reviews/2026-06-12-full-system-review.md`).
+Verified 114/114 tests + clean build at `da0fcfe`. Landed:
+
+| Item | What changed |
+|---|---|
+| **M-1 closed** | Guard comment added at the `dangerouslySetInnerHTML` site in `BookingPage.tsx` (`LegalPopup`) — content is restricted to the hardcoded constants in `src/content/legal.ts`. |
+| **L-3 closed** | `@types/node` bumped (24.x → 25.x). Type-check + tests + build clean. |
+| **L-10 closed** | Comment added on the fallback-only `ref()` generator in `src/services/booking.ts`; delete with the legacy anon INSERT policy. |
+| **Anti-impersonation (new, S2)** | `/policy` gained an "official channels" card (WhatsApp, email, Instagram, the one official IBAN + "we never ask for your OTP" warning). `BankTransferPayment` footnote now pins the official IBAN and points at the policies page. |
+| **OTP copy hardened (new, S1)** | `change-booking` OTP WhatsApp text now adds "فريق ATEMA لن يطلبه منكِ أبداً" (ATEMA will never ask you for this code). Re-deploy `change-booking` to take effect. |
+| **Doc drift fixed** | `PROFITABILITY.md` §4 re-based on the post-overhaul price list (all tiers now margin-positive); `CLAUDE.md` §6 reconciled with shipped code (Studio P&L + `/policy` marked DONE, stale self-service slices removed, LAUNCH15 expiry flag added). `package.json` metadata de-boilerplated. |
+
+---
+
 ## Status update — 2026-06-05
 
 Four fixes landed:
@@ -424,7 +440,7 @@ Updated as fixes land. Patch commits reference these IDs.
 | H-7 | 2026-05-21 | ✅ Fixed — re-eval on basket change | this commit |
 | H-7b | 2026-05-21 | ✅ Fixed — server returns code metadata | this commit |
 | H-9 | 2026-05-21 | ✅ Fixed — loose policy dropped | this commit |
-| M-1 | 2026-05-17 | Open (intentional — guarded) | — |
+| M-1 | 2026-05-17 | ✅ Fixed — guard comment at the call site | 2026-06-12 |
 | M-2 | 2026-05-17 | ✅ Fixed | `ceafc29` |
 | M-3 | 2026-05-17 | ✅ Fixed (partial) | `e6a75e4` |
 | M-4 | 2026-05-17 | ✅ Fixed | `e6a75e4` |
@@ -435,14 +451,14 @@ Updated as fixes land. Patch commits reference these IDs.
 | M-10 | 2026-05-21 | ✅ Fixed — discount-preview Edge Fn with token-bucket | this commit |
 | L-1 | 2026-05-17 | ✅ Already correct | n/a |
 | L-2 | 2026-05-17 | ✅ Fixed | `ceafc29` |
-| L-3 | 2026-05-17 | Open (cosmetic) | — |
+| L-3 | 2026-05-17 | ✅ Fixed — `@types/node` 25.x | 2026-06-12 |
 | L-4 | 2026-05-17 | ✅ Fixed | `ceafc29` |
 | L-5 | 2026-05-17 | Open (SSR future-proofing) | — |
 | L-6 | 2026-05-17 | Open (cosmetic) | — |
 | L-7 | 2026-05-17 | ✅ Verified clean | n/a |
 | L-8 | 2026-05-21 | ✅ Fixed — crypto.randomUUID in storage paths | this commit |
 | L-9 | 2026-05-21 | Open — admin policy doc | — |
-| L-10 | 2026-05-21 | Open — stray ref() generator | — |
+| L-10 | 2026-05-21 | ✅ Fixed — fallback-only comment added; delete with legacy INSERT policy | 2026-06-12 |
 
 ---
 
