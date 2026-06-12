@@ -289,9 +289,11 @@ src/
 - `booking_otps` is RLS-on with **no** anon/authenticated policies (service
   role only). `booking_changes` is the audit log (admin SELECT only). Don't
   loosen either.
-- Not yet wired (deliberate): contract/invoice regeneration after a change.
-  (Manage-link delivery + top-up collection shipped June 2026 — see §6 "Done".)
-  See `docs/MANUAL.md` §13g.
+- After a change, documents are regenerated **manually from the admin booking
+  modal** (المستندات card → rebuild from current state; append-only versions).
+  See `docs/MANUAL.md` §13i. The change-booking glue is unit-tested via
+  `handlers.ts` + `src/services/change-booking-glue.test.ts` — keep the Deno
+  shell (`index.ts`) free of logic.
 
 ---
 
@@ -364,6 +366,9 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   - `database/migrations-2026-05-email.sql` (email_messages audit table —
     booking-confirmation email via Zoho Mail SMTP)
   - `database/migrations-2026-06-topup.sql` (adds `topup_amount_due` to `bookings` — required for self-service top-up payments after package upgrades)
+  - `database/migrations-2026-06-documents.sql` (contracts + invoices DDL under
+    version control + admin-only SELECT — fixes an anon PII leak; required for
+    the admin "المستندات" regeneration card)
   - `database/seed-packages-2026-05.sql` (6 packages + 11 add-ons — required
     if `packages` table is empty; the booking flow falls back to the DEMO
     catalogue without it, but the Edge Function still needs real rows to
@@ -396,20 +401,22 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - L-9: document the monolithic-admin assumption on `discount_codes` UPDATE policy
 
 ### Design parking lot (not built — discuss before starting)
-**Self-service follow-ups (Phase 1+2 shipped; these are the remaining slices):**
-- Contract/invoice regeneration after a change (generators are client-side).
-- Edge-function path tests (OTP/availability with a mocked Supabase) — the pure
-  policy engines are fully tested; the function's glue isn't.
-
 **Still parked, not yet ordered:**
 - AI Concierge bilingual conversational booking (recommend WA pilot first)
 - Voice-note transcription (high value for KSA WA volume)
-- Refund-deposit button in admin booking modal
 - Customer reminder opt-out checkbox at booking time
 - `/admin/conversations` live monitor UI (only when WA volume justifies)
 - Tap Payments as a secondary gateway (only when Mada volume justifies)
 
 **Done in recent sessions (do not re-build):**
+- ✅ Contract/invoice regeneration + versioned document storage (June 2026) —
+  `src/services/documents.ts` + المستندات card in the admin booking modal;
+  `migrations-2026-06-documents.sql` brings the contracts/invoices DDL under
+  version control and locks reads to admin (was an anon PII leak).
+- ✅ Refund-deposit button (studio-side cancellation) + failed-sends banner
+  (`src/hooks/useFailedSends.ts`) in the admin dashboard. `docs/MANUAL.md` §13i.
+- ✅ change-booking glue tests — wiring extracted to `handlers.ts`, 11 tests
+  with a mocked Supabase client (`src/services/change-booking-glue.test.ts`).
 - ✅ Studio-wide P&L dashboard — built and wired as the admin "P&L" view
   (`src/components/StudioPLDashboard.tsx`, rendered from `AdminDashboard.tsx`).
 - ✅ `/policy` public page — `src/pages/PolicyPage.tsx`, sharing T&C/PDPL copy
@@ -470,8 +477,8 @@ the canonical voice samples.
 
 ---
 
-*Last updated: 2026-06-12 — full system review + Phase-0 housekeeping:
-PROFITABILITY.md re-based on the post-overhaul price list, parking lot
-reconciled with shipped code (Studio P&L + /policy are DONE), tracker items
-M-1 / L-3 / L-10 closed, anti-impersonation copy on /policy + transfer screen,
-OTP message hardened.*
+*Last updated: 2026-06-12 — full system review (report under `docs/reviews/`),
+Phase-0 housekeeping (doc truth pass, tracker closes, anti-impersonation copy),
+and Phase-1 revenue protection: contract/invoice regeneration + versioned
+document storage (+ RLS fix for an anon PII leak on those tables),
+refund-deposit button, failed-sends banner, change-booking glue tests.*

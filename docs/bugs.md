@@ -15,6 +15,20 @@
 
 ---
 
+## Status update — 2026-06-12 (Phase-1 revenue protection)
+
+| Item | What changed |
+|---|---|
+| **H-10 (new finding, fixed)** | The hand-made `contracts` / `invoices` tables (created in production outside tracked migrations) carried `SELECT USING (true)` — anyone with the anon key could read every contract/invoice, whose `content_html` embeds customer names + phones. Same class as H-6/H-9. `database/migrations-2026-06-documents.sql` brings the DDL under version control, drops public SELECT (admin-only now), caps anon INSERT size, and keeps the tables append-only. **Owner action: run the migration.** |
+| **Contract/invoice regeneration** | Admin booking modal → المستندات card: view/download the latest stored version, regenerate both from the booking's current state (new invoice number; old versions kept). `src/services/documents.ts`; builders unit-tested (9 tests). Closes the §13g follow-up. |
+| **Refund-deposit button** | Guarded danger-zone in the booking modal (cancel + mark refunded) — studio-side cancellation path only. |
+| **Failed-sends banner** | Dashboard banner when `email_messages`/`wa_messages` show `status='failed'` in the last 7 days (`src/hooks/useFailedSends.ts`). Fire-and-forget sends are no longer silently broken. |
+| **change-booking glue tests** | Wiring extracted to `handlers.ts` (behaviour unchanged; Deno shell stays in `index.ts`); 11 tests with a mocked Supabase cover token gating, OTP issue/consume/lockout, catalogue recompute vs forged client totals, top-up persistence, WA payloads. **Owner action: redeploy `change-booking`** (automatic via the functions workflow on merge to master). |
+
+Suite: 134 passing. Type-check + build clean. Repo lint 62 → 51 problems.
+
+---
+
 ## Status update — 2026-06-12 (Phase-0 housekeeping)
 
 Full system review pass (report: `docs/reviews/2026-06-12-full-system-review.md`).
@@ -459,6 +473,7 @@ Updated as fixes land. Patch commits reference these IDs.
 | L-8 | 2026-05-21 | ✅ Fixed — crypto.randomUUID in storage paths | this commit |
 | L-9 | 2026-05-21 | Open — admin policy doc | — |
 | L-10 | 2026-05-21 | ✅ Fixed — fallback-only comment added; delete with legacy INSERT policy | 2026-06-12 |
+| H-10 | 2026-06-12 | ✅ Fixed — contracts/invoices anon SELECT dropped; DDL under version control (migration must be run) | 2026-06-12 |
 
 ---
 

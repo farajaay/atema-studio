@@ -798,12 +798,14 @@ wrong attempts**. Codes are stored only as a salted hash.
 
 ### What's not built yet (deliberate follow-ups)
 
-- **Link delivery** — auto-texting the manage link at booking time.
-- **Top-up collection** — an upgrade flags the balance due and notifies, but
-  does not yet open a Moyasar / transfer flow to actually charge the
-  difference.
-- **Contract / invoice regeneration** after a change is not yet automatic (the
-  generators are client-side).
+All three original follow-ups have since shipped (June 2026):
+
+- ✅ **Link delivery** — the manage link is texted with the booking WhatsApp.
+- ✅ **Top-up collection** — `ManageBookingPage` opens a live Moyasar form for
+  the balance after an upgrade; `verify-payment` clears it.
+- ✅ **Contract / invoice regeneration** — not automatic, by design: after a
+  change, regenerate from the admin booking modal's **المستندات** card
+  (§13i). A new version is appended; history is kept.
 
 ### Where it lives in code
 
@@ -812,7 +814,9 @@ wrong attempts**. Codes are stored only as a salted hash.
 | Reschedule policy (pure, tested) | `supabase/functions/_shared/reschedule.ts` |
 | OTP primitives (pure, tested) | `supabase/functions/_shared/otp.ts` |
 | Price-change / delta math (pure, tested) | `supabase/functions/_shared/change.ts` |
-| Server enforcement (all actions) | `supabase/functions/change-booking/index.ts` |
+| Request wiring (glue, tested) | `supabase/functions/change-booking/handlers.ts` |
+| Deno runtime shell | `supabase/functions/change-booking/index.ts` |
+| Glue test suite (mocked Supabase) | `src/services/change-booking-glue.test.ts` |
 | Client data + Edge calls | `src/services/manage.ts` |
 | Customer page | `src/pages/ManageBookingPage.tsx` |
 | Schema | `database/migrations-2026-05-booking-changes.sql` + `…-otp.sql` |
@@ -914,6 +918,73 @@ The full procedure (DNS, app password, secrets, smoke test) lives in
 - **Channel preference picker.** Currently every booking with an email
   gets the email; WA always sends. Decoupling them is parked until the
   Telegram bot decision lands (see §14).
+
+---
+
+## 13i. Documents, refunds & operational security (June 2026)
+
+### The المستندات card (booking modal → details tab)
+
+Every booking's contract and tax invoice live as **versions** in the
+`contracts` / `invoices` tables (append-only; the newest row is the live
+document). The card shows the latest version of each with **عرض** /
+**تحميل**, plus one button:
+
+> **إعادة إنشاء المستندات بالبيانات الحالية** — rebuilds both documents
+> from the booking as it is *right now*.
+
+Use it after any package/add-on change — whether the bride did it from
+her manage link or you edited the booking. The regenerated invoice gets
+a **new invoice number** (the old one stays on file); the contract is
+re-dated to the regeneration day. Old versions are never deleted — they
+are the audit trail.
+
+Requires `database/migrations-2026-06-documents.sql` (also tightens the
+tables to admin-only reads — they hold customer names and phones).
+
+### Refund deposit (exceptional path)
+
+The booking modal shows an **استرداد العربون** danger zone on paid /
+awaiting-transfer bookings. It cancels the booking and marks the payment
+**مُسترد** — nothing more. Two things to remember:
+
+1. **The money moves outside the system.** Make the actual bank transfer
+   yourself, then click the button so the records match.
+2. **The customer policy is unchanged** — the deposit stays
+   non-refundable *to the bride*. This button exists for the cases where
+   ATEMA itself cancels (illness, double-book, force majeure).
+
+### Bank-receipt verification is a human decision — always
+
+The WhatsApp receipt OCR (Claude Vision) is **advisory**: it extracts
+the amount/date/reference to save you typing. It does not, and must
+never, flip a booking to `paid` on its own authority. The rule:
+
+> **Money is confirmed against the bank statement, not against a
+> screenshot.** Open Al Rajhi, find the credit, match the booking ref,
+> *then* set حالة الدفع = مدفوع. A doctored receipt image costs a
+> fraudster nothing; the bank statement cannot be photoshopped.
+
+### Failed-sends banner
+
+The dashboard shows a red banner when any confirmation email or
+WhatsApp message failed in the last 7 days (from the `email_messages` /
+`wa_messages` audit tables). Sends are fire-and-forget by design, so
+this banner is the only place a dead Zoho password or an expired Meta
+token becomes visible. If it appears: §13h has the email debugging
+table; for WhatsApp, regenerate the access token in Meta Business
+Manager and update the Supabase secret.
+
+### Operator-account 2FA (do once, today)
+
+One person controls everything, so one phished password is a full
+compromise. Enable two-factor authentication on **all four** operator
+accounts — Supabase (database + secrets), GitHub (code + deploy
+pipeline), Meta Business (WhatsApp), Zoho (email) — using an
+authenticator app, not SMS, where offered. Also decide now what happens
+if the owner's phone is lost: it receives both the WA business messages
+and any OTPs, so keep recovery codes for the four accounts printed and
+stored offline at the studio.
 
 ---
 
