@@ -643,6 +643,8 @@ function LegalPopup({ title, htmlContent, onClose }: {
           </button>
         </div>
         {/* Scrollable body */}
+        {/* SAFE (Patch M-1): htmlContent is only ever one of the hardcoded
+            legal constants from src/content/legal.ts — never pass user data. */}
         <div style={{ overflowY:'auto', padding:'20px 22px 24px', flexGrow:1 }}
           dangerouslySetInnerHTML={{ __html: htmlContent }} />
         {/* Footer */}

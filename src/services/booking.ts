@@ -24,6 +24,9 @@ function randomTail(): string {
   return out;
 }
 
+// L-10: only used by the fallback insert + mock path below. The deployed
+// create-booking Edge Function generates the canonical ref server-side;
+// delete this once the legacy anon INSERT policy is dropped.
 function ref(): string {
   const d = new Date();
   const yy  = String(d.getFullYear()).slice(2);

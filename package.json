@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^24.12.3",
+    "@types/node": "^25.9.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
@@ -38,10 +38,9 @@
     "vite": "^8.0.12",
     "vitest": "^4.1.7"
   },
-  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
-  "main": "eslint.config.js",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "homepage": "https://farajaay.github.io/atema-studio"
+  "description": "ATEMA STUDIO — bilingual (Arabic-first) luxury photography booking platform for a women-only studio in Saudi Arabia's Eastern Province.",
+  "keywords": ["photography", "booking", "saudi-arabia", "bilingual", "supabase"],
+  "author": "Fatima Bohassan",
+  "license": "UNLICENSED",
+  "homepage": "https://atemastudio.xyz"
 }
