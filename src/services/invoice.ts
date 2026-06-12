@@ -21,6 +21,11 @@ export interface InvoiceData {
   vat:             number;
   total:           number;             // Incl VAT (when vatEnabled=false this equals subtotal)
   paymentMethod:   'card' | 'transfer' | 'pending';
+  /** Optional explicit payment state for the status badge. Regenerated
+   *  invoices use this because the method isn't stored on the booking —
+   *  without it a paid booking's reissued invoice would read "pending".
+   *  Falls back to the paymentMethod inference when absent. */
+  paymentState?:   'paid' | 'awaiting_transfer' | 'pending';
   depositPaid?:    number;
   /** Dynamic seller + VAT config — overrides hardcoded defaults */
   settings?:       AppSettings;
@@ -139,9 +144,13 @@ export function generateInvoiceHTML(d: InvoiceData): string {
     </tr>
   `).join('');
 
-  const statusBadge = d.paymentMethod === 'card'
+  const effectiveState = d.paymentState
+    ?? (d.paymentMethod === 'card' ? 'paid'
+      : d.paymentMethod === 'transfer' ? 'awaiting_transfer'
+      : 'pending');
+  const statusBadge = effectiveState === 'paid'
     ? '<div class="badge paid">مدفوعة — Paid</div>'
-    : d.paymentMethod === 'transfer'
+    : effectiveState === 'awaiting_transfer'
     ? '<div class="badge pending">في انتظار التحويل البنكي — Awaiting Bank Transfer</div>'
     : '<div class="badge pending">بانتظار الدفع — Pending Payment</div>';
 

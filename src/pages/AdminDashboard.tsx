@@ -11,12 +11,19 @@ import StudioPLDashboard from '../components/StudioPLDashboard';
 import AdminCalendar from '../components/AdminCalendar';
 import AppSettingsPanel from '../components/AppSettingsPanel';
 import { useAppSettings } from '../hooks/useAppSettings';
+import { useFailedSends } from '../hooks/useFailedSends';
+import {
+  regenerateDocuments, fetchLatestDocuments, type LatestDocuments,
+} from '../services/documents';
+import { openDocumentInNewTab, downloadDocument } from '../services/invoice';
+import type { AppSettings } from '../services/settings';
 import {
   LayoutDashboard, CalendarDays, Package, LogOut, RefreshCw,
   Search, Eye, Trash2, CheckCircle2,
   Clock, XCircle, CircleDollarSign, Users, AlertCircle,
   Loader2, X, Phone, Mail, MapPin, StickyNote, Save, TrendingUp, Layers,
-  Image as ImageIcon, BookOpen, Sparkles, BarChart3, Tag, Sliders
+  Image as ImageIcon, BookOpen, Sparkles, BarChart3, Tag, Sliders,
+  FileText, Receipt, Undo2
 } from 'lucide-react';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
@@ -86,10 +93,95 @@ function StatCard({ icon, label, value, sub, color }: { icon: React.ReactNode; l
   );
 }
 
+// ── Documents (contract + invoice) — view / download / regenerate ────────────
+// The latest stored version per booking is the live artifact (append-only
+// tables, migrations-2026-06-documents.sql). Regeneration rebuilds both from
+// the booking's CURRENT state — the answer to "she changed her package, the
+// contract is stale".
+function DocumentsSection({ booking, settings }: { booking: Booking; settings: AppSettings }) {
+  const [docs, setDocs]       = useState<LatestDocuments | null>(null);
+  const [working, setWorking] = useState(false);
+  const [outcome, setOutcome] = useState<'idle' | 'done' | 'error'>('idle');
+
+  useEffect(() => {
+    let on = true;
+    fetchLatestDocuments(booking.id).then(d => { if (on) setDocs(d); });
+    return () => { on = false; };
+  }, [booking.id]);
+
+  async function handleRegenerate() {
+    setWorking(true); setOutcome('idle');
+    const res = await regenerateDocuments(booking, settings);
+    setWorking(false);
+    if (!res) { setOutcome('error'); return; }
+    setOutcome('done');
+    const now = new Date().toISOString();
+    setDocs({
+      contract: { content_html: res.contractHTML, created_at: now },
+      invoice:  { content_html: res.invoiceHTML, invoice_number: res.invoiceNumber, created_at: now },
+    });
+  }
+
+  const docRow = (
+    icon: React.ReactNode, label: string,
+    doc: { content_html: string; created_at: string } | null,
+    filename: string,
+  ) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0',
+      borderBottom: '1px solid var(--a-border)', fontSize: '13px' }}>
+      <span style={{ color: 'var(--a-text-muted)' }}>{icon}</span>
+      <span style={{ fontWeight: 600, color: 'var(--a-text)', flex: 1 }}>
+        {label}
+        <span style={{ fontWeight: 400, fontSize: '11px', color: 'var(--a-text-muted)', marginRight: '8px' }}>
+          {doc ? `آخر إصدار ${doc.created_at.slice(0, 10)}` : 'لا توجد نسخة محفوظة'}
+        </span>
+      </span>
+      <button disabled={!doc} onClick={() => doc && openDocumentInNewTab(doc.content_html, label)}
+        style={{ padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--a-border)',
+          background: 'var(--a-surface)', cursor: doc ? 'pointer' : 'not-allowed',
+          color: doc ? 'var(--a-text)' : 'var(--a-text-muted)', fontSize: '12px', fontFamily: 'inherit' }}>
+        عرض
+      </button>
+      <button disabled={!doc} onClick={() => doc && downloadDocument(doc.content_html, filename)}
+        style={{ padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--a-border)',
+          background: 'var(--a-surface)', cursor: doc ? 'pointer' : 'not-allowed',
+          color: doc ? 'var(--a-text)' : 'var(--a-text-muted)', fontSize: '12px', fontFamily: 'inherit' }}>
+        تحميل
+      </button>
+    </div>
+  );
+
+  return (
+    <div style={{ background: 'var(--a-surface-alt)', borderRadius: '10px', padding: '16px 18px', marginBottom: '20px' }}>
+      <div style={{ fontSize: '12px', fontWeight: 700, color: ATEMA_COLORS.champagne, marginBottom: '6px',
+        textTransform: 'uppercase', letterSpacing: '1px' }}>المستندات</div>
+      {docRow(<FileText size={14} />, 'العقد', docs?.contract ?? null, `ATEMA-Contract-${booking.booking_ref}`)}
+      {docRow(<Receipt size={14} />, 'الفاتورة الضريبية', docs?.invoice ?? null, `ATEMA-Invoice-${booking.booking_ref}`)}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
+        <button onClick={handleRegenerate} disabled={working}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px',
+            borderRadius: '8px', border: `1.5px solid ${ATEMA_COLORS.champagne}`,
+            background: 'var(--a-surface)', color: ATEMA_COLORS.champagne, fontWeight: 600,
+            cursor: working ? 'wait' : 'pointer', fontSize: '12px', fontFamily: 'inherit' }}>
+          {working
+            ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />جاري الإنشاء…</>
+            : <><RefreshCw size={13} />إعادة إنشاء المستندات بالبيانات الحالية</>}
+        </button>
+        {outcome === 'done'  && <span style={{ fontSize: '12px', color: '#059669', fontWeight: 600 }}>✓ تم — هذه هي النسخة المعتمدة الآن</span>}
+        {outcome === 'error' && <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>تعذّر الإنشاء — تحقّقي من الاتصال</span>}
+      </div>
+      <div style={{ fontSize: '11px', color: 'var(--a-text-muted)', marginTop: '8px', lineHeight: 1.7 }}>
+        استخدميها بعد أي تعديل على الباقة أو الإضافات (من العميلة أو من هنا) — تُبنى نسخة جديدة
+        من بيانات الحجز الحالية مع رقم فاتورة جديد، وتبقى النسخ السابقة محفوظة للسجل.
+      </div>
+    </div>
+  );
+}
+
 // ── Booking Detail Modal ──────────────────────────────────────────────────────
-function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
+function BookingModal({ booking, onClose, onSave, globalVatEnabled, settings }: {
   booking: Booking; onClose: () => void; onSave: (id: string, updates: Partial<Booking>) => Promise<boolean>;
-  globalVatEnabled: boolean;
+  globalVatEnabled: boolean; settings: AppSettings;
 }) {
   const [tab, setTab]         = useState<'details' | 'pl' | 'mood'>('details');
   const [status, setStatus]   = useState<Booking['status']>(booking.status);
@@ -98,6 +190,8 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
   const [vatOn, setVatOn]     = useState<boolean>(globalVatEnabled && booking.vat_enabled !== false);
   const [saving, setSaving]   = useState(false);
   const [saved, setSaved]     = useState(false);
+  const [refundArmed, setRefundArmed] = useState(false);
+  const [refunding, setRefunding]     = useState(false);
 
   // Effective VAT respects global setting: if VAT is disabled globally, per-booking toggle is ignored.
   const effectiveVatOn  = globalVatEnabled && vatOn;
@@ -264,6 +358,9 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
             )}
           </div>
 
+          {/* Documents — view / download / regenerate */}
+          <DocumentsSection booking={booking} settings={settings} />
+
           {/* Edit status */}
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--a-text)', marginBottom: '7px' }}>حالة الحجز</label>
@@ -292,6 +389,50 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled }: {
               style={{ width: '100%', padding: '10px 14px', border: '1.5px solid var(--a-border)', borderRadius: '8px',
                 fontSize: '13px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
+
+          {/* Refund deposit — exceptional path (studio-side cancellation).
+              The customer-facing policy stays "deposit non-refundable"; this
+              button exists for the cases where ATEMA itself cancels. */}
+          {(booking.payment_status === 'paid' || booking.payment_status === 'awaiting_transfer') && (
+            <div style={{ border: '1px solid #fecaca', background: 'rgba(220,38,38,0.06)',
+              borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', marginBottom: '8px' }}>
+                استرداد العربون
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--a-text-soft)', marginBottom: '10px', lineHeight: 1.7 }}>
+                يُلغي الحجز ويُعلّم الدفع «مُسترد». الإجراء للحالات الاستثنائية فقط (إلغاء من الاستوديو) —
+                سياسة العميلة تبقى: العربون غير قابل للاسترداد. التحويل البنكي نفسه يتم خارج النظام.
+              </div>
+              {!refundArmed ? (
+                <button onClick={() => setRefundArmed(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+                    borderRadius: '8px', border: '1px solid #fecaca', background: 'var(--a-surface)',
+                    color: '#dc2626', fontWeight: 600, cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit' }}>
+                  <Undo2 size={13} />استرداد العربون وإلغاء الحجز
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button disabled={refunding}
+                    onClick={async () => {
+                      setRefunding(true);
+                      await onSave(booking.id, { status: 'cancelled', payment_status: 'refunded' });
+                      setRefunding(false);
+                    }}
+                    style={{ padding: '8px 16px', borderRadius: '8px', border: 'none',
+                      background: '#dc2626', color: 'white', fontWeight: 700,
+                      cursor: refunding ? 'wait' : 'pointer', fontSize: '12px', fontFamily: 'inherit' }}>
+                    {refunding ? 'جاري…' : 'نعم — تأكيد الاسترداد والإلغاء'}
+                  </button>
+                  <button onClick={() => setRefundArmed(false)}
+                    style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--a-border)',
+                      background: 'var(--a-surface)', color: 'var(--a-text)', fontWeight: 600,
+                      cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit' }}>
+                    تراجع
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
             <button onClick={onClose} style={{ padding: '10px 22px', border: `1.5px solid ${ATEMA_COLORS.champagne}`,
@@ -323,6 +464,7 @@ export default function AdminDashboard() {
 
   const { settings, update: updateSettings } = useAppSettings();
   const globalVatEnabled = settings.vat_enabled;
+  const failedSends = useFailedSends();
 
   const [search,     setSearch]     = useState('');
   const [statusF,    setStatusF]    = useState<string>('all');
@@ -427,6 +569,19 @@ export default function AdminDashboard() {
       </div>
 
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '20px 16px' : '28px 30px' }}>
+
+        {/* Failed-sends alert — email/WA failures are fire-and-forget by
+            design; this is the one place they become visible. */}
+        {failedSends.total > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fff5f5',
+            border: '1px solid #fecaca', borderRadius: '10px', padding: '12px 18px',
+            marginBottom: '20px', fontSize: '13px', color: '#dc2626', fontWeight: 600 }}>
+            <AlertCircle size={16} />
+            {failedSends.total} رسالة فشل إرسالها خلال آخر ٧ أيام
+            ({failedSends.email} بريد، {failedSends.wa} واتساب) —
+            تحقّقي من إعدادات Zoho / Meta في Supabase
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
@@ -599,7 +754,7 @@ export default function AdminDashboard() {
       {/* Booking detail modal */}
       {selected && (
         <BookingModal booking={selected} onClose={() => setSelected(null)}
-          globalVatEnabled={globalVatEnabled}
+          globalVatEnabled={globalVatEnabled} settings={settings}
           onSave={async (id, updates) => {
             const ok = await updateBooking(id, updates);
             if (ok) setSelected(null);
