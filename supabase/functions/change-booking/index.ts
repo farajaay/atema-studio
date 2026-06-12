@@ -146,7 +146,7 @@ async function handleRequestOtp(supabase: any, booking: any): Promise<Response> 
 
   // The code goes ONLY to the phone on file — never in the HTTP response.
   await notify(booking.customer_phone,
-    `رمز ATEMA لتعديل حجزك: ${code}\nصالح لمدة ١٠ دقائق. لا تشاركيه مع أحد.`);
+    `رمز ATEMA لتعديل حجزك: ${code}\nصالح لمدة ١٠ دقائق. لا تشاركيه مع أحد — فريق ATEMA لن يطلبه منكِ أبداً.`);
 
   return ok({ ok: true, sent: true });
 }

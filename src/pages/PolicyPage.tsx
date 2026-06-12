@@ -90,6 +90,52 @@ export default function PolicyPage() {
               dangerouslySetInnerHTML={{ __html: pdpl }}
             />
           </FadeUp>
+
+          {/* Official channels — the anti-impersonation anchor. Customers can
+              verify here that a WhatsApp message, email, or IBAN really came
+              from ATEMA. Values mirror BankTransferPayment.tsx + SiteFooter. */}
+          <FadeUp delay={200}>
+            <article
+              dir={lang === 'ar' ? 'rtl' : 'ltr'}
+              style={{
+                background: STATIONERY.paperAlt, color: STATIONERY.inkSoft, borderRadius: 8,
+                padding: isMobile ? '22px 20px' : '34px 36px',
+                border: `1px solid ${STATIONERY.borderHair}`,
+                fontFamily: "'Tajawal', sans-serif", fontSize: '0.9rem', lineHeight: 1.9,
+              }}
+            >
+              <h2 style={{
+                fontFamily: lang === 'ar' ? "'Amiri', serif" : "'Cormorant Garamond', serif",
+                color: STATIONERY.inkMuted, fontSize: '1.15rem', marginBottom: 12, fontWeight: 600,
+              }}>
+                {tx(lang, 'قنواتنا الرسمية — تحقّقي قبل أي تحويل', 'Our official channels — verify before any transfer')}
+              </h2>
+              <p style={{ marginBottom: 12 }}>
+                {tx(lang,
+                  'نتواصل معكِ حصرياً عبر القنوات التالية. أي رسالة أو طلب تحويل من رقم أو حساب آخر لا يمثّل استوديو ATEMA.',
+                  'We contact you exclusively through the channels below. Any message or transfer request from a different number or account does not represent ATEMA Studio.')}
+              </p>
+              <ul style={{ paddingInlineStart: 20, marginBottom: 12 }}>
+                <li>{tx(lang, 'واتساب: ', 'WhatsApp: ')}<strong dir="ltr">+966 54 832 3496</strong></li>
+                <li>{tx(lang, 'البريد الإلكتروني: ', 'Email: ')}<strong dir="ltr">atema@atemastudio.xyz</strong></li>
+                <li>{tx(lang, 'إنستغرام: ', 'Instagram: ')}<strong dir="ltr">@atema.studio</strong></li>
+                <li>
+                  {tx(lang, 'الآيبان الرسمي الوحيد (مصرف الراجحي): ', 'Our only official IBAN (Al Rajhi Bank): ')}
+                  <strong dir="ltr" style={{ letterSpacing: '0.03em' }}>SA03 8000 0000 3296 0801 0885 626</strong>
+                  {' — '}
+                  {tx(lang, 'لا يتغيّر أبداً.', 'it never changes.')}
+                </li>
+              </ul>
+              <p style={{
+                background: STATIONERY.paperWarn, borderInlineStart: `3px solid ${STATIONERY.warnAccent}`,
+                color: STATIONERY.warnInk, padding: '10px 14px', borderRadius: 6, margin: 0,
+              }}>
+                {tx(lang,
+                  'فريق ATEMA لن يطلب منكِ أبداً رمز التحقق المرسل إلى جوالك، ولن يطلب التحويل إلى أي حساب آخر. إن وصلكِ طلب كهذا فهو محاولة احتيال — تجاهليه وأبلغينا.',
+                  'ATEMA will never ask you for the verification code sent to your phone, and will never ask you to transfer to any other account. Any such request is a scam — ignore it and let us know.')}
+              </p>
+            </article>
+          </FadeUp>
         </div>
       </section>
 

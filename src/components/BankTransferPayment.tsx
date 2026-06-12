@@ -313,6 +313,9 @@ export default function BankTransferPayment({
           <br/>
           ⚠ {tx(lang,'الدفعة الأولى ٥٠٪ غير قابلة للاسترداد بعد التأكيد',
                        '50% deposit is non-refundable after confirmation')}
+          <br/>
+          🛡 {tx(lang,'هذا هو الآيبان الرسمي الوحيد لاستوديو ATEMA ولا يتغيّر — تجدينه دائماً في صفحة السياسات على موقعنا',
+                       'This is ATEMA’s only official IBAN and it never changes — it is always listed on our policies page')}
         </div>
 
         {/* Close */}
