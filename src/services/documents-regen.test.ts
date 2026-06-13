@@ -4,6 +4,7 @@ import {
   type RegenBooking, type RegenPackage, type RegenAddon,
 } from './documents';
 import { generateInvoiceHTML } from './invoice';
+import { DEFAULT_SETTINGS } from './settings';
 
 const NOW = new Date('2026-06-12T12:00:00Z');
 
@@ -98,5 +99,24 @@ describe('buildInvoiceData', () => {
     const html = generateInvoiceHTML(d);
     expect(html).toContain('مدفوعة — Paid');
     expect(html).not.toContain('بانتظار الدفع');
+  });
+
+  it('declares VAT from the booking even when the global toggle is off', () => {
+    // Booking charged VAT; no settings passed (global default vat_enabled=false).
+    const d = buildInvoiceData(booking(), PKG, ADDONS, 'INV-2606-ABCDE', undefined, NOW);
+    expect(d.settings?.vat_enabled).toBe(true);
+    const html = generateInvoiceHTML(d);
+    expect(html).toContain('ضريبة القيمة المضافة');     // VAT line renders
+    expect(html).toContain('الإجمالي شامل الضريبة');     // Total incl VAT
+  });
+
+  it('does not invent VAT for a booking that never charged it', () => {
+    // vat=0 booking must stay a non-VAT invoice even if global VAT is on.
+    const vatOn = { ...DEFAULT_SETTINGS, vat_enabled: true };
+    const d = buildInvoiceData(
+      booking({ vat: 0, total: 12900 }), PKG, ADDONS, 'INV-2606-ABCDE', vatOn, NOW);
+    expect(d.settings?.vat_enabled).toBe(false);
+    const html = generateInvoiceHTML(d);
+    expect(html).toContain('Non-VAT Invoice');
   });
 });

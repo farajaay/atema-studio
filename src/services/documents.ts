@@ -17,7 +17,7 @@ import {
   generateInvoiceHTML, generateInvoiceNumber, saveInvoice,
   type InvoiceData,
 } from './invoice';
-import type { AppSettings } from './settings';
+import { DEFAULT_SETTINGS, type AppSettings } from './settings';
 
 /** The booking columns regeneration needs — matches the admin Booking shape. */
 export interface RegenBooking {
@@ -105,6 +105,16 @@ export function buildInvoiceData(
 ): InvoiceData {
   const deposit  = Math.round(b.total * 0.5);
   const discount = rebuildDiscount(b);
+  // A reissued invoice must declare VAT according to what the booking ACTUALLY
+  // charged (b.vat), not the live global vat_enabled toggle. Otherwise turning
+  // the global flag off and regenerating a past VAT booking would render a
+  // "non-VAT invoice" whose total still embeds VAT — internally inconsistent
+  // and ZATCA-wrong. We force vat_enabled to track the booking's own tax; the
+  // invoice template still gates the VAT block on `d.vat > 0` as a second guard.
+  const effectiveSettings: AppSettings = {
+    ...(settings ?? DEFAULT_SETTINGS),
+    vat_enabled: b.vat > 0,
+  };
   return {
     invoiceNumber,
     bookingRef:    b.booking_ref,
@@ -123,7 +133,7 @@ export function buildInvoiceData(
                  : b.payment_status === 'awaiting_transfer' ? 'awaiting_transfer'
                  : 'pending',
     depositPaid:   b.payment_status === 'paid' ? deposit : 0,
-    settings,
+    settings:      effectiveSettings,
     discount,
     grossSubtotal: discount ? b.subtotal + discount.amount : undefined,
   };
