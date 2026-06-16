@@ -17,7 +17,12 @@
 //   ZOHO_SMTP_FROM       (default: same as USER)
 
 // deno-lint-ignore-file no-explicit-any
-import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts';
+// NB: the SMTP library (denomailer) is imported LAZILY inside sendEmail, not
+// at module top level. A top-level remote import that fails to load would
+// boot-fail the ENTIRE calling Edge Function (e.g. create-booking →
+// "Failed to send a request to the Edge Function"), even though email is
+// fire-and-forget. Keeping it dynamic means a flaky mailer dependency
+// degrades to a logged 'failed' send instead of taking down booking.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export interface SendArgs {
@@ -104,16 +109,19 @@ export async function sendEmail(args: SendArgs): Promise<SendResult> {
     return r;
   }
 
-  const client = new SMTPClient({
-    connection: {
-      hostname: HOST,
-      port:     PORT,
-      tls:      true,          // 465 = implicit TLS; denomailer handles handshake
-      auth:     { username: USER, password: PASS },
-    },
-  });
-
+  let client: { send: (m: any) => Promise<unknown>; close: () => Promise<void> } | null = null;
   try {
+    // Lazy remote import — a load failure here is caught below and logged as
+    // a 'failed' send, never a function-wide boot error (see the import note).
+    const { SMTPClient } = await import('https://deno.land/x/denomailer@1.6.0/mod.ts');
+    client = new SMTPClient({
+      connection: {
+        hostname: HOST,
+        port:     PORT,
+        tls:      true,          // 465 = implicit TLS; denomailer handles handshake
+        auth:     { username: USER, password: PASS },
+      },
+    });
     await client.send({
       from:    formatFromHeader(FROM_NAME, FROM),
       to:      args.to,
@@ -130,6 +138,6 @@ export async function sendEmail(args: SendArgs): Promise<SendResult> {
     await logToAudit(args, 'failed', msg);
     return { status: 'failed', error: msg };
   } finally {
-    try { await client.close(); } catch { /* noop */ }
+    try { await client?.close(); } catch { /* noop */ }
   }
 }
