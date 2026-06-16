@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resilientInsert, extractCityKey } from './booking';
+import { resilientInsert, extractCityKey, isTransportFailure } from './booking';
 
 type InsertResult = { data: unknown; error: { message: string } | null };
 
@@ -70,6 +70,31 @@ describe('resilientInsert', () => {
     const res = await resilientInsert(client, row);
     expect(res.data).toBeNull();
     expect(res.error?.message).toMatch(/retry limit/);
+  });
+});
+
+describe('isTransportFailure', () => {
+  it('treats the FunctionsFetchError message as a transport failure (the reported bug)', () => {
+    // This is the exact error the bride saw on submit — it must fall back,
+    // not surface, so booking completes via the direct-insert path.
+    expect(isTransportFailure({ message: 'Failed to send a request to the Edge Function' })).toBe(true);
+  });
+
+  it('matches by error name and other transport signatures', () => {
+    expect(isTransportFailure({ name: 'FunctionsFetchError' })).toBe(true);
+    expect(isTransportFailure({ name: 'FunctionsRelayError' })).toBe(true);
+    expect(isTransportFailure({ message: 'TypeError: Failed to fetch' })).toBe(true);
+    expect(isTransportFailure({ message: 'Function not found' })).toBe(true);
+    expect(isTransportFailure({ message: 'request failed, status 404' })).toBe(true);
+    expect(isTransportFailure({ message: 'NetworkError when attempting to fetch resource' })).toBe(true);
+  });
+
+  it('does NOT swallow a genuine function response error', () => {
+    // The function ran and returned a real error — must surface, not fall back.
+    expect(isTransportFailure({ name: 'FunctionsHttpError', message: 'Edge Function returned a non-2xx status code' })).toBe(false);
+    expect(isTransportFailure({ message: 'validation_failed' })).toBe(false);
+    expect(isTransportFailure(null)).toBe(false);
+    expect(isTransportFailure(undefined)).toBe(false);
   });
 });
 

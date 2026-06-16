@@ -1859,7 +1859,7 @@ export default function BookingPage() {
                   : tx(lang,'الإجمالي','Total')}
               </p>
               <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'1.4rem',
-                color: T.sandLt, lineHeight:1, marginTop:'2px' }}>
+                color: T.gold, lineHeight:1, marginTop:'2px' }}>
                 {activeTotal.toLocaleString()} <span style={{ fontSize:'0.7rem',
                   color:'rgba(201,179,147,0.6)', fontFamily:'Tajawal' }}>
                   {lang==='ar'?'ر.س':'SAR'}

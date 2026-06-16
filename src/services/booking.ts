@@ -95,6 +95,24 @@ export async function resilientInsert(
   return { data: null, error: { message: 'resilient insert exceeded retry limit' } };
 }
 
+/** True when a `supabase.functions.invoke` error means the request never
+ *  reached a running function — not deployed, cold-start boot error, CORS,
+ *  or a network failure. supabase-js surfaces these as FunctionsFetchError /
+ *  FunctionsRelayError (message "Failed to send a request to the Edge
+ *  Function") and a gateway miss as "Function not found". In all of these we
+ *  fall through to the resilient direct-insert path instead of dead-ending the
+ *  bride. A genuine function RESPONSE error (it ran and returned non-2xx) is
+ *  NOT a transport failure and is surfaced to the caller. */
+export function isTransportFailure(error: { name?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  const name = String(error.name ?? '');
+  const msg  = String(error.message ?? '');
+  return (
+    /FunctionsFetchError|FunctionsRelayError/i.test(name) ||
+    /(404|Function not found|Failed to send a request|Failed to fetch|Load failed|NetworkError|ECONNREFUSED|getaddrinfo)/i.test(msg)
+  );
+}
+
 /** Wrap any promise with a timeout. Resolves with `null` (not rejects) so
  *  the caller can distinguish "timed out" from "errored". */
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | { __timeout: true }> {
@@ -203,9 +221,13 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
         // Function returned an error response (validation, etc.)
         if (error) {
           const msg = String((error as { message?: string }).message ?? '');
-          // 404 = not deployed yet → silent fall-through to direct insert.
-          if (/(404|Function not found)/i.test(msg)) {
-            console.warn(`[booking:${reqId}] Edge Function not deployed (404) — falling back to direct insert.`);
+          // Transport failure → the function was never reached. Fall through
+          // to the resilient direct-insert path (the docstring's "or its
+          // endpoint is unreachable"), rather than dead-ending the bride with
+          // a raw "Failed to send a request to the Edge Function". Only a real
+          // function response error (it ran and returned non-2xx) is surfaced.
+          if (isTransportFailure(error as { name?: string; message?: string })) {
+            console.warn(`[booking:${reqId}] Edge Function unreachable — falling back to direct insert.`, error);
           } else {
             console.error(`[booking:${reqId}] ✗ Edge Function returned error:`, error);
             console.error(`[booking:${reqId}]    response data:`, data);
