@@ -107,6 +107,7 @@ jobs:
             "database/migrations-2026-06-feature-flags.sql"     # wa_enabled + payment_*_enabled on app_settings
             "database/migrations-2026-06-rls-remaining.sql"     # enable RLS on packages, addons, payments, whatsapp_logs
             "database/migrations-2026-06-documents.sql"         # contracts + invoices DDL under version control + admin-only SELECT
+            "database/migrations-2026-06-fix-booking-insert.sql" # supersedes audit-patches M-9 clause that broke the anon booking insert
           )
 
           SEEDS=(
