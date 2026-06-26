@@ -198,7 +198,7 @@ export default function BankTransferPayment({
             color: '#EFE3D1', lineHeight:1 }}>
             {depositSAR.toLocaleString()}
             <span style={{ fontSize:'0.95rem', marginRight:'6px',
-              color: C.sand, fontFamily:'Tajawal,sans-serif' }}>
+              color: 'rgba(239,227,209,0.72)', fontFamily:'Tajawal,sans-serif' }}>
               {tx(lang,'ر.س','SAR')}
             </span>
           </div>

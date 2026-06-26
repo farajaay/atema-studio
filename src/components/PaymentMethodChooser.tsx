@@ -60,8 +60,8 @@ export default function PaymentMethodChooser({ lang, depositSAR, moyasarEnabled,
             style={{
               display:'flex', alignItems:'center', gap:'14px', padding:'18px 18px',
               borderRadius:'14px', cursor:'pointer', textAlign:'right',
-              background:`linear-gradient(135deg, ${C.black}, #2C2C2C, #4A3728)`,
-              color: C.champagne, border:'none',
+              background:`linear-gradient(135deg, #1A1A1A, #2C2C2C, #4A3728)`,
+              color: '#EFE3D1', border:'none',
               boxShadow:`0 8px 24px rgba(140,107,79,0.22)`,
               fontFamily:'Tajawal,sans-serif', transition:'transform 0.18s',
             }}
@@ -77,18 +77,18 @@ export default function PaymentMethodChooser({ lang, depositSAR, moyasarEnabled,
               <CreditCard size={22} color={ICON_CHAMPAGNE} />
             </div>
             <div style={{ flex:1, minWidth:0, textAlign: lang==='ar'?'right':'left' }}>
-              <div style={{ fontFamily:"'Amiri',serif", fontSize:'1.05rem', color: C.champagne,
+              <div style={{ fontFamily:"'Amiri',serif", fontSize:'1.05rem', color: '#EFE3D1',
                 marginBottom:'3px' }}>
                 {tx(lang,'الدفع الإلكتروني','Online Card Payment')}
               </div>
-              <div style={{ fontSize:'0.74rem', color: C.sand, opacity:0.85, lineHeight:1.6 }}>
+              <div style={{ fontSize:'0.74rem', color: 'rgba(239,227,209,0.72)', lineHeight:1.6 }}>
                 {onlineSubtitle
                   ? (lang === 'ar' ? onlineSubtitle.ar : onlineSubtitle.en)
                   : tx(lang,'فيزا · ماستركارد · STC Pay','Visa · Mastercard · STC Pay')}
               </div>
               <div style={{
                 display:'inline-block', marginTop:'7px',
-                fontSize:'0.65rem', letterSpacing:'0.1em', color: C.champagne,
+                fontSize:'0.65rem', letterSpacing:'0.1em', color: '#EFE3D1',
                 background:'rgba(232,217,197,0.16)', padding:'2px 8px', borderRadius:'6px',
                 fontFamily:"'Inter',sans-serif",
               }}>
@@ -96,7 +96,7 @@ export default function PaymentMethodChooser({ lang, depositSAR, moyasarEnabled,
               </div>
             </div>
             <ArrowLeft size={18} style={{
-              color: C.sand,
+              color: 'rgba(239,227,209,0.72)',
               transform: lang==='ar' ? 'none' : 'rotate(180deg)',
               flexShrink:0,
             }} />
