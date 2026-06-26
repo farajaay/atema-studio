@@ -369,6 +369,10 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   - `database/migrations-2026-06-documents.sql` (contracts + invoices DDL under
     version control + admin-only SELECT — fixes an anon PII leak; required for
     the admin "المستندات" regeneration card)
+  - **`database/migrations-2026-06-fix-booking-insert.sql` ← CRITICAL: fixes the
+    broken anon INSERT RLS policy (M-9 from audit-patches added a `preview_discount_code()`
+    EXISTS subquery inside `WITH CHECK` that rejects valid inserts). Without this,
+    bookings with discount codes fail with 42501. Run this AFTER audit-patches.**
   - `database/seed-packages-2026-05.sql` (6 packages + 11 add-ons — required
     if `packages` table is empty; the booking flow falls back to the DEMO
     catalogue without it, but the Edge Function still needs real rows to
@@ -381,6 +385,10 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - Supabase secrets: `META_WA_*`, `ANTHROPIC_API_KEY`, `OWNER_WA_NUMBER`,
   `CRON_SECRET`, `ZOHO_SMTP_*` (see `docs/integrations/email.md` §2.4),
   `SITE_ORIGIN`, **`MOYASAR_SECRET_KEY`** (the `sk_...` key from Moyasar dashboard — required by `verify-payment`).
+- **Deploy the booking Edge Function: `supabase functions deploy create-booking`.** This is
+  the primary booking path; the anon-insert fallback in `src/services/booking.ts` is only
+  a safety net while the function is not yet deployed. Until deployed, every booking goes
+  through the fallback anon INSERT which is subject to RLS constraints.
 - Deploy WA Edge Functions: `supabase functions deploy wa-webhook wa-receipt wa-reminders`.
 - Deploy payment-verification Edge Function: `supabase functions deploy verify-payment`.
 - Deploy the self-service Edge Function: `supabase functions deploy change-booking`.

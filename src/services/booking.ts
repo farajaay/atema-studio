@@ -57,7 +57,14 @@ const COLUMN_NOT_FOUND_RE =
 
 /** Insert a row into `bookings`, auto-stripping any column the live
  *  schema doesn't recognise and retrying. Caps at 8 retries to bound
- *  recovery time; anything beyond is a real error and surfaces. */
+ *  recovery time; anything beyond is a real error and surfaces.
+ *
+ *  The row MUST contain a pre-generated `id` (UUID). After audit-patches
+ *  migration H-9 drops the anon SELECT policy on bookings, PostgREST
+ *  returns PGRST116 ("0 rows") after a successful INSERT because the anon
+ *  role can no longer read the row back. We detect that code and synthesise
+ *  the response from the client-supplied fields rather than treating it as
+ *  an insert failure — preventing duplicate booking attempts by the user. */
 export async function resilientInsert(
   client: NonNullable<typeof supabase>,
   row: Record<string, unknown>,
@@ -68,19 +75,48 @@ export async function resilientInsert(
     const { data, error } = await client
       .from('bookings')
       .insert([attempt])
-      .select()
+      .select('id, booking_ref, status, created_at, event_date, total')
       .single();
     if (!error) {
       if (dropped.length > 0) {
         console.warn(
           `[createBooking] succeeded after stripping unknown columns: ${dropped.join(', ')}. ` +
-          'Apply the pending migrations (database-alteration-v2.sql + ' +
-          'migrations-2026-05-discount-codes.sql + migrations-2026-05-repair-audit.sql) ' +
-          'to persist these fields going forward.',
+          'Apply migrations-2026-06-fix-booking-insert.sql to the live DB to persist discount fields.',
         );
       }
-      return { data: data as { id: string; booking_ref?: string }, error: null };
+      return { data: data as { id: string; booking_ref?: string; status?: string; created_at?: string; event_date?: string; total?: number }, error: null };
     }
+
+    // PGRST116 = "The result contains 0 rows".
+    // The anon role has no SELECT policy on bookings (dropped by H-9 in
+    // audit-patches.sql). The INSERT succeeded — the booking IS in the DB —
+    // but PostgREST cannot return the row. Synthesise from client-known
+    // values so the caller proceeds normally instead of showing an error and
+    // causing the user to retry (creating duplicate bookings).
+    // Permanent fix: run migrations-2026-06-fix-booking-insert.sql which
+    // restores the constrained anon INSERT policy without the fragile M-9
+    // discount subquery, and deploy the create-booking Edge Function so the
+    // fallback path is never needed.
+    if ((error as { code?: string }).code === 'PGRST116') {
+      console.warn(
+        '[createBooking] PGRST116 after INSERT — anon SELECT policy absent. ' +
+        'Booking was created; synthesising response from client-supplied fields. ' +
+        (dropped.length > 0 ? `Stripped columns: ${dropped.join(', ')}. ` : '') +
+        'Run migrations-2026-06-fix-booking-insert.sql + deploy create-booking Edge Function.',
+      );
+      return {
+        data: {
+          id:          attempt.id as string,
+          booking_ref: attempt.booking_ref as string,
+          status:      (attempt.status ?? 'pending') as string,
+          created_at:  new Date().toISOString(),
+          event_date:  attempt.event_date as string,
+          total:       attempt.total as number,
+        },
+        error: null,
+      };
+    }
+
     const match = error.message?.match(COLUMN_NOT_FOUND_RE);
     const missingCol = match?.[1] || match?.[2] || match?.[3];
     if (!missingCol || !(missingCol in attempt)) {
@@ -113,10 +149,12 @@ export function isTransportFailure(error: { name?: string; message?: string } | 
   );
 }
 
-/** Wrap any promise with a timeout. Resolves with `null` (not rejects) so
- *  the caller can distinguish "timed out" from "errored". */
+/** Wrap any promise with a timeout. Resolves with `{ __timeout: true }` on
+ *  expiry so the caller can distinguish "timed out" from "settled with data".
+ *  Real errors (network throw, etc.) are re-rejected so the outer catch can
+ *  decide to fall back to the direct insert path. */
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | { __timeout: true }> {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     let done = false;
     const timer = setTimeout(() => {
       if (done) return;
@@ -132,10 +170,7 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | { __timeout: tru
       if (done) return;
       done = true;
       clearTimeout(timer);
-      // Surface as a rejected promise — re-throw on next tick.
-      // We use queueMicrotask so the outer await sees a real rejection.
-      queueMicrotask(() => { throw err; });
-      resolve({ __timeout: true });
+      reject(err);
     });
   });
 }
@@ -285,6 +320,9 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
     // discount columns not migrated, etc.), the resilient inserter
     // below auto-strips the missing one and retries.
     const fullRow: Record<string, unknown> = {
+      // Pre-generate the UUID so resilientInsert can synthesise a valid
+      // response if the anon SELECT policy is absent (PGRST116 case).
+      id:               crypto.randomUUID(),
       booking_ref:      bookingRef,
       package_id:       pkgId,
       addon_ids:        payload.addOnIds ?? [],
