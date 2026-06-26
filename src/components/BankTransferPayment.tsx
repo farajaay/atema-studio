@@ -202,7 +202,7 @@ export default function BankTransferPayment({
               {tx(lang,'ر.س','SAR')}
             </span>
           </div>
-          <div style={{ fontSize:'0.7rem', color: C.sand, marginTop:'8px',
+          <div style={{ fontSize:'0.7rem', color: '#C9B99A', marginTop:'8px',
             opacity:0.85 }}>
             {tx(lang,`الإجمالي: ${totalSAR.toLocaleString()} ر.س — يُسدَّد المتبقي قبل المناسبة بيوم`,
                      `Total: ${totalSAR.toLocaleString()} SAR — Remainder due day before event`)}
