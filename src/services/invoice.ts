@@ -12,6 +12,7 @@ export interface InvoiceData {
   bookingRef:      string;
   bookingId:       string;
   issueDate:       string;             // ISO timestamp
+  eventDate?:      string;             // YYYY-MM-DD — the actual photography session date
   customerName:    string;
   customerPhone:   string;
   packageNameAr:   string;
@@ -251,6 +252,7 @@ export function generateInvoiceHTML(d: InvoiceData): string {
       <div class="info-box">
         <div class="lbl">رقم الحجز / Booking Ref</div>
         <div class="val" style="font-family:'Inter',sans-serif;font-size:13px">${esc(d.bookingRef)}</div>
+        ${d.eventDate ? `<div class="sub">تاريخ المناسبة: ${esc(fmtDate(d.eventDate + 'T00:00:00'))}</div>` : ''}
         <div class="sub">طريقة الدفع: ${d.paymentMethod === 'card' ? 'بطاقة ائتمانية' : d.paymentMethod === 'transfer' ? 'تحويل بنكي' : 'بانتظار التحديد'}</div>
       </div>
     </div>

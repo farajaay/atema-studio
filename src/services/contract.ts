@@ -43,7 +43,7 @@ function formatDateAr(dateStr: string): string {
 }
 
 function fmt(n: number): string {
-  return n.toLocaleString('ar-SA');
+  return n.toLocaleString('en-US');
 }
 
 // Escape user-controlled strings before interpolating them into the HTML
@@ -56,6 +56,13 @@ const HTML_ESCAPES: Record<string, string> = {
 function esc(s: unknown): string {
   if (s === null || s === undefined) return '';
   return String(s).replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
+}
+
+function secondPaymentDue(eventDateStr: string): string {
+  if (!eventDateStr) return 'قبل يوم من تاريخ المناسبة';
+  const d = new Date(eventDateStr);
+  d.setDate(d.getDate() - 1);
+  return formatDateAr(d.toISOString().split('T')[0]);
 }
 
 export function generateContractHTML(d: ContractData): string {
@@ -166,7 +173,7 @@ export function generateContractHTML(d: ContractData): string {
       <tr><td>الباقة المختارة</td><td>${esc(d.packageNameAr)} (${esc(d.packageNameEn)})</td></tr>
       <tr><td>موقع المناسبة</td><td>${esc(d.location) || '—'}</td></tr>
       ${addonsStr}
-      <tr><td>موعد استحقاق الدفعة الثانية</td><td>قبل يوم من تاريخ المناسبة</td></tr>
+      <tr><td>موعد استحقاق الدفعة الثانية</td><td>${esc(secondPaymentDue(d.eventDate))}</td></tr>
     </table>
 
     <!-- Financials -->

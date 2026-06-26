@@ -696,6 +696,9 @@ function BookingFormModal({
   // Patch H-1: in-flight guard so rapid double-click can't fire two
   // createBooking() requests before the first one updates `state`.
   const submittingRef = useRef(false);
+  // Stored invoice params so we can regenerate with the correct payment method
+  // once the user picks card / transfer on the next screen.
+  const invoiceParamsRef = useRef<(Parameters<typeof generateInvoiceHTML>[0] & { number: string }) | null>(null);
 
   // Whether Moyasar SDK key is present
   const moyasarKey = (import.meta.env.VITE_MOYASAR_PUBLISHABLE_KEY as string | undefined) ?? '';
@@ -856,13 +859,17 @@ function BookingFormModal({
       setContractHTML(cHTML);
       saveContract(response.id, response.bookingRef, cHTML);
 
-      // Generate ZATCA-compliant tax invoice
+      // Generate ZATCA-compliant tax invoice — paymentMethod starts as 'pending'
+      // and is updated (invoice regenerated + re-saved) once the user picks
+      // card or transfer on the next screen.
       const invNumber = generateInvoiceNumber();
-      const iHTML = generateInvoiceHTML({
+      const invParams: Parameters<typeof generateInvoiceHTML>[0] & { number: string } = {
+        number:         invNumber,
         invoiceNumber:  invNumber,
         bookingRef:     response.bookingRef,
         bookingId:      response.id,
         issueDate:      new Date().toISOString(),
+        eventDate:      form.date,
         customerName:   name,
         customerPhone:  normPhone,
         packageNameAr:  pkg?.name_ar ?? 'الباقة الأساسية',
@@ -882,7 +889,9 @@ function BookingFormModal({
           value:  appliedDiscount.value,
         } : null,
         grossSubtotal:  grossSub,
-      });
+      };
+      invoiceParamsRef.current = invParams;
+      const iHTML = generateInvoiceHTML(invParams);
       setInvoiceHTML(iHTML);
       saveInvoice(response.id, response.bookingRef, invNumber, iHTML, fullTotal);
 
@@ -966,7 +975,17 @@ function BookingFormModal({
                 moyasarEnabled={moyasarEnabled}
                 transferEnabled={settings.payment_transfer_enabled}
                 onlineSubtitle={onlineSubtitle}
-                onSelect={(m) => setState(m === 'card' ? 'card' : 'transfer')}
+                onSelect={(m) => {
+                  const method = m === 'card' ? 'card' : 'transfer';
+                  setState(method);
+                  // Regenerate invoice with the now-known payment method
+                  const p = invoiceParamsRef.current;
+                  if (p && booked) {
+                    const updatedHTML = generateInvoiceHTML({ ...p, paymentMethod: method });
+                    setInvoiceHTML(updatedHTML);
+                    saveInvoice(booked.id, booked.ref, p.number, updatedHTML, p.total);
+                  }
+                }}
               />
             )}
 
