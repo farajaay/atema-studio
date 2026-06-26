@@ -195,7 +195,7 @@ export default function BankTransferPayment({
             {tx(lang,'المبلغ المطلوب الآن (٥٠٪)','AMOUNT DUE NOW (50%)')}
           </div>
           <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'2.8rem',
-            color: C.champagne, lineHeight:1 }}>
+            color: '#EFE3D1', lineHeight:1 }}>
             {depositSAR.toLocaleString()}
             <span style={{ fontSize:'0.95rem', marginRight:'6px',
               color: C.sand, fontFamily:'Tajawal,sans-serif' }}>
