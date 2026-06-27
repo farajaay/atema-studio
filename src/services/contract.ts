@@ -43,7 +43,10 @@ function formatDateAr(dateStr: string): string {
 }
 
 function fmt(n: number): string {
-  return n.toLocaleString('ar-SA');
+  // Arabic-Indic digits, but normalise the ARABIC THOUSANDS SEPARATOR (U+066C,
+  // a high "٬") to a plain comma — the high comma reads as a stray mark on the
+  // contract. Keeps "٢,٩٥٠" instead of "٢٬٩٥٠".
+  return n.toLocaleString('ar-SA').replace(/٬/g, ',');
 }
 
 // Escape user-controlled strings before interpolating them into the HTML

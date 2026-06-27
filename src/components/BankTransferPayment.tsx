@@ -22,6 +22,12 @@ const C = {
 };
 const ICON_GOLD = '#D4AF7A';
 
+// The "amount due" card has a FIXED dark gradient background in BOTH themes,
+// so its text must use fixed light tones. Theme tokens (C.champagne / C.sand)
+// resolve dark-on-dark in Couture Noir, which rendered the amount invisible.
+const DUE_GOLD = '#EAD6B4';   // light champagne — the headline amount
+const DUE_SAND = '#D8C6AC';   // softer light — currency + total line
+
 // Bank details (Al Rajhi — Fatima Bohassan)
 const BANK = {
   name:    'بنك الراجحي',
@@ -195,14 +201,14 @@ export default function BankTransferPayment({
             {tx(lang,'المبلغ المطلوب الآن (٥٠٪)','AMOUNT DUE NOW (50%)')}
           </div>
           <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'2.8rem',
-            color: C.champagne, lineHeight:1 }}>
+            color: DUE_GOLD, lineHeight:1 }}>
             {depositSAR.toLocaleString()}
             <span style={{ fontSize:'0.95rem', marginRight:'6px',
-              color: C.sand, fontFamily:'Tajawal,sans-serif' }}>
+              color: DUE_SAND, fontFamily:'Tajawal,sans-serif' }}>
               {tx(lang,'ر.س','SAR')}
             </span>
           </div>
-          <div style={{ fontSize:'0.7rem', color: C.sand, marginTop:'8px',
+          <div style={{ fontSize:'0.7rem', color: DUE_SAND, marginTop:'8px',
             opacity:0.85 }}>
             {tx(lang,`الإجمالي: ${totalSAR.toLocaleString()} ر.س — يُسدَّد المتبقي قبل المناسبة بيوم`,
                      `Total: ${totalSAR.toLocaleString()} SAR — Remainder due day before event`)}
