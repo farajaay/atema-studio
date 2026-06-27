@@ -4,6 +4,10 @@
 // Excludes browser-only functions (openDocumentInNewTab, downloadDocument,
 // saveInvoice, the window.print() action button). Used by the
 // create-booking Edge Function to attach an invoice copy to the email.
+//
+// e-ZATCA compliance (Phase 1 QR code) is intentionally on hold.
+// The invoice always renders as a plain invoice regardless of VAT settings
+// until ZATCA registration is active.
 
 import { STATIONERY, STATIONERY_FONTS_IMPORT } from './stationery.ts';
 
@@ -66,33 +70,6 @@ function fmtDate(iso: string): string {
   } catch { return iso; }
 }
 
-// TLV encoder per ZATCA spec
-function tlv(tag: number, value: string): Uint8Array {
-  const bytes = new TextEncoder().encode(value);
-  const out = new Uint8Array(2 + bytes.length);
-  out[0] = tag;
-  out[1] = bytes.length;
-  out.set(bytes, 2);
-  return out;
-}
-
-export function generateZatcaQR(d: {
-  sellerName: string; vatNumber: string;
-  timestamp: string; total: number; vat: number;
-}): string {
-  const parts = [
-    tlv(1, d.sellerName), tlv(2, d.vatNumber), tlv(3, d.timestamp),
-    tlv(4, d.total.toFixed(2)), tlv(5, d.vat.toFixed(2)),
-  ];
-  const totalLen = parts.reduce((s, p) => s + p.length, 0);
-  const merged = new Uint8Array(totalLen);
-  let off = 0;
-  for (const p of parts) { merged.set(p, off); off += p.length; }
-  let bin = '';
-  for (let i = 0; i < merged.length; i++) bin += String.fromCharCode(merged[i]);
-  return btoa(bin);
-}
-
 const INV_CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 export function generateInvoiceNumber(): string {
   const d = new Date();
@@ -107,20 +84,10 @@ export function generateInvoiceNumber(): string {
 
 export function generateInvoiceHTML(d: InvoiceData): string {
   const s = d.settings ?? DEFAULT_INVOICE_SETTINGS;
-  const vatActive = s.vat_enabled && d.vat > 0;
-  const docTitleAr = vatActive ? 'فاتورة ضريبية مبسطة' : 'فاتورة';
-  const docTitleEn = vatActive ? 'SIMPLIFIED TAX INVOICE' : 'INVOICE';
-
-  const qrBase64 = vatActive ? generateZatcaQR({
-    sellerName: s.seller_name_ar,
-    vatNumber:  s.vat_number,
-    timestamp:  d.issueDate,
-    total:      d.total,
-    vat:        d.vat,
-  }) : '';
-  const qrImgUrl = vatActive
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrBase64)}`
-    : '';
+  // e-ZATCA on hold — plain invoice only until ZATCA registration is active.
+  const vatActive = false;
+  const docTitleAr = 'فاتورة';
+  const docTitleEn = 'INVOICE';
 
   const addonRows = d.addons.length === 0 ? '' : d.addons.map(a => `
     <tr>
@@ -197,7 +164,6 @@ export function generateInvoiceHTML(d: InvoiceData): string {
       <p>S T U D I O</p>
       <div class="crinfo">
         ${esc(s.seller_name_ar)} · جبيل، السعودية<br/>
-        ${vatActive ? `الرقم الضريبي / VAT: ${esc(s.vat_number)}<br/>` : ''}
         ${s.cr_number ? `السجل التجاري / CR: ${esc(s.cr_number)}` : ''}
       </div>
     </div>
@@ -259,20 +225,9 @@ export function generateInvoiceHTML(d: InvoiceData): string {
         : `<tr class="grand"><td>الإجمالي / Total</td><td>${fmt(d.total)} SAR</td></tr>`}
     </table>
 
-    ${vatActive ? `
-    <div class="qr-section">
-      <img src="${qrImgUrl}" alt="ZATCA QR Code"/>
-      <div class="qr-info">
-        <div class="lbl">ZATCA Phase 1 — رمز الفاتورة</div>
-        <h3>رمز الاستجابة السريعة المعتمد</h3>
-        <p>هذا الرمز يحتوي على بيانات الفاتورة وفق متطلبات هيئة الزكاة والضريبة والجمارك (ZATCA).</p>
-      </div>
-    </div>
-    ` : `
     <div style="background:${STATIONERY.paper};border-radius:12px;padding:14px 18px;margin-top:18px;text-align:center;font-size:12px;color:${STATIONERY.inkSoft};border:1px dashed ${STATIONERY.borderDash}">
       هذه الفاتورة لا تخضع لضريبة القيمة المضافة — Non-VAT Invoice
     </div>
-    `}
   </div>
 
   <div class="footer-bar">
