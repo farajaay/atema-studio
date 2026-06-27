@@ -25,14 +25,21 @@
 // degrades to a logged 'failed' send instead of taking down booking.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+export interface EmailAttachment {
+  filename:    string;
+  contentType: string;
+  content:     Uint8Array;
+}
+
 export interface SendArgs {
-  to:        string;
-  subject:   string;
-  html:      string;
-  text:      string;
-  template:  string;
-  bookingId?: string | null;
-  replyTo?:  string;
+  to:           string;
+  subject:      string;
+  html:         string;
+  text:         string;
+  template:     string;
+  bookingId?:   string | null;
+  replyTo?:     string;
+  attachments?: EmailAttachment[];
 }
 
 export interface SendResult {
@@ -122,6 +129,11 @@ export async function sendEmail(args: SendArgs): Promise<SendResult> {
         auth:     { username: USER, password: PASS },
       },
     });
+    const attachments = (args.attachments ?? []).map(a => ({
+      filename:    a.filename,
+      contentType: a.contentType,
+      content:     a.content,
+    }));
     await client.send({
       from:    formatFromHeader(FROM_NAME, FROM),
       to:      args.to,
@@ -129,6 +141,7 @@ export async function sendEmail(args: SendArgs): Promise<SendResult> {
       subject: args.subject,
       content: args.text,
       html:    args.html,
+      ...(attachments.length > 0 ? { attachments } : {}),
     });
     await logToAudit(args, 'sent');
     return { status: 'sent' };
