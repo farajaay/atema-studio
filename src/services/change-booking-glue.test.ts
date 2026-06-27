@@ -55,6 +55,7 @@ function booking(over: Record<string, unknown> = {}) {
   return {
     id: 'b-1', booking_ref: 'ATEMA-260612-TESTREF1',
     customer_name: 'نورة', customer_phone: '+966512345678',
+    customer_email: 'noura@example.test',
     package_id: 3, addon_ids: [],
     event_date: isoPlus(14), event_time: '18:00',
     location: 'الجبيل', status: 'confirmed', payment_status: 'paid',
@@ -65,11 +66,20 @@ function booking(over: Record<string, unknown> = {}) {
   };
 }
 
-function env(messages: Array<{ phone?: string; message: string }> = []): HandlerEnv {
+interface SentEmail { to: string; subject: string; html: string; text: string }
+function env(
+  messages: Array<{ phone?: string; message: string }> = [],
+  emails: SentEmail[] = [],
+  emailStatus: 'sent' | 'skipped' | 'failed' = 'sent',
+): HandlerEnv {
   return {
     ownerPhone: '+966500000000',
     siteOrigin: 'https://example.test',
     notify: async (phone, message) => { messages.push({ phone, message }); },
+    sendEmail: async ({ to, subject, html, text }) => {
+      emails.push({ to, subject, html, text });
+      return { status: emailStatus };
+    },
     today: TODAY,
   };
 }
@@ -151,28 +161,55 @@ describe('reschedule glue', () => {
 
 // ── OTP issuance ──────────────────────────────────────────────────────────────
 describe('request_otp glue', () => {
-  it('stores only the salted hash, texts the code, never returns it', async () => {
-    const messages: Array<{ phone?: string; message: string }> = [];
+  it('stores only the salted hash, emails the code, never returns it', async () => {
+    const emails: SentEmail[] = [];
     const db = mockDb(defaultRoute());
-    const res = await routeChangeRequest(db.client, { action: 'request_otp', token: TOKEN }, env(messages));
+    const res = await routeChangeRequest(db.client, { action: 'request_otp', token: TOKEN }, env([], emails));
 
     expect(res.status).toBe(200);
+    const resBody = await res.json();
+    expect(resBody).toMatchObject({ ok: true, channel: 'email' });
     const ins = db.calls.find(c => c.table === 'booking_otps' && c.op === 'insert');
     const row = ins?.payload as { code_hash: string; salt: string; expires_at: string };
     expect(row.code_hash).toBeTruthy();
     expect(row.salt).toBeTruthy();
     expect(new Date(row.expires_at).getTime()).toBeGreaterThan(Date.now());
 
-    // The texted code hashes to exactly what was stored…
-    const sms = messages.find(m => m.phone === '+966512345678');
-    const code = sms?.message.match(/(\d{6})/)?.[1];
+    // The emailed code (to the address on file) hashes to exactly what was stored…
+    const mail = emails.find(e => e.to === 'noura@example.test');
+    expect(mail).toBeTruthy();
+    // The code follows the ": " after the booking ref — match there so the
+    // ref's own digits (…-260612-…) don't shadow it.
+    const code = mail?.text.match(/:\s*(\d{6})\b/)?.[1];
     expect(code).toBeTruthy();
     expect(await hashOtp(code!, row.salt)).toBe(row.code_hash);
-    // …and the code never appears in the stored row or the HTTP response.
+    // …and the code never appears in the stored row, the subject, or the response.
     expect(row.code_hash).not.toContain(code);
-    expect(JSON.stringify(await res.json())).not.toContain(code);
+    expect(mail?.subject).not.toContain(code!);
+    expect(JSON.stringify(resBody)).not.toContain(code);
     // The anti-phishing line ships with every code.
-    expect(sms?.message).toContain('لن يطلبه منكِ أبداً');
+    expect(mail?.text).toContain('لن يطلبه منكِ أبداً');
+  });
+
+  it('does not claim "sent" when there is no email on file', async () => {
+    const emails: SentEmail[] = [];
+    const db = mockDb(defaultRoute(booking({ customer_email: null })));
+    const res = await routeChangeRequest(db.client, { action: 'request_otp', token: TOKEN }, env([], emails));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: false, error: 'no_email_on_file' });
+    // No code is minted when it can't be delivered.
+    expect(db.calls.some(c => c.table === 'booking_otps' && c.op === 'insert')).toBe(false);
+    expect(emails).toHaveLength(0);
+  });
+
+  it('surfaces a delivery failure instead of a fake success', async () => {
+    const emails: SentEmail[] = [];
+    const db = mockDb(defaultRoute());
+    const res = await routeChangeRequest(db.client, { action: 'request_otp', token: TOKEN }, env([], emails, 'failed'));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: false, error: 'otp_send_failed' });
   });
 });
 

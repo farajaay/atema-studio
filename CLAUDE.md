@@ -280,8 +280,12 @@ src/
   (`otp.ts`, `change.ts`) are server-side and unit-tested; the client shows a
   display-only estimate. Don't fork any of this logic.
 - **Reschedule** = link only (no money). **Package/add-on change** = step-up
-  OTP (6-digit, salted-hash at rest, 10-min TTL, 5-attempt lockout, texted to
-  the phone on file — never in the HTTP response).
+  OTP (6-digit, salted-hash at rest, 10-min TTL, 5-attempt lockout, **emailed
+  to the address on file** via Zoho SMTP — never in the HTTP response, never in
+  the subject line). Email (not WhatsApp) because a web-initiated change rarely
+  has Meta's 24h session window open, so a free-form WA text would be rejected;
+  the renderer lives in `_shared/email-otp.ts`. Delivery failures surface to
+  the page (`no_email_on_file` / `otp_send_failed`) instead of a fake "sent".
 - **Server recomputes the total** from the catalogue (same discipline as
   `create-booking`); the client estimate is display-only. The original
   discount is **preserved, not re-redeemed** (don't double-spend a code's

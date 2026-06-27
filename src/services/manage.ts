@@ -86,7 +86,7 @@ export async function listChangeOptions(): Promise<{ packages: ChangeOption[]; a
   };
 }
 
-/** Ask the server to text a step-up code to the booking's phone. */
+/** Ask the server to email a step-up code to the booking's email on file. */
 export async function requestChangeOtp(token: string): Promise<{ ok: boolean; reason?: string }> {
   if (!supabase) return { ok: false, reason: 'offline' };
   const { data, error } = await supabase.functions.invoke('change-booking', {
