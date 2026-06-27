@@ -37,6 +37,8 @@ import {
 import { sumActiveAddons, clampDiscount, computeBookingTotals } from '../_shared/pricing.ts';
 import { sendEmail } from '../_shared/email.ts';
 import { renderBookingConfirmation } from '../_shared/email-confirmation.ts';
+import { generateContractHTML } from '../_shared/contract.ts';
+import { generateInvoiceHTML, generateInvoiceNumber, DEFAULT_INVOICE_SETTINGS } from '../_shared/invoice.ts';
 
 const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -48,13 +50,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Keep the Deno worker alive until a background task settles, instead of
-// letting it cancel when the HTTP response is returned. Without this,
-// awaits *after* a fast network send (e.g. the audit insert that follows
-// the SMTP send inside sendEmail) routinely lose the race to teardown,
-// silently dropping the email_messages row even though the email itself
-// went out. The Supabase Edge runtime exposes EdgeRuntime.waitUntil; in
-// other environments (unit tests, local Deno) we fall back to a no-op.
+// Keep the Deno worker alive for the fire-and-forget WhatsApp call so the
+// fetch doesn't get cancelled when the HTTP response is returned.
 function keepAlive(task: Promise<unknown>): void {
   // deno-lint-ignore no-explicit-any
   const rt = (globalThis as any).EdgeRuntime;
@@ -69,6 +66,24 @@ function fail(error: string, status = 400, detail?: string): Response {
   });
 }
 
+function htmlToBytes(html: string): Uint8Array {
+  return new TextEncoder().encode(html);
+}
+
+// Crockford base32 booking ref (same alphabet as booking.ts)
+const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+function newRef(): string {
+  const d = new Date();
+  const yy  = String(d.getFullYear()).slice(2);
+  const mm  = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  let tail = '';
+  for (let i = 0; i < bytes.length; i++) tail += CROCKFORD[bytes[i] & 0x1f];
+  return `ATEMA-${yy}${mm}${day}-${tail}`;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST')    return fail('method_not_allowed', 405);
@@ -77,9 +92,6 @@ serve(async (req) => {
   try { body = await req.json(); }
   catch { return fail('invalid_json', 400); }
 
-  // Correlation id — echoed by src/services/booking.ts. Lets us match a
-  // single client-side [booking:xxxx] console group to one log stream
-  // here. Generated server-side if the client didn't supply one.
   const reqId: string = typeof body._reqId === 'string' && body._reqId.length <= 16
     ? body._reqId
     : Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -131,8 +143,6 @@ serve(async (req) => {
   const eventType = EVENT_TYPES.has(String(body.eventType ?? ''))
     ? String(body.eventType)
     : null;
-  // Reasonable upper bound — anything north of 5000 attendees is clearly
-  // junk for a private photography booking and should be flagged.
   const guestCount = (() => {
     const n = Number(body.guestCount);
     return Number.isInteger(n) && n >= 0 && n <= 5000 ? n : null;
@@ -147,37 +157,40 @@ serve(async (req) => {
 
   log('→ db.packages.select', { packageId: pkgId });
   const { data: pkg, error: pkgErr } = await supabase
-    .from('packages').select('id, price, active, name_ar, name_en').eq('id', pkgId).single();
+    .from('packages')
+    .select('id, price, active, name_ar, name_en, duration_hours')
+    .eq('id', pkgId)
+    .single();
   log('← db.packages.select', {
     pkg: pkg ? { id: pkg.id, price: pkg.price, active: pkg.active } : null,
-    error: pkgErr ? { code: (pkgErr as { code?: string }).code, message: pkgErr.message, details: (pkgErr as { details?: string }).details } : null,
+    error: pkgErr ? { code: (pkgErr as any).code, message: pkgErr.message } : null,
   });
   if (pkgErr || !pkg) { warn('reject: package_not_found'); return fail('package_not_found', 422, pkgErr?.message); }
   if (!pkg.active)    { warn('reject: package_inactive'); return fail('package_inactive', 422); }
 
+  // Keep addon rows for document generation (names + prices)
   let addonsTotal = 0;
+  let addonRows: Array<{ id: string; name_ar: string; name_en: string; price: number; active: boolean }> = [];
   if (addOnIds.length > 0) {
     log('→ db.addons.select', { addOnIds });
     const { data: addons, error: addErr } = await supabase
-      .from('addons').select('id, price, active').in('id', addOnIds);
+      .from('addons')
+      .select('id, price, active, name_ar, name_en')
+      .in('id', addOnIds);
     log('← db.addons.select', {
       rowCount: addons?.length ?? 0,
-      rows: addons,
-      error: addErr ? { code: (addErr as { code?: string }).code, message: addErr.message } : null,
+      error: addErr ? { code: (addErr as any).code, message: addErr.message } : null,
     });
     if (addErr) { warn('reject: addons_lookup_failed'); return fail('addons_lookup_failed', 500, addErr.message); }
-    addonsTotal = sumActiveAddons((addons ?? []) as Array<{ price: number; active: boolean }>);
+    addonRows = (addons ?? []) as typeof addonRows;
+    addonsTotal = sumActiveAddons(addonRows as Array<{ price: number; active: boolean }>);
   }
 
   const cityFee = CITY_FEES[String(body.city ?? '')] ?? 0;
   const grossSubtotal = pkg.price + addonsTotal + cityFee;
   log('computed grossSubtotal', { pkgPrice: pkg.price, addonsTotal, cityFee, grossSubtotal });
 
-  // ── Discount redemption (atomic, single source of truth) ──────────────
-  // The client may supply discountCode; we validate + redeem via the
-  // redeem_discount_code() RPC. This bumps used_count in the same txn,
-  // preventing two simultaneous brides from both consuming the last
-  // available seat of a max_uses-capped code.
+  // ── Discount redemption ───────────────────────────────────────────────
   let discountCode: string | null = null;
   let discountAmount = 0;
   let discountKind: 'percent' | 'flat' | null = null;
@@ -188,18 +201,12 @@ serve(async (req) => {
       .rpc('redeem_discount_code', { p_code: codeRaw, p_subtotal: grossSubtotal });
     log('← rpc.redeem_discount_code', {
       result: red,
-      error: redErr ? { code: (redErr as { code?: string }).code, message: redErr.message, details: (redErr as { details?: string }).details } : null,
+      error: redErr ? { code: (redErr as any).code, message: redErr.message } : null,
     });
-    if (redErr) {
-      err('redeem RPC error:', redErr);
-      return fail('discount_redeem_failed', 500, redErr.message);
-    }
+    if (redErr) { err('redeem RPC error:', redErr); return fail('discount_redeem_failed', 500, redErr.message); }
     const row = Array.isArray(red) ? red[0] : red;
     const reason = row?.reason as string | undefined;
-    if (reason && reason !== 'ok') {
-      warn(`reject: discount_${reason}`);
-      return fail('discount_' + reason, 422);
-    }
+    if (reason && reason !== 'ok') { warn(`reject: discount_${reason}`); return fail('discount_' + reason, 422); }
     discountAmount = clampDiscount(Number(row?.applied_amount ?? 0), grossSubtotal);
     discountKind   = (row?.applied_kind as 'percent' | 'flat' | null) ?? null;
     discountCode   = codeRaw;
@@ -207,10 +214,13 @@ serve(async (req) => {
 
   log('→ db.app_settings.select');
   const { data: settings, error: settingsErr } = await supabase
-    .from('app_settings').select('vat_enabled, wa_enabled').limit(1).single();
+    .from('app_settings')
+    .select('vat_enabled, wa_enabled, seller_name_ar, vat_number, cr_number')
+    .limit(1)
+    .single();
   log('← db.app_settings.select', {
     settings,
-    error: settingsErr ? { code: (settingsErr as { code?: string }).code, message: settingsErr.message } : null,
+    error: settingsErr ? { code: (settingsErr as any).code, message: settingsErr.message } : null,
   });
   const vatEnabled = settings?.vat_enabled ?? true;
   const waEnabled  = settings?.wa_enabled  ?? false;
@@ -218,12 +228,8 @@ serve(async (req) => {
   log('computed totals', { vatEnabled, subtotal, vat, total });
 
   // ── Insert ────────────────────────────────────────────────────────────
-  const ref = bookingRef();
+  const ref = newRef();
 
-  // Canonical full row — every column we'd ideally write. If the live
-  // schema is missing any (audit / discount / vat_enabled migrations
-  // not yet applied), the resilient inserter below strips them and
-  // retries so the booking still completes.
   const fullRow: Record<string, unknown> = {
     booking_ref: ref,
     package_id:  pkgId,
@@ -239,11 +245,9 @@ serve(async (req) => {
     vat_enabled: vatEnabled,
     status:         'pending',
     payment_status: 'unpaid',
-    // Discount columns (migrations-2026-05-discount-codes.sql)
     discount_code:   discountCode,
     discount_amount: discountAmount,
     discount_kind:   discountKind,
-    // Audit columns (database-alteration-v2.sql)
     event_type:               eventType,
     guest_count:              guestCount,
     shot_list:                shotList || null,
@@ -253,8 +257,6 @@ serve(async (req) => {
     whatsapp_opt_in_snapshot: whatsappOptIn,
   };
 
-  // Resilient insert: auto-strip any column PostgREST says doesn't
-  // exist, retry. Caps at 8 retries to bound recovery time.
   const COLUMN_NOT_FOUND_RE =
     /Could not find the ['"`]?([\w]+)['"`]? column|column ['"`]?([\w]+)['"`]? of relation .* does not exist|column ['"`]?([\w]+)['"`]? does not exist/i;
 
@@ -268,12 +270,6 @@ serve(async (req) => {
     row: { ...attempt, customer_phone: '<redacted>', customer_email: '<redacted>' },
   });
   for (let i = 0; i < 8; i++) {
-    // RETURNING only the columns the base schema guarantees. `manage_token`
-    // is added by migrations-2026-05-booking-changes.sql; naming it here
-    // would make the entire INSERT fail with `column "manage_token" does
-    // not exist` on any environment where that migration hasn't run yet.
-    // We read manage_token in a separate, best-effort query below so the
-    // email step is fully independent of the insert.
     ({ data: booking, error: insErr } = await supabase
       .from('bookings')
       .insert([attempt])
@@ -283,10 +279,10 @@ serve(async (req) => {
       success: !insErr,
       bookingId: booking?.id ?? null,
       error: insErr ? {
-        code:    (insErr as { code?: string }).code,
+        code:    (insErr as any).code,
         message: insErr.message,
-        details: (insErr as { details?: string }).details,
-        hint:    (insErr as { hint?: string }).hint,
+        details: (insErr as any).details,
+        hint:    (insErr as any).hint,
       } : null,
     });
     if (!insErr) break;
@@ -305,9 +301,9 @@ serve(async (req) => {
   if (insErr || !booking) {
     err('✗ insert failed', {
       message: insErr?.message,
-      code: (insErr as { code?: string })?.code,
-      details: (insErr as { details?: string })?.details,
-      hint: (insErr as { hint?: string })?.hint,
+      code: (insErr as any)?.code,
+      details: (insErr as any)?.details,
+      hint: (insErr as any)?.hint,
       droppedColumns: dropped,
       row: { ...attempt, customer_phone: '<redacted>', customer_email: '<redacted>' },
     });
@@ -319,34 +315,99 @@ serve(async (req) => {
     droppedColumns: dropped.length > 0 ? dropped : undefined,
   });
 
-  // ── Post-insert notifications (email + WhatsApp) ────────────────────────
-  // Both notifications run in a single async block so the manage_token
-  // lookup happens once and the link is shared between them. The block
-  // is registered with EdgeRuntime.waitUntil() so the worker stays alive
-  // until both sends and the email audit-insert settle — without this the
-  // worker tears down when the HTTP response is flushed and the audit row
-  // (a fresh REST call issued inside sendEmail) is silently lost.
   const bookingId  = booking.id as string;
   const bookingRef = booking.booking_ref as string;
 
-  const notifyTask = (async () => {
-    // Best-effort manage_token lookup. If the migration hasn't been run
-    // yet the column won't exist and we fall back to no manage link.
-    let manageToken: string | null = null;
+  // ── manage_token lookup ───────────────────────────────────────────────
+  let manageToken: string | null = null;
+  {
     const { data: tokRow, error: tokErr } = await supabase
-      .from('bookings')
-      .select('manage_token')
-      .eq('id', bookingId)
-      .single();
+      .from('bookings').select('manage_token').eq('id', bookingId).single();
     if (!tokErr && tokRow) {
       manageToken = (tokRow as { manage_token?: string | null }).manage_token ?? null;
     }
-    const manageLink = manageToken
-      ? `${SITE_ORIGIN}/#/manage/${manageToken}`
-      : null;
+  }
+  const manageLink = manageToken ? `${SITE_ORIGIN}/#/manage/${manageToken}` : null;
 
-    // Email
-    if (email) {
+  // ── Email with contract + invoice attachments ─────────────────────────
+  // Sent SYNCHRONOUSLY before returning the response so the worker cannot
+  // be torn down before the SMTP session and audit row complete.
+  if (email) {
+    log('[email] preparing confirmation email');
+    try {
+      // Fetch discount code original value for document display
+      let discountValue = 0;
+      if (discountCode && discountKind) {
+        const { data: dc } = await supabase
+          .from('discount_codes')
+          .select('value')
+          .eq('code', discountCode)
+          .single();
+        discountValue = Number((dc as any)?.value ?? 0);
+      }
+
+      const discountForDocs = discountCode && discountAmount > 0 && discountKind
+        ? { code: discountCode, amount: discountAmount, kind: discountKind, value: discountValue }
+        : null;
+
+      // Invoice settings from app_settings row
+      const invoiceSettings = {
+        vat_enabled:    vatEnabled,
+        vat_number:     (settings as any)?.vat_number     ?? DEFAULT_INVOICE_SETTINGS.vat_number,
+        cr_number:      (settings as any)?.cr_number      ?? DEFAULT_INVOICE_SETTINGS.cr_number,
+        seller_name_ar: (settings as any)?.seller_name_ar ?? DEFAULT_INVOICE_SETTINGS.seller_name_ar,
+      };
+
+      const now = new Date().toISOString();
+      const deposit  = Math.round(total * 0.5);
+      const remaining = total - deposit;
+
+      // Contract
+      const contractHtml = generateContractHTML({
+        customerName:    name,
+        customerPhone:   phone,
+        bookingRef,
+        bookingId,
+        contractDate:    now.split('T')[0],
+        eventDate,
+        eventTime,
+        packageNameAr:   pkg.name_ar,
+        packageNameEn:   pkg.name_en,
+        location:        venue || '',
+        durationHours:   Number(pkg.duration_hours ?? 0),
+        subtotal,
+        vat,
+        total,
+        deposit,
+        remaining,
+        addons:          addonRows.filter(a => a.active).map(a => a.name_ar || a.name_en),
+        discount:        discountForDocs,
+        grossSubtotal,
+      });
+
+      // Invoice
+      const invoiceNumber = generateInvoiceNumber();
+      const invoiceHtml = generateInvoiceHTML({
+        invoiceNumber,
+        bookingRef,
+        bookingId,
+        issueDate:      now,
+        customerName:   name,
+        customerPhone:  phone,
+        packageNameAr:  pkg.name_ar,
+        packageNameEn:  pkg.name_en,
+        addons: addonRows
+          .filter(a => a.active)
+          .map(a => ({ name: a.name_ar || a.name_en, price: a.price })),
+        subtotal,
+        vat,
+        total,
+        paymentMethod:  'pending',
+        settings:       invoiceSettings,
+        discount:       discountForDocs,
+        grossSubtotal,
+      });
+
       const rendered = renderBookingConfirmation({
         customerName:  name,
         bookingRef,
@@ -358,35 +419,47 @@ serve(async (req) => {
         manageToken,
         siteOrigin:    SITE_ORIGIN,
       });
-      await sendEmail({
+
+      const result = await sendEmail({
         to:        email,
         subject:   rendered.subject,
         html:      rendered.html,
         text:      rendered.text,
         template:  'booking_confirmation',
         bookingId,
+        attachments: [
+          {
+            filename:    `ATEMA-Contract-${bookingRef}.html`,
+            contentType: 'text/html; charset=utf-8',
+            content:     htmlToBytes(contractHtml),
+          },
+          {
+            filename:    `ATEMA-Invoice-${bookingRef}.html`,
+            contentType: 'text/html; charset=utf-8',
+            content:     htmlToBytes(invoiceHtml),
+          },
+        ],
       });
+      log('[email] send result:', result.status, result.error ?? '');
+    } catch (e) {
+      err('[email] unexpected error:', (e as Error).message);
     }
+  }
 
-    // WhatsApp booking confirmation — only when WA is enabled globally AND customer opted in.
-    if (waEnabled && whatsappOptIn) {
-      await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
-        body: JSON.stringify({
-          phone,
-          name,
-          bookingRef,
-          packageAr:  pkg.name_ar,
-          packageEn:  pkg.name_en,
-          total,
-          eventDate,
-          manageLink,
-        }),
-      }).catch((e: unknown) => console.error('wa-notify error:', (e as Error).message));
-    }
-  })().catch((e: unknown) => console.error('notify error:', (e as Error).message));
-  keepAlive(notifyTask);
+  // ── WhatsApp booking confirmation (fire-and-forget) ───────────────────
+  if (waEnabled && whatsappOptIn) {
+    const waTask = fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({
+        phone, name, bookingRef,
+        packageAr:  pkg.name_ar,
+        packageEn:  pkg.name_en,
+        total, eventDate, manageLink,
+      }),
+    }).catch((e: unknown) => console.error('wa-notify error:', (e as Error).message));
+    keepAlive(waTask);
+  }
 
   return new Response(
     JSON.stringify({
@@ -396,7 +469,7 @@ serve(async (req) => {
       createdAt:  booking.created_at,
       eventDate:  booking.event_date,
       total:      booking.total,
-      subtotal, vat,   // server-recomputed values, echoed back
+      subtotal, vat,
       grossSubtotal,
       discountCode,
       discountAmount,
