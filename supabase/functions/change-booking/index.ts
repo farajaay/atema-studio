@@ -6,7 +6,10 @@
 //
 // Actions:
 //   • reschedule     — move the date (Phase 1). Token only.
-//   • request_otp    — text a step-up code to the booking phone (Phase 2).
+//   • request_otp    — EMAIL a step-up code to the booking's address (Phase 2).
+//                      Email, not WhatsApp: a web-initiated change rarely has
+//                      Meta's 24h session window open, so a free-form WA text
+//                      would be rejected (and OTP-by-text is against policy).
 //   • change_package — swap package / add-ons (Phase 2). Token + OTP.
 //
 // All policy lives in dependency-free _shared modules that are unit-tested:
@@ -21,6 +24,7 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendText } from '../_shared/wa.ts';
+import { sendEmail } from '../_shared/email.ts';
 import { routeChangeRequest, corsHeaders, fail } from './handlers.ts';
 
 const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
@@ -44,6 +48,14 @@ serve(async (req) => {
     notify: async (phone, message) => {
       if (!phone) return;
       await sendText(phone, message).catch(() => {});
+    },
+    sendEmail: async ({ to, subject, html, text, bookingId }) => {
+      try {
+        const r = await sendEmail({ to, subject, html, text, template: 'change_otp', bookingId });
+        return { status: r.status, error: r.error };
+      } catch (e) {
+        return { status: 'failed', error: (e as Error).message };
+      }
     },
   });
 });

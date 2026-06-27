@@ -43,6 +43,9 @@ function reasonToText(reason: string | undefined, lang: 'ar' | 'en'): string {
     offline:          { ar: 'الخدمة غير متاحة حالياً.', en: 'The service is currently unavailable.' },
     event_passed:     { ar: 'انقضى موعد المناسبة.', en: 'The event date has passed.' },
     no_phone_on_file: { ar: 'لا يوجد رقم جوال مسجّل لهذا الحجز.', en: 'No phone number on file for this booking.' },
+    no_email_on_file: { ar: 'لا يوجد بريد إلكتروني مسجّل لهذا الحجز. يرجى التواصل مع الستوديو لتعديل الباقة.', en: 'No email on file for this booking. Please contact the studio to change your package.' },
+    otp_send_failed:  { ar: 'تعذّر إرسال الرمز إلى بريدك. حاولي مرة أخرى أو تواصلي مع الستوديو.', en: 'We could not email your code. Please try again or contact the studio.' },
+    otp_send_unavailable: { ar: 'خدمة التحقق غير متاحة حالياً. حاولي لاحقاً.', en: 'Verification is temporarily unavailable. Please try again later.' },
     otp_required:     { ar: 'أدخلي رمز التحقق المرسل إليك.', en: 'Enter the verification code we sent you.' },
     otp_missing:      { ar: 'أدخلي رمز التحقق المرسل إليك.', en: 'Enter the verification code we sent you.' },
     otp_mismatch:     { ar: 'الرمز غير صحيح.', en: 'That code is incorrect.' },
@@ -351,7 +354,7 @@ export default function ManageBookingPage() {
               ) : (
                 <>
                   <p style={{ color: 'var(--a-text-soft)', fontSize: '0.85rem', marginBottom: 10 }}>
-                    {ar ? 'أرسلنا رمزاً إلى رقمك عبر واتساب.' : 'We sent a code to your phone over WhatsApp.'}
+                    {ar ? 'أرسلنا رمز التحقق إلى بريدك الإلكتروني المسجّل. تحقّقي من صندوق الوارد (والبريد المزعج).' : 'We emailed a verification code to the address on file. Check your inbox (and spam).'}
                   </p>
                   <input value={otpCode} inputMode="numeric" placeholder="------"
                     onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}

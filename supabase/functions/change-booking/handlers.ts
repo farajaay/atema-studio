@@ -20,6 +20,7 @@ import { canReschedule, validateNewDate, daysBetween } from '../_shared/reschedu
 import { sumActiveAddons } from '../_shared/pricing.ts';
 import { computePackageChange } from '../_shared/change.ts';
 import { generateOtp, hashOtp, verifyOtp, OTP_TTL_MS } from '../_shared/otp.ts';
+import { renderChangeOtpEmail } from '../_shared/email-otp.ts';
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
@@ -33,6 +34,12 @@ export interface HandlerEnv {
   siteOrigin: string;
   /** Send a WhatsApp text. Must never throw (wrap the transport). */
   notify: (phone: string | undefined, message: string) => Promise<void>;
+  /** Send a transactional email (the step-up OTP channel). Returns the
+   *  delivery status so the caller can surface real failures instead of
+   *  silently claiming "sent". Must never throw (wrap the transport). */
+  sendEmail?: (args: {
+    to: string; subject: string; html: string; text: string; bookingId?: string | null;
+  }) => Promise<{ status: 'sent' | 'skipped' | 'failed'; error?: string }>;
   /** Today as YYYY-MM-DD — injectable for tests. */
   today?: () => string;
 }
@@ -124,8 +131,19 @@ export async function handleReschedule(supabase: any, booking: any, body: any, w
 }
 
 // ── Request step-up OTP (Phase 2) ────────────────────────────────────────────
+// The code is delivered by EMAIL (Zoho SMTP), not WhatsApp: a bride initiating
+// a change from the website rarely has Meta's 24-hour session window open, so a
+// free-form WhatsApp text would be rejected and never arrive — and OTPs by
+// free-form text are against Meta policy anyway. Email has no such window.
+//
+// Delivery failures are surfaced, not swallowed: returning a fake "sent" would
+// dead-end the bride (she could never obtain a valid code, so never change her
+// package). The actionable cases (no email on file, send failed) come back as
+// 200 + { ok:false, error } so the page can show a precise message.
 export async function handleRequestOtp(supabase: any, booking: any, env: HandlerEnv): Promise<Response> {
-  if (!booking.customer_phone) return fail('no_phone_on_file', 422);
+  const email = String(booking.customer_email ?? '').trim();
+  if (!email) return ok({ ok: false, error: 'no_email_on_file' });
+  if (!env.sendEmail) return fail('otp_send_unavailable', 500);
 
   const code = generateOtp();
   const salt = crypto.randomUUID();
@@ -138,11 +156,17 @@ export async function handleRequestOtp(supabase: any, booking: any, env: Handler
   });
   if (error) return fail('otp_issue_failed', 500, error.message);
 
-  // The code goes ONLY to the phone on file — never in the HTTP response.
-  await env.notify(booking.customer_phone,
-    `رمز ATEMA لتعديل حجزك: ${code}\nصالح لمدة ١٠ دقائق. لا تشاركيه مع أحد — فريق ATEMA لن يطلبه منكِ أبداً.`);
+  // The code goes ONLY to the email on file — never in the HTTP response.
+  const mail = renderChangeOtpEmail({
+    code, bookingRef: booking.booking_ref, customerName: booking.customer_name,
+    ttlMinutes: Math.round(OTP_TTL_MS / 60_000),
+  });
+  const sent = await env.sendEmail({
+    to: email, subject: mail.subject, html: mail.html, text: mail.text, bookingId: booking.id,
+  });
+  if (sent.status !== 'sent') return ok({ ok: false, error: 'otp_send_failed' });
 
-  return ok({ ok: true, sent: true });
+  return ok({ ok: true, sent: true, channel: 'email' });
 }
 
 // ── Change package / add-ons (Phase 2) ───────────────────────────────────────
