@@ -31,6 +31,7 @@ const JournalManager       = lazy(() => import('./pages/JournalManager'));
 const DiscountCodesManager = lazy(() => import('./pages/DiscountCodesManager'));
 const AddonsManager        = lazy(() => import('./pages/AddonsManager'));
 const AlbumDesignsManager  = lazy(() => import('./pages/AlbumDesignsManager'));
+const FilmsPage            = lazy(() => import('./pages/FilmsPage'));
 
 function AdminFallback() {
   return (
@@ -49,6 +50,7 @@ export default function App() {
   useTheme();
   const { pathname } = useLocation();
   const isAdmin = pathname.startsWith('/admin');
+  const showPromotion = !isAdmin && !pathname.startsWith('/films');
 
   // Detect Moyasar payment redirect (arrives as query params on any route)
   const callback = parseMoyasarCallback();
@@ -66,12 +68,14 @@ export default function App() {
 
   return (
     <>
-    {!isAdmin && <PromotionModal />}
+    {showPromotion && <PromotionModal />}
     <Routes>
       {/* Public — eager */}
       <Route path="/"                element={<HomePage />} />
       <Route path="/book"            element={<BookingPage />} />
       <Route path="/portfolio"       element={<PortfolioPage />} />
+      <Route path="/films"           element={
+        <Suspense fallback={<AdminFallback />}><FilmsPage /></Suspense>} />
       <Route path="/journal"         element={<JournalPage />} />
       <Route path="/journal/:slug"   element={<JournalPostPage />} />
       <Route path="/about"           element={<AboutPage />} />

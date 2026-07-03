@@ -25,6 +25,7 @@ export default function SiteFooter({ lang }: Props) {
         {([
           ['/',           'الرئيسية',  'Home'],
           ['/portfolio',  'الأعمال',   'Portfolio'],
+          ['/films',      'الأفلام',   'Films'],
           ['/journal',    'اليوميات',  'Journal'],
           ['/book',       'الباقات',   'Packages'],
           ['/about',      'الاستوديو', 'Atelier'],
