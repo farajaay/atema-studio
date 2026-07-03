@@ -68,6 +68,8 @@ and answers most "how does X work" questions.**
 | Investor / client pitch (the "what is ATEMA" story) | [`docs/PRESENTATION.md`](./docs/PRESENTATION.md) |
 | P&L model, margin warnings, owner-hour costing | [`docs/PROFITABILITY.md`](./docs/PROFITABILITY.md) |
 | **Outstanding bugs + security audit + patch tracker** | [`docs/bugs.md`](./docs/bugs.md) |
+| **Active plan — Films integration + album example render + integrity pass** | [`docs/plans/integration-2026-07.md`](./docs/plans/integration-2026-07.md) |
+| Cross-agent handoff state (Claude ⇄ Codex) | [`AGENTS.md`](./AGENTS.md) |
 | Payment gateway readiness (Moyasar live + transfer flow) | [`docs/integrations/payments.md`](./docs/integrations/payments.md) |
 | WhatsApp Cloud API blueprint (legacy reference) | [`docs/integrations/whatsapp.md`](./docs/integrations/whatsapp.md) |
 | **WhatsApp lifecycle reminders + receipt vision — IMPLEMENTED** | [`docs/integrations/wa-platform.md`](./docs/integrations/wa-platform.md) |
