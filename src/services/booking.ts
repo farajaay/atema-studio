@@ -47,8 +47,18 @@ function ref(): string {
  */
 /** Hard ceiling for the Edge Function call. If it doesn't return inside
  *  this window we abandon it and fall back to the direct-insert path —
- *  the user must never see an indefinite spinner. */
-const EDGE_FN_TIMEOUT_MS = 12_000;
+ *  the user must never see an indefinite spinner.
+ *
+ *  Set to 30s: create-booking now sends the confirmation email SYNCHRONOUSLY
+ *  (SMTP + contract/invoice attachments) before responding, which can take
+ *  well over 12s on a cold start. At 12s the client was timing out and
+ *  falling back to the direct anon insert — which, since the bookings PII
+ *  lockdown removed anon SELECT, can no longer return its row and throws a
+ *  false "booking_unavailable" AFTER the Edge Function had already inserted
+ *  the booking and sent the email. Waiting for the Edge Function is the
+ *  reliable path (service role); the fallback stays only as a true-outage
+ *  net. */
+const EDGE_FN_TIMEOUT_MS = 30_000;
 
 /** PostgREST error messages for "this column doesn't exist on the table".
  *  We use these to auto-strip unknown columns and retry the insert. */
