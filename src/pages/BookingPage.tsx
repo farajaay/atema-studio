@@ -101,7 +101,10 @@ function gradFor(tier: number): string {
 // face-in-upper-third portraits, `center 25%` keeps the face visible.
 interface PkgPhoto { file: string; position: string; }
 const PKG_PHOTO: Record<string, PkgPhoto> = {
-  engagement: { file: 'B6B52466-B962-4C33-804E-135D26C25236.JPG', position: 'top left' },
+  // Engagement — same couture model as the adjacent cards (was a pastel
+  // couple shot with a different model, which read as off-set). IMG_3715 is
+  // held out of the portfolio pool so the card doesn't duplicate the gallery.
+  engagement: { file: 'IMG_3715.JPG',                              position: 'center 22%' },
   // Custom Foundation — the singleton base for "Design Your Package".
   // Untitled-3.JPG — warm, welcoming smile from the same editorial set;
   // an inviting face for the entry tier where the bride starts building.

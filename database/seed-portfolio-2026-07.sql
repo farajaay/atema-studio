@@ -66,21 +66,14 @@ update public.portfolio_items set
   caption_en = 'Fingertips brush the earring, as if making sure the dream is real.'
 where image_url = '/photos/IMG_5525.JPG';
 
--- ── 2. Add the 7th new photo as a fresh portfolio item ──────────────────
+-- ── 2. IMG_3715 is the Engagement package-card hero, NOT a gallery item ──
+-- An earlier version of this file inserted IMG_3715 into the portfolio.
+-- It has since been promoted to the Engagement card (same couture model as
+-- the adjacent cards), so it must NOT also live in the portfolio or the
+-- card/gallery duplication returns. This delete is idempotent (no-op if the
+-- row was never inserted).
 
-insert into public.portfolio_items
-  (title_ar, title_en, category, image_url, caption_ar, caption_en, sort_order, published)
-select v.title_ar, v.title_en, v.category, v.image_url, v.caption_ar, v.caption_en, v.sort_order, v.published
-from (values
-  ('النظرةُ الأخيرة قبل الإطلال', 'The last look before the entrance',
-   'bride', '/photos/IMG_3715.JPG',
-   'يدٌ على القلب، ونظرةٌ ثابتة — استعدادٌ صامتٌ للحظةٍ لا تتكرّر.',
-   'A hand at the heart, a steady gaze — a silent readiness for a moment that comes only once.',
-   134, true)
-) as v(title_ar, title_en, category, image_url, caption_ar, caption_en, sort_order, published)
-where not exists (
-  select 1 from public.portfolio_items p where p.image_url = v.image_url
-);
+delete from public.portfolio_items where image_url = '/photos/IMG_3715.JPG';
 
 -- ─── Verify ─────────────────────────────────────────────────────────────
 select '— July 2026 portfolio refresh —' as section;
