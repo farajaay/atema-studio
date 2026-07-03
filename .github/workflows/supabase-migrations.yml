@@ -1,4 +1,23 @@
-name: Supabase — apply SQL migrations
+name: Supabase — apply SQL migrations (DISABLED)
+
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║ DISABLED 2026-07-03 at owner request.                                ║
+# ║                                                                      ║
+# ║ The owner has edited catalogue/settings data directly in the live    ║
+# ║ Supabase admin panel. This workflow's seed step (include-seeds)      ║
+# ║ UPSERTs the repo's seed rows by id and would OVERWRITE those live    ║
+# ║ edits. Until the repo seeds are refreshed to match production, this  ║
+# ║ workflow is held inert so a redeploy or an accidental manual run     ║
+# ║ can never clobber the live database.                                 ║
+# ║                                                                      ║
+# ║ Nothing here fires on push — it was already manual-only — so code    ║
+# ║ redeploys (deploy.yml / supabase-functions.yml) never touched data.  ║
+# ║ The `if: ${{ false }}` guard on the job below is the belt-and-       ║
+# ║ suspenders: even a manual "Run workflow" click now no-ops.           ║
+# ║                                                                      ║
+# ║ TO RE-ENABLE: delete the `if: ${{ false }}` line on the `apply` job  ║
+# ║ (and drop the "(DISABLED)" suffix from the name above).              ║
+# ╚══════════════════════════════════════════════════════════════════════╝
 
 # Applies the studio's SQL files to the linked Supabase project via the
 # Management API. Files run in an **explicit dependency order** (not
@@ -41,6 +60,8 @@ on:
 
 jobs:
   apply:
+    # DISABLED 2026-07-03 — see banner at top of file. Delete this line to re-enable.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

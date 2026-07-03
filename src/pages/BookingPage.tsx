@@ -236,7 +236,7 @@ function PkgCard({ pkg, lang, selected, onSelect, onDetails }: {
         {/* Price */}
         <div style={{ display:'flex', alignItems:'baseline', gap:'6px', margin:'12px 0' }}>
           <span style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.85rem',
-            fontWeight:400, color: T.gold, lineHeight:1 }}>
+            fontWeight:600, color: T.gold, lineHeight:1 }}>
             {pkg.price.toLocaleString()}
           </span>
           <span style={{ fontSize:'0.72rem', color: T.taupe,
@@ -346,7 +346,7 @@ function PkgDetailsModal({ pkg, lang, selected, onSelect, onClose }: {
             marginBottom:'20px' }}>
             <div style={{ display:'flex', alignItems:'baseline', gap:'6px' }}>
               <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'2.2rem',
-                color: T.gold, lineHeight:1 }}>
+                fontWeight:600, color: T.gold, lineHeight:1 }}>
                 {pkg.price.toLocaleString()}
               </span>
               <span style={{ fontSize:'0.8rem', color: T.taupe, fontFamily:'Tajawal,sans-serif' }}>
