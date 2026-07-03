@@ -155,40 +155,42 @@ grant execute on function public.select_album_design(text, uuid, text) to anon, 
 
 -- ── 6. Seed the palette — the studio's real cover skins ──────────────────
 -- Two families: fabric/linen (F-series) and croc leather (E-series + NERO).
--- swatch_hex approximates the physical swatch for on-screen chips; replace
--- with real preview_url photos later. UPSERT by code so re-runs stay in sync.
+-- preview_url points at a real material swatch cropped from the maker sheets
+-- (public/photos/album/<code>.jpg); swatch_hex is the fallback chip colour.
+-- UPSERT by code so re-runs stay in sync.
 insert into public.album_designs
-  (code, material, texture, name_ar, name_en, blurb_ar, blurb_en, swatch_hex, sort_order)
+  (code, material, texture, name_ar, name_en, blurb_ar, blurb_en, swatch_hex, preview_url, sort_order)
 values
   -- Fabric / linen
-  ('F334','fabric','linen','برتقالي','Coral Orange','كتّان بلون دافئ حيوي.','Warm, spirited linen.','#C85A2B',10),
-  ('F335','fabric','linen','خردلي ذهبي','Golden Mustard','ذهبٌ هادئ بلمسة كلاسيكية.','A quiet, classic gold.','#C79A3A',20),
-  ('F336','fabric','linen','رمادي حجري','Stone Grey','حياد أنيق يناسب كل شيء.','Elegant neutral that suits everything.','#A9A49A',30),
-  ('F338','fabric','linen','كستنائي','Chestnut','بنيٌّ ترابي عميق.','Deep, earthy brown.','#9C5A34',40),
-  ('F341','fabric','linen','فحمي','Charcoal','أسودٌ مُطفأ رصين.','A restrained, matte black.','#3B3A3E',50),
-  ('F350','fabric','linen','زمرّدي','Emerald','أخضرُ ملكيّ غنيّ.','Rich, regal green.','#1E7F5C',60),
-  ('F355','fabric','linen','كحلي','Navy','أزرقُ ليليّ كلاسيكي.','Classic midnight blue.','#232842',70),
-  ('F356','fabric','linen','أزرق ملكي','Royal Blue','أزرقٌ نابض بالحياة.','A vivid, living blue.','#2C468A',80),
-  ('F357','fabric','linen','أزرق بودري','Powder Blue','أزرقٌ فاتح ناعم.','Soft, powdery blue.','#92A6C2',90),
-  ('F358','fabric','linen','أزرق فولاذي','Slate Blue','رماديٌّ مائل للأزرق.','Muted blue-grey.','#566A7C',100),
+  ('F334','fabric','linen','برتقالي','Coral Orange','كتّان بلون دافئ حيوي.','Warm, spirited linen.','#C85A2B','/photos/album/F334.jpg',10),
+  ('F335','fabric','linen','خردلي ذهبي','Golden Mustard','ذهبٌ هادئ بلمسة كلاسيكية.','A quiet, classic gold.','#C79A3A','/photos/album/F335.jpg',20),
+  ('F336','fabric','linen','رمادي حجري','Stone Grey','حياد أنيق يناسب كل شيء.','Elegant neutral that suits everything.','#A9A49A','/photos/album/F336.jpg',30),
+  ('F338','fabric','linen','كستنائي','Chestnut','بنيٌّ ترابي عميق.','Deep, earthy brown.','#9C5A34','/photos/album/F338.jpg',40),
+  ('F341','fabric','linen','فحمي','Charcoal','أسودٌ مُطفأ رصين.','A restrained, matte black.','#3B3A3E','/photos/album/F341.jpg',50),
+  ('F350','fabric','linen','زمرّدي','Emerald','أخضرُ ملكيّ غنيّ.','Rich, regal green.','#1E7F5C','/photos/album/F350.jpg',60),
+  ('F355','fabric','linen','كحلي','Navy','أزرقُ ليليّ كلاسيكي.','Classic midnight blue.','#232842','/photos/album/F355.jpg',70),
+  ('F356','fabric','linen','أزرق ملكي','Royal Blue','أزرقٌ نابض بالحياة.','A vivid, living blue.','#2C468A','/photos/album/F356.jpg',80),
+  ('F357','fabric','linen','أزرق بودري','Powder Blue','أزرقٌ فاتح ناعم.','Soft, powdery blue.','#92A6C2','/photos/album/F357.jpg',90),
+  ('F358','fabric','linen','أزرق فولاذي','Slate Blue','رماديٌّ مائل للأزرق.','Muted blue-grey.','#566A7C','/photos/album/F358.jpg',100),
   -- Leather (croc-embossed)
-  ('NERO','leather','croc','أسود نيرو','Nero Black','جلدٌ أسود مُنقوش فاخر.','Luxe embossed black leather.','#1A1A1A',110),
-  ('E639','leather','croc','أوكر','Ochre','جلدٌ ذهبيّ محروق.','Burnished golden leather.','#C4922E',120),
-  ('E640','leather','croc','جَمَلي','Camel','بيجٌ دافئ راقٍ.','Warm, refined camel.','#B08A57',130),
-  ('E641','leather','croc','طينيّ محروق','Terracotta','برتقاليٌّ ترابي غنيّ.','Rich earthen terracotta.','#A64B2C',140),
-  ('E643','leather','croc','خمري','Burgundy','أحمرُ نبيذيّ عميق.','Deep wine red.','#6C2130',150),
-  ('E644','leather','croc','ماهوجني','Mahogany','بنيٌّ محمرّ داكن.','Dark reddish mahogany.','#3D1D1F',160),
-  ('E651','leather','croc','كحلي داكن','Midnight Navy','أزرقٌ ليليّ عميق.','Deep midnight navy.','#22304E',170),
-  ('E654','leather','croc','أخضر غابي','Forest Green','أخضرُ داكن غنيّ.','Rich, deep forest green.','#21382D',180)
+  ('NERO','leather','croc','أسود نيرو','Nero Black','جلدٌ أسود مُنقوش فاخر.','Luxe embossed black leather.','#1A1A1A','/photos/album/NERO.jpg',110),
+  ('E639','leather','croc','أوكر','Ochre','جلدٌ ذهبيّ محروق.','Burnished golden leather.','#C4922E','/photos/album/E639.jpg',120),
+  ('E640','leather','croc','جَمَلي','Camel','بيجٌ دافئ راقٍ.','Warm, refined camel.','#B08A57','/photos/album/E640.jpg',130),
+  ('E641','leather','croc','طينيّ محروق','Terracotta','برتقاليٌّ ترابي غنيّ.','Rich earthen terracotta.','#A64B2C','/photos/album/E641.jpg',140),
+  ('E643','leather','croc','خمري','Burgundy','أحمرُ نبيذيّ عميق.','Deep wine red.','#6C2130','/photos/album/E643.jpg',150),
+  ('E644','leather','croc','ماهوجني','Mahogany','بنيٌّ محمرّ داكن.','Dark reddish mahogany.','#3D1D1F','/photos/album/E644.jpg',160),
+  ('E651','leather','croc','كحلي داكن','Midnight Navy','أزرقٌ ليليّ عميق.','Deep midnight navy.','#22304E','/photos/album/E651.jpg',170),
+  ('E654','leather','croc','أخضر غابي','Forest Green','أخضرُ داكن غنيّ.','Rich, deep forest green.','#21382D','/photos/album/E654.jpg',180)
 on conflict (code) do update set
-  material   = excluded.material,
-  texture    = excluded.texture,
-  name_ar    = excluded.name_ar,
-  name_en    = excluded.name_en,
-  blurb_ar   = excluded.blurb_ar,
-  blurb_en   = excluded.blurb_en,
-  swatch_hex = excluded.swatch_hex,
-  sort_order = excluded.sort_order;
+  material    = excluded.material,
+  texture     = excluded.texture,
+  name_ar     = excluded.name_ar,
+  name_en     = excluded.name_en,
+  blurb_ar    = excluded.blurb_ar,
+  blurb_en    = excluded.blurb_en,
+  swatch_hex  = excluded.swatch_hex,
+  preview_url = excluded.preview_url,
+  sort_order  = excluded.sort_order;
 
 -- ── 7. Verify ─────────────────────────────────────────────────────────────
 select '— Album palette seeded —' as section;

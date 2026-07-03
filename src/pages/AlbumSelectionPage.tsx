@@ -171,12 +171,11 @@ function Section({ title, items, picked, onPick, lang }: {
 }
 
 // ── Bits ─────────────────────────────────────────────────────────────────
-const swatchTile = (d: AlbumDesign): React.CSSProperties => ({
-  background: d.preview_url ? `center/cover no-repeat url(${d.preview_url})` : d.swatch_hex,
-  backgroundImage: d.preview_url
-    ? `center/cover no-repeat url(${d.preview_url})`
-    : `radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,0.18), rgba(0,0,0,0.18)), linear-gradient(${d.swatch_hex}, ${d.swatch_hex})`,
-});
+const swatchTile = (d: AlbumDesign): React.CSSProperties =>
+  d.preview_url
+    ? { backgroundImage: `url(${d.preview_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : { backgroundImage: `radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,0.18), rgba(0,0,0,0.18)), linear-gradient(${d.swatch_hex}, ${d.swatch_hex})`,
+        backgroundColor: d.swatch_hex };
 
 const checkBadge: React.CSSProperties = {
   position: 'absolute', top: 8, insetInlineEnd: 8, width: 26, height: 26, borderRadius: '50%',
