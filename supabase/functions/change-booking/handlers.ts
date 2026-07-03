@@ -40,6 +40,10 @@ export interface HandlerEnv {
   sendEmail?: (args: {
     to: string; subject: string; html: string; text: string; bookingId?: string | null;
   }) => Promise<{ status: 'sent' | 'skipped' | 'failed'; error?: string }>;
+  /** Keep the worker alive for a background task (OTP email) so request_otp can
+   *  return immediately without the SMTP session being torn down. No-op in
+   *  tests. */
+  keepAlive?: (task: Promise<unknown>) => void;
   /** Today as YYYY-MM-DD — injectable for tests. */
   today?: () => string;
 }
@@ -161,21 +165,25 @@ export async function handleRequestOtp(supabase: any, booking: any, env: Handler
     code, bookingRef: booking.booking_ref, customerName: booking.customer_name,
     ttlMinutes: Math.round(OTP_TTL_MS / 60_000),
   });
-  const sent = await env.sendEmail({
+  // Send in the BACKGROUND and return immediately. The OTP row is already
+  // stored, so the code is valid the moment the email lands. Blocking on the
+  // SMTP session (cold-start denomailer import + Zoho TLS) was making the
+  // client's invoke() time out or the handler report a flaky non-'sent' status
+  // — both stranded the bride on an error screen even though the code was
+  // delivered. Now the page advances to code entry instantly; delivery is
+  // best-effort and audited in email_messages. (A missing recipient is still a
+  // hard stop above as no_email_on_file; an unconfigured mailer is
+  // otp_send_unavailable.)
+  const send = env.sendEmail({
     to: email, subject: mail.subject, html: mail.html, text: mail.text, bookingId: booking.id,
-  });
-  // Delivery is best-effort and the OTP row is ALREADY stored above, so a flaky
-  // SMTP *status* must not strand the bride on an error screen holding a code
-  // she actually received. denomailer 1.6.0 + Zoho sometimes reports a non-'sent'
-  // status even after the message is accepted; hard-failing here was exactly
-  // what made the manage page "send the code but never let her enter it."
-  // Advance to code entry regardless; if it truly didn't arrive she can resend.
-  // (A missing recipient is still a hard stop above as no_email_on_file, and an
-  // unconfigured mailer is otp_send_unavailable.)
-  if (sent.status !== 'sent') {
-    console.warn('[change-otp] non-sent email status (code still stored):', sent.status, sent.error ?? '');
-  }
-  return ok({ ok: true, sent: sent.status === 'sent', channel: 'email' });
+  }).then(r => {
+    if (r.status !== 'sent') console.warn('[change-otp] non-sent email status (code still stored):', r.status, r.error ?? '');
+  }).catch(e => console.warn('[change-otp] email send threw (code still stored):', (e as Error).message));
+
+  if (env.keepAlive) env.keepAlive(send);
+  else await send;   // tests / no waitUntil: fall back to awaiting
+
+  return ok({ ok: true, sent: true, channel: 'email' });
 }
 
 // ── Change package / add-ons (Phase 2) ───────────────────────────────────────

@@ -32,6 +32,16 @@ const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const OWNER_PHONE           = Deno.env.get('OWNER_WA_NUMBER');
 const SITE_ORIGIN           = Deno.env.get('SITE_ORIGIN') ?? 'https://atemastudio.xyz';
 
+// Keep the worker alive for background work (OTP email) so we can return the
+// HTTP response immediately without the SMTP session being torn down.
+function keepAlive(task: Promise<unknown>): void {
+  // deno-lint-ignore no-explicit-any
+  const rt = (globalThis as any).EdgeRuntime;
+  if (rt && typeof rt.waitUntil === 'function') {
+    try { rt.waitUntil(task); } catch { /* best-effort */ }
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST')    return fail('method_not_allowed', 405);
@@ -45,6 +55,7 @@ serve(async (req) => {
   return await routeChangeRequest(supabase, body, {
     ownerPhone: OWNER_PHONE,
     siteOrigin: SITE_ORIGIN,
+    keepAlive,
     notify: async (phone, message) => {
       if (!phone) return;
       await sendText(phone, message).catch(() => {});
