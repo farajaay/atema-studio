@@ -1,6 +1,7 @@
 // ATEMA STUDIO — Editorial Journal service.
 
 import { supabase } from './supabase';
+import { JOURNAL_COVER_REFRESH, canRefreshJournalCover } from '../content/galleryRefresh';
 
 export interface JournalPost {
   id:            string;
@@ -26,7 +27,7 @@ export async function fetchJournal(): Promise<JournalPost[]> {
     .eq('published', true)
     .order('published_at', { ascending: false, nullsFirst: false });
   if (error) { console.error('fetchJournal:', error.message); return []; }
-  return (data ?? []) as JournalPost[];
+  return applyJournalCoverRefresh((data ?? []) as JournalPost[]);
 }
 
 /** Public single post by slug. */
@@ -39,7 +40,7 @@ export async function fetchJournalPost(slug: string): Promise<JournalPost | null
     .eq('published', true)
     .maybeSingle();
   if (error) { console.error('fetchJournalPost:', error.message); return null; }
-  return (data ?? null) as JournalPost | null;
+  return data ? applyJournalCoverRefresh([(data ?? null) as JournalPost])[0] : null;
 }
 
 /** Admin list — all posts, regardless of publish state. */
@@ -50,7 +51,7 @@ export async function fetchJournalAll(): Promise<JournalPost[]> {
     .select('*')
     .order('created_at', { ascending: false });
   if (error) { console.error('fetchJournalAll:', error.message); return []; }
-  return (data ?? []) as JournalPost[];
+  return applyJournalCoverRefresh((data ?? []) as JournalPost[]);
 }
 
 export async function upsertJournalPost(post: Partial<JournalPost> & { id?: string }): Promise<boolean> {
@@ -94,4 +95,12 @@ export function slugify(s: string): string {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
   return ascii || `post-${Date.now()}`;
+}
+
+function applyJournalCoverRefresh(posts: JournalPost[]): JournalPost[] {
+  return posts.map(post => {
+    const refresh = JOURNAL_COVER_REFRESH[post.slug];
+    if (!refresh || !canRefreshJournalCover(post.slug, post.cover_url)) return post;
+    return { ...post, cover_url: refresh.cover_url };
+  });
 }

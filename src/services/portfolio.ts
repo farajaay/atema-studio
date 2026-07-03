@@ -2,6 +2,7 @@
 // Public-readable, admin-writable. Images live in Supabase Storage bucket `portfolio`.
 
 import { supabase } from './supabase';
+import { PORTFOLIO_IMAGE_REFRESH, canRefreshPortfolioImage } from '../content/galleryRefresh';
 
 export type PortfolioCategory = 'bride' | 'family' | 'maternity' | 'couture' | 'editorial';
 
@@ -36,7 +37,7 @@ export async function fetchPortfolio(): Promise<PortfolioItem[]> {
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false });
   if (error) { console.error('fetchPortfolio:', error.message); return []; }
-  return (data ?? []) as PortfolioItem[];
+  return applyPortfolioImageRefresh((data ?? []) as PortfolioItem[]);
 }
 
 /** Admin list — all items, regardless of publish state. */
@@ -48,7 +49,7 @@ export async function fetchPortfolioAll(): Promise<PortfolioItem[]> {
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false });
   if (error) { console.error('fetchPortfolioAll:', error.message); return []; }
-  return (data ?? []) as PortfolioItem[];
+  return applyPortfolioImageRefresh((data ?? []) as PortfolioItem[]);
 }
 
 export async function upsertPortfolioItem(item: Partial<PortfolioItem> & { id?: string }): Promise<boolean> {
@@ -80,4 +81,12 @@ export async function uploadPortfolioImage(file: File): Promise<string | null> {
   if (error) { console.error('uploadPortfolioImage:', error.message); return null; }
   const { data } = supabase.storage.from('portfolio').getPublicUrl(path);
   return data.publicUrl ?? null;
+}
+
+function applyPortfolioImageRefresh(items: PortfolioItem[]): PortfolioItem[] {
+  return items.map(item => {
+    const refresh = PORTFOLIO_IMAGE_REFRESH[item.sort_order];
+    if (!refresh || !canRefreshPortfolioImage(item.sort_order, item.image_url)) return item;
+    return { ...item, category: refresh.category, image_url: refresh.image_url };
+  });
 }
