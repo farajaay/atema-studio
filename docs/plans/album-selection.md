@@ -189,9 +189,13 @@ proper template if we register one).
   tab in the admin booking modal (`AlbumComposer`) with manual release +
   copy/WhatsApp/email link + the bride's choice. **Requires the migration to
   be run once in Supabase** (the migrations workflow is disabled).
-- **Phase 2 — customer page:** `/#/album/<token>` with the three states, the
-  two `SECURITY DEFINER` RPCs, time-gating, and selection write. This is the
-  core deliverable.
+- **Phase 2 — customer page — ✅ SHIPPED (2026-07-03):**
+  `src/pages/AlbumSelectionPage.tsx` at `/#/album/:token` — noir editorial
+  page with all states (loading / not-found / not-ready holding screen /
+  ready swatch-grid / confirmed-locked), the fabric + leather swatch sections,
+  optional atelier note, and a confirm-and-lock bar. Reads via
+  `get_album_selection_by_token`, writes via `select_album_design` (both
+  server-gate the event date + the final-once-confirmed rule). Bilingual, RTL.
 - **Phase 3 — automation & polish:** post-event auto-release via `wa-reminders`,
   reminders, change-window rules, optional paid-upgrade path.
 

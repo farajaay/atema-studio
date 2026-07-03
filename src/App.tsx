@@ -13,6 +13,7 @@ import JournalPostPage  from './pages/JournalPostPage';
 import AboutPage        from './pages/AboutPage';
 import MoodBoardPage    from './pages/MoodBoardPage';
 import ManageBookingPage from './pages/ManageBookingPage';
+import AlbumSelectionPage from './pages/AlbumSelectionPage';
 import PolicyPage       from './pages/PolicyPage';
 import PaymentResultPage from './pages/PaymentResultPage';
 
@@ -77,6 +78,7 @@ export default function App() {
       <Route path="/policy"          element={<PolicyPage />} />
       <Route path="/board/:token"    element={<MoodBoardPage />} />
       <Route path="/manage/:token"   element={<ManageBookingPage />} />
+      <Route path="/album/:token"    element={<AlbumSelectionPage />} />
 
       {/* Admin — lazy */}
       <Route path="/admin"           element={
