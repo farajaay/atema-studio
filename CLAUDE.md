@@ -68,6 +68,8 @@ and answers most "how does X work" questions.**
 | Investor / client pitch (the "what is ATEMA" story) | [`docs/PRESENTATION.md`](./docs/PRESENTATION.md) |
 | P&L model, margin warnings, owner-hour costing | [`docs/PROFITABILITY.md`](./docs/PROFITABILITY.md) |
 | **Outstanding bugs + security audit + patch tracker** | [`docs/bugs.md`](./docs/bugs.md) |
+| **Active plan — Films integration + album example render + integrity pass** | [`docs/plans/integration-2026-07.md`](./docs/plans/integration-2026-07.md) |
+| Cross-agent handoff state (Claude ⇄ Codex) | [`AGENTS.md`](./AGENTS.md) |
 | Payment gateway readiness (Moyasar live + transfer flow) | [`docs/integrations/payments.md`](./docs/integrations/payments.md) |
 | WhatsApp Cloud API blueprint (legacy reference) | [`docs/integrations/whatsapp.md`](./docs/integrations/whatsapp.md) |
 | **WhatsApp lifecycle reminders + receipt vision — IMPLEMENTED** | [`docs/integrations/wa-platform.md`](./docs/integrations/wa-platform.md) |
@@ -373,6 +375,11 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   - `database/migrations-2026-06-documents.sql` (contracts + invoices DDL under
     version control + admin-only SELECT — fixes an anon PII leak; required for
     the admin "المستندات" regeneration card)
+  - `database/migrations-2026-07-album.sql` (album_designs palette + booking
+    album columns + token RPCs — the post-event cover-selection feature)
+  - `database/migrations-2026-07-album-examples.sql` (example_url + box_url —
+    photographic album/box mockups on the selection page; run after the
+    album migration)
   - `database/seed-packages-2026-05.sql` (6 packages + 11 add-ons — required
     if `packages` table is empty; the booking flow falls back to the DEMO
     catalogue without it, but the Edge Function still needs real rows to

@@ -23,6 +23,11 @@ export interface AlbumDesign {
   blurb_en:    string | null;
   swatch_hex:  string;
   preview_url: string | null;
+  /** Photographic mockup of the finished album (…-album.jpg); page falls
+      back to the CSS book mock when null. */
+  example_url: string | null;
+  /** Photographic mockup of the presentation box (…-box.jpg). */
+  box_url:     string | null;
   active:      boolean;
   sort_order:  number;
 }
@@ -65,6 +70,7 @@ export async function saveDesign(d: DesignDraft): Promise<AlbumDesign | null> {
     name_ar: d.name_ar, name_en: d.name_en,
     blurb_ar: d.blurb_ar, blurb_en: d.blurb_en,
     swatch_hex: d.swatch_hex, preview_url: d.preview_url,
+    example_url: d.example_url, box_url: d.box_url,
     active: d.active, sort_order: d.sort_order,
   };
   if (d.id) {
