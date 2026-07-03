@@ -2884,6 +2884,42 @@ select tablename, policyname, cmd
 
 
 -- ═══════════════════════════════════════════════════════════════════════
+-- ▶ database/migrations-2026-06-fix-booking-insert.sql
+-- ═══════════════════════════════════════════════════════════════════════
+-- Appended 2026-07-03 (system hardening review). The bundle was generated
+-- 2026-06-16, BEFORE this fix migration existed, so the audit-patches block
+-- above left the broken M-9 "Constrained anonymous booking insert" policy —
+-- the EXISTS(preview_discount_code(...)) sub-check that rejected otherwise
+-- valid anon booking inserts on the live site. The CI manifest
+-- (.github/workflows/supabase-migrations.yml, item 8) already runs this file
+-- last; this appended block keeps the hand-paste bundle in sync so an
+-- operator syncing an existing DB does not reintroduce the regression.
+-- Idempotent — supersedes the audit-patches policy of the same name.
+
+drop policy if exists "anon_insert_bookings"                  on public.bookings;
+drop policy if exists "Allow public booking insert"           on public.bookings;
+drop policy if exists "Constrained anonymous booking insert"  on public.bookings;
+
+create policy "Constrained anonymous booking insert"
+  on public.bookings
+  for insert
+  to anon
+  with check (
+        customer_name  is not null
+    and length(trim(customer_name))  between 2 and 120
+    and customer_phone is not null
+    and length(trim(customer_phone)) between 7 and 25
+    and event_date is not null
+    and event_date >= current_date
+    and subtotal > 0     and subtotal <= 200000
+    and total    > 0     and total    <= 230000
+    and vat      >= 0    and vat      <= 50000
+    and status         = 'pending'
+    and payment_status = 'unpaid'
+  );
+
+
+-- ═══════════════════════════════════════════════════════════════════════
 -- ▶ database/seed-packages-2026-05.sql
 -- ═══════════════════════════════════════════════════════════════════════
 -- ATEMA STUDIO — Packages & Add-ons seed

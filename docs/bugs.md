@@ -15,6 +15,22 @@
 
 ---
 
+## Status update — 2026-07-03 (system hardening scan)
+
+Full pass: security hardening scan + design/content review + structure/prices
+review. Report: `docs/reviews/2026-07-03-hardening-scan.md`. Baseline clean —
+`tsc` 0 errors, 139/139 tests, `npm audit` 0 vulns, bundle console-stripped +
+source-map-free. **No CRITICAL/HIGH findings; every prior patch (C-1, C-3, H-6,
+H-9, H-10, M-8, M-11) re-verified and holds.** Two issues found and fixed:
+
+| Item | What changed |
+|---|---|
+| **DB-1 (new, MEDIUM operational — fixed)** | `database/bundle-existing-db.sql` was generated 2026-06-16, *before* `migrations-2026-06-fix-booking-insert.sql` existed, so its final `bookings` INSERT policy was the broken M-9 `EXISTS(preview_discount_code(...))` version. CI is safe (manifest runs the fix last), but a hand-paste of the bundle would reintroduce the booking-submission regression. Appended the fix policy to the bundle (idempotent) so both paths converge. |
+| **DB-2 (new, LOW hygiene — fixed)** | `src/config/constants.ts` still exported dead `PACKAGES`/`ADDONS`/`CITIES` arrays carrying the *pre-overhaul* prices (Engagement 1,855 · Classic 4,200 · Royal 6,900 · Couture 14,000). Nothing imports them (only `ATEMA_COLORS`/`VAT_RATE` are live), but the stale copy is a foot-gun. Removed; file now points at the real sources of truth. |
+| **Prices verified** | Live catalogue is consistent across seed SQL, `usePackagesData`/`useAddonsData` fallbacks, `CITY_FEES`, and `PROFITABILITY.md`. Deposit = `round(total × 0.5)` on client + server; Moyasar charges `× 100` halalas. |
+
+---
+
 ## Status update — 2026-06-12 (Phase-1 revenue protection)
 
 | Item | What changed |
