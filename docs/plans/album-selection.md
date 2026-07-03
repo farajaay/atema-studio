@@ -182,9 +182,13 @@ proper template if we register one).
 
 ## 8. Suggested phasing
 
-- **Phase 1 — foundation:** migration (tables + `album_token` backfill),
-  `album_designs` admin CRUD, and the admin tab with manual "release + send".
-  No customer page yet — validates the palette and data model.
+- **Phase 1 — foundation — ✅ SHIPPED (2026-07-03):** migration
+  `migrations-2026-07-album.sql` (tables + `album_token` backfill + the two
+  RPCs + RLS + the real F-series/E-series palette seeded), `src/services/
+  album.ts`, the `/admin/album-designs` palette manager, and the "غلاف الألبوم"
+  tab in the admin booking modal (`AlbumComposer`) with manual release +
+  copy/WhatsApp/email link + the bride's choice. **Requires the migration to
+  be run once in Supabase** (the migrations workflow is disabled).
 - **Phase 2 — customer page:** `/#/album/<token>` with the three states, the
   two `SECURITY DEFINER` RPCs, time-gating, and selection write. This is the
   core deliverable.
