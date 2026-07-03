@@ -483,6 +483,8 @@ export default function FilmsPage() {
                               alt=""
                               loading="lazy"
                               decoding="async"
+                              width={film.stream.width}
+                              height={film.stream.height}
                               style={{
                                 width: '100%',
                                 height: '100%',

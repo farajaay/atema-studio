@@ -53,8 +53,9 @@ const corsHeaders = {
 // Keep the Deno worker alive for the fire-and-forget WhatsApp call so the
 // fetch doesn't get cancelled when the HTTP response is returned.
 function keepAlive(task: Promise<unknown>): void {
-  // deno-lint-ignore no-explicit-any
-  const rt = (globalThis as any).EdgeRuntime;
+  const rt = (globalThis as typeof globalThis & {
+    EdgeRuntime?: { waitUntil?: (task: Promise<unknown>) => void };
+  }).EdgeRuntime;
   if (rt && typeof rt.waitUntil === 'function') {
     try { rt.waitUntil(task); return; } catch { /* fall through */ }
   }
@@ -84,6 +85,14 @@ function newRef(): string {
   return `ATEMA-${yy}${mm}${day}-${tail}`;
 }
 
+function traceId(): string {
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  let id = '';
+  for (let i = 0; i < bytes.length; i++) id += CROCKFORD[bytes[i] & 0x1f];
+  return id;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST')    return fail('method_not_allowed', 405);
@@ -94,7 +103,7 @@ serve(async (req) => {
 
   const reqId: string = typeof body._reqId === 'string' && body._reqId.length <= 16
     ? body._reqId
-    : Math.random().toString(36).slice(2, 8).toUpperCase();
+    : traceId();
   const t0 = Date.now();
   const log = (...args: unknown[]) => console.log(`[booking:${reqId}]`, ...args);
   const warn = (...args: unknown[]) => console.warn(`[booking:${reqId}]`, ...args);

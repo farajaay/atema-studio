@@ -140,7 +140,7 @@ export default function FilmsManager() {
           </button>
           <button onClick={async () => { await logout(); navigate('/admin'); }} style={{
             display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(220,38,38,0.10)',
-            border: '1px solid rgba(220,38,38,0.32)', color: '#fca5a5', borderRadius: 8,
+            border: '1px solid rgba(220,38,38,0.32)', color: 'var(--a-gold)', borderRadius: 8,
             padding: '7px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600,
             fontFamily: 'inherit',
           }}>
@@ -152,7 +152,7 @@ export default function FilmsManager() {
       <div style={{ maxWidth: 1180, margin: '0 auto', padding: isMobile ? '20px 16px' : '28px 30px' }}>
         {!configured && (
           <div style={{
-            background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412',
+            background: 'var(--a-surface-alt)', border: '1px solid var(--a-border)', color: 'var(--a-text)',
             borderRadius: 10, padding: '12px 16px', marginBottom: 18,
             fontSize: 13, lineHeight: 1.7,
           }}>
@@ -215,6 +215,7 @@ export default function FilmsManager() {
                   }}>
                     {stream?.poster ? (
                       <img src={assetUrl(stream.poster)} alt="" loading="lazy" decoding="async"
+                        width={stream.width} height={stream.height}
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     ) : (
                       <Clapperboard size={22} />
@@ -253,14 +254,14 @@ export default function FilmsManager() {
                   }}>
                     <button onClick={() => togglePublished(item)} disabled={busy}
                       title={published ? 'إخفاء من الصفحة' : 'نشر في الصفحة'}
-                      style={actionButton(published ? '#34d399' : '#a8a8a8')}>
+                      style={actionButton(published ? 'var(--a-gold)' : 'var(--a-text-muted)')}>
                       {busy
                         ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
                         : published ? <Eye size={13} /> : <EyeOff size={13} />}
                       {published ? 'إخفاء' : 'نشر'}
                     </button>
                     <button onClick={() => remove(item)} disabled={busy}
-                      title="حذف من صفحة الأفلام" style={actionButton('#fca5a5')}>
+                      title="حذف من صفحة الأفلام" style={actionButton('var(--a-gold)')}>
                       <Trash2 size={13} /> حذف
                     </button>
                   </div>

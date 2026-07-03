@@ -21,23 +21,29 @@
 
 ## 2. Live state (update this section on every handoff)
 
-*Last updated: 2026-07-03 (Claude, W2 execution session).*
+*Last updated: 2026-07-04 (Codex, W3 integrity completion).*
 
-- `master` is clean and deployed; all Codex asset work (photos, album
-  swatches, HLS videos, orphaned review page) is committed.
-- Active plan: `docs/plans/integration-2026-07.md`.
-  - **W2 (album example render): ✅ done** — photographic mockups primary
-    (`example_url`/`box_url`, new migration
-    `migrations-2026-07-album-examples.sql` — owner must run it),
-    `AlbumCoverExample` CSS mock as fallback + admin previews. See plan §2
-    status note.
-  - **W1 (Films page) and W3 (integrity pass): not started.** Execution
-    order and commit shape are in plan §4.
-- Known suspect to fix during the integrity pass: portfolio seed
-  `seed-portfolio-2026-07.sql` points at raw multi-MB `.JPG`s instead of the
-  optimised pairs (plan §3.2).
-- Orphaned video review page (`public/atema-motion-review-f7c9a2.html`) stays
-  until the `/films` page ships and the owner approves curated titles.
+- Latest completed local pass: W3 from `docs/plans/integration-2026-07.md`.
+  Report: `docs/reviews/2026-07-04-integration-integrity.md`.
+- **W1 (Films page): done.** Public `/#/films` is routed/nav-linked, backed by
+  `public/videos/hls/manifest.json`, `src/content/films.ts`, and the
+  Supabase-backed admin Films Manager at `/#/admin/films`.
+- **W2 (album example render): done.** Photographic mockups are primary
+  (`example_url`/`box_url`, migration
+  `migrations-2026-07-album-examples.sql`), with `AlbumCoverExample` fallback.
+- **W3 (local integrity pass): done.** `npm run lint`, `npm test` (141/141),
+  and `npm run build` pass. W3 also fixed the July portfolio seed to use
+  optimized images and added
+  `database/migrations-2026-07-portfolio-optimised-urls.sql`.
+- Live/operator follow-ups remain: apply July SQL in Supabase, verify security
+  advisor/RLS and Edge Function deployed versions, then run the full test-mode
+  booking/payment/capability-link narrative.
+- Orphaned video review page (`public/atema-motion-review-f7c9a2.html`) is
+  still present and `noindex`. Delete it only after the owner approves the
+  curated Films page wording.
+- The local worktree may still contain a large unstaged media queue under
+  `public/photos/` and raw `public/videos/` sources from the photo/video
+  optimizer work. Do not stage those unless the owner explicitly asks.
 
 ## 3. Handoff protocol
 

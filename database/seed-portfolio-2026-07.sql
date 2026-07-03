@@ -25,42 +25,42 @@
 -- ── 1. Swap the six cross-page duplicates for new photos ────────────────
 
 update public.portfolio_items set
-  image_url = '/photos/IMG_2536.JPG', category = 'editorial',
+  image_url = '/photos/IMG_2536.optimised.jpg', category = 'editorial',
   title_ar = 'وشاحٌ من ضوء', title_en = 'A veil of light',
   caption_ar = 'البشرةُ تلتقطُ الصباح، والدانتيل يذوبُ في الضوء كأنه غيمة.',
   caption_en = 'Skin catches the morning, and the lace dissolves into light like a passing cloud.'
 where image_url = '/photos/B6B52466-B962-4C33-804E-135D26C25236.JPG';
 
 update public.portfolio_items set
-  image_url = '/photos/IMG_2561.JPG', category = 'couture',
+  image_url = '/photos/IMG_2561.optimised.jpg', category = 'couture',
   title_ar = 'الفستانُ تحت القوس', title_en = 'The gown beneath the arch',
   caption_ar = 'كلُّ زهرةٍ مطرّزةٍ بخيطٍ من صبر — تفصيلٌ لا يُرى إلا عن قرب.',
   caption_en = 'Every embroidered flower stitched with a thread of patience — a detail seen only up close.'
 where image_url = '/photos/IMG_5623.JPG';
 
 update public.portfolio_items set
-  image_url = '/photos/IMG_2626.JPG', category = 'bride',
+  image_url = '/photos/IMG_2626.optimised.jpg', category = 'bride',
   title_ar = 'ابتسامةٌ قبل الموعد', title_en = 'A smile before the hour',
   caption_ar = 'قبل أن يبدأ المساء، لحظةٌ من فرحٍ خالصٍ لا تُمثَّل.',
   caption_en = 'Before the evening begins, a moment of pure, unrehearsed joy.'
 where image_url = '/photos/Untitled-3.JPG';
 
 update public.portfolio_items set
-  image_url = '/photos/IMG_2637.JPG', category = 'couture',
+  image_url = '/photos/IMG_2637.optimised.jpg', category = 'couture',
   title_ar = 'الملمح الجانبي', title_en = 'The profile',
   caption_ar = 'رأسٌ مرفوعٌ بثقةٍ هادئة، وخصلةٌ تنسابُ كخطٍّ من حرير.',
   caption_en = 'A head held with quiet confidence, a curl falling like a line of silk.'
 where image_url = '/photos/IMG_5607.JPG';
 
 update public.portfolio_items set
-  image_url = '/photos/IMG_2646.JPG', category = 'editorial',
+  image_url = '/photos/IMG_2646.optimised.jpg', category = 'editorial',
   title_ar = 'الرموشُ حين تهدأ', title_en = 'When the lashes rest',
   caption_ar = 'الكحلُ، والقرطُ الماسيّ، والخدُّ المُضاء — لغةُ الوجهِ في سكونها.',
   caption_en = 'Kohl, a diamond drop, an illuminated cheek — the language of the face in its stillness.'
 where image_url = '/photos/IMG_5620.JPG';
 
 update public.portfolio_items set
-  image_url = '/photos/IMG_3688.JPG', category = 'editorial',
+  image_url = '/photos/IMG_3688.optimised.jpg', category = 'editorial',
   title_ar = 'لمسةُ الماس', title_en = 'The touch of diamond',
   caption_ar = 'أناملُ تُلامسُ القرط، كأنها تتحقّقُ من أنّ الحلمَ حقيقي.',
   caption_en = 'Fingertips brush the earring, as if making sure the dream is real.'
@@ -73,14 +73,15 @@ where image_url = '/photos/IMG_5525.JPG';
 -- card/gallery duplication returns. This delete is idempotent (no-op if the
 -- row was never inserted).
 
-delete from public.portfolio_items where image_url = '/photos/IMG_3715.JPG';
+delete from public.portfolio_items
+ where image_url in ('/photos/IMG_3715.JPG', '/photos/IMG_3715.optimised.jpg');
 
 -- ─── Verify ─────────────────────────────────────────────────────────────
 select '— July 2026 portfolio refresh —' as section;
 select sort_order, category, title_en, image_url
   from public.portfolio_items
  where image_url in (
-   '/photos/IMG_2536.JPG','/photos/IMG_2561.JPG','/photos/IMG_2626.JPG',
-   '/photos/IMG_2637.JPG','/photos/IMG_2646.JPG','/photos/IMG_3688.JPG',
-   '/photos/IMG_3715.JPG')
+   '/photos/IMG_2536.optimised.jpg','/photos/IMG_2561.optimised.jpg','/photos/IMG_2626.optimised.jpg',
+   '/photos/IMG_2637.optimised.jpg','/photos/IMG_2646.optimised.jpg','/photos/IMG_3688.optimised.jpg',
+   '/photos/IMG_3715.JPG','/photos/IMG_3715.optimised.jpg')
  order by sort_order;

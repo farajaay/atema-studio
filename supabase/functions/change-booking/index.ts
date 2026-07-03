@@ -35,8 +35,9 @@ const SITE_ORIGIN           = Deno.env.get('SITE_ORIGIN') ?? 'https://atemastudi
 // Keep the worker alive for background work (OTP email) so we can return the
 // HTTP response immediately without the SMTP session being torn down.
 function keepAlive(task: Promise<unknown>): void {
-  // deno-lint-ignore no-explicit-any
-  const rt = (globalThis as any).EdgeRuntime;
+  const rt = (globalThis as typeof globalThis & {
+    EdgeRuntime?: { waitUntil?: (task: Promise<unknown>) => void };
+  }).EdgeRuntime;
   if (rt && typeof rt.waitUntil === 'function') {
     try { rt.waitUntil(task); } catch { /* best-effort */ }
   }

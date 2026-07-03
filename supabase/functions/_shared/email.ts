@@ -116,7 +116,7 @@ export async function sendEmail(args: SendArgs): Promise<SendResult> {
     return r;
   }
 
-  let client: { send: (m: any) => Promise<unknown>; close: () => Promise<void> } | null = null;
+  let client: { send: (m: Record<string, unknown>) => Promise<unknown>; close: () => Promise<void> } | null = null;
   try {
     // Lazy remote import — a load failure here is caught below and logged as
     // a 'failed' send, never a function-wide boot error (see the import note).

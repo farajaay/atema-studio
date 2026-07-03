@@ -1,6 +1,7 @@
 # Plan — July 2026 Integration Pass
 
-> **Status:** approved plan, ready to execute. Written 2026-07-03.
+> **Status:** W1, W2, and the local W3 integrity pass are complete as of
+> 2026-07-04. Live Supabase/operator checks remain explicit follow-ups.
 > **Scope:** fold the two orphaned Codex deliverables into the site proper —
 > (1) the videography surface, (2) the album-cover *example render* — then run
 > one full integrity pass over the whole system.
@@ -19,18 +20,20 @@ committed and pushed on `master`. Do not rebuild any of it.**
 | Photo pool expanded (7 new couture editorials) + optimised | ✅ done | `5e498a1`, `0226d03`, `database/seed-portfolio-2026-07.sql` |
 | Album material swatches (10 fabric F-series + 8 leather E/NERO) | ✅ done | `eaff8b7` — `public/photos/album/<code>.jpg/.webp`, `preview_url` seeded in `migrations-2026-07-album.sql` |
 | Album-selection feature (admin palette + composer + customer page) | ✅ done | `4098981`, `0f22211` — `/#/album/<token>`, `AlbumDesignsManager`, `AlbumComposer` |
-| Video review surface (orphaned, unlinked slug) | ✅ done, **not integrated** | `3879b23`, `f9ca75b`, `f9d9fe1` — `public/atema-motion-review-f7c9a2.html` + `video-review.js` + `public/videos/hls/` (18 clips, 3-rung ladders, ~204 MB) |
+| Video review surface + Films integration | ✅ integrated; orphan retained `noindex` | W1 commits `dd25e02`, `bbd2212` — `/#/films`, `/#/admin/films`, `public/videos/hls/` (19 manifest entries, 3-rung ladders) |
 | Video prep pipeline | ✅ done | `scripts/prepare-video-streams.mjs` (`npm run videos:prepare`, ffmpeg/ffprobe-static) |
 | P0 security: anon SELECT leak on `bookings` closed | ✅ done | `5e6...` (`5e8cf4c`), `1005af9` (definer view for `public_booked_dates`) |
 | Email-layer bug sweep (empty attachments, false booking error, OTP dead-end, background OTP send) | ✅ done | `0d2a25b`, `552e0af`, `a65ca8c` |
 
-**What is genuinely outstanding** (this plan):
+**What is genuinely outstanding** (after the 2026-07-04 W3 pass):
 
-- **W1** — the video page is reachable only by direct URL; it must become a
-  first-class, bilingual, theme-correct site page in the nav.
-- **W2** — the selection page shows the 18 material swatches as flat tiles;
-  the owner wants a rendered **example album** driven by the picked colour.
-- **W3** — one full integrity test across code, assets, DB, and deploy.
+- **Owner/live SQL follow-through:** apply the July migrations/seeds listed in
+  the W3 report, then verify Supabase advisor/RLS and Edge Function versions.
+- **Real money-path smoke:** run the full test-mode booking narrative once live
+  SQL and functions are current.
+- **Orphan cleanup:** delete `public/atema-motion-review-f7c9a2.html` and
+  `public/video-review.js` only after the owner approves the curated Films page
+  wording.
 
 ---
 
@@ -195,6 +198,12 @@ and is likely enough.
 Run as a single session; file failures in `docs/bugs.md` with the usual
 patch-tracker discipline. Deliverable: a dated report in `docs/reviews/`.
 
+**Result (2026-07-04):** local W3 completed. Report:
+[`docs/reviews/2026-07-04-integration-integrity.md`](../reviews/2026-07-04-integration-integrity.md).
+`npm run lint`, `npm test` (141/141), and `npm run build` pass. Live Supabase
+advisor/RLS, Edge deployed versions, and real payment narrative remain
+operator checks because migrations are intentionally not auto-applied.
+
 ### 3.1 Static gates
 - `npm run lint` · `npm test` (all suites, incl. change-booking glue +
   policy modules) · `npm run build` (tsc strict gate).
@@ -203,13 +212,10 @@ patch-tracker discipline. Deliverable: a dated report in `docs/reviews/`.
   tokens; no direct `bookings` reads from public surfaces.
 
 ### 3.2 Asset audit (known suspect included)
-- **Already-found issue, fix during W3:** `seed-portfolio-2026-07.sql` points
-  the 7 new portfolio rows at **raw camera files** (`/photos/IMG_2536.JPG`,
-  multi-MB) instead of the `.optimised.jpg`/`.webp` pairs that sit beside
-  them. Follow-up migration/seed (`seed-portfolio-2026-07-optimised.sql` or
-  UPDATE by `image_url like '/photos/IMG_%'`) to repoint at optimised URLs;
-  then decide whether the raw `.JPG`s (29 of them, most of the 19 MB in
-  `public/photos/`) should leave `public/` for an untracked archive.
+- **Fixed in W3:** `seed-portfolio-2026-07.sql` now points the 7 new portfolio
+  rows at `.optimised.jpg`; `migrations-2026-07-portfolio-optimised-urls.sql`
+  repairs already-applied databases. The raw `.JPG` archive decision remains
+  a separate owner/media-ops call.
 - Every `<img>` on new surfaces: `<picture>`+webp, lazy, decoding async,
   width/height set.
 - Video: no preload tags; posters lazy; `/#/films` cold-load JS budget —

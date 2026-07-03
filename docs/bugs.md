@@ -31,6 +31,24 @@ H-9, H-10, M-8, M-11) re-verified and holds.** Two issues found and fixed:
 
 ---
 
+## Status update - 2026-07-04 (W3 integration integrity)
+
+Local W3 integrity pass completed after the Films page and album example work.
+Report: `docs/reviews/2026-07-04-integration-integrity.md`.
+
+Baseline after fixes: `npm run lint` clean, `npm test` 141/141, `npm run build`
+clean. W3 fixed the generated-HLS lint noise, removed a remaining executable
+`Math.random()` trace-id fallback, tightened a few Edge helper types, repointed
+the July portfolio seed to optimized image URLs, added the repair migration
+`migrations-2026-07-portfolio-optimised-urls.sql`, and dimensioned the new
+Films poster images.
+
+No new critical/high findings. Live-only checks remain: apply July SQL in
+Supabase, verify advisor/RLS and deployed Edge Function versions, then run one
+test-mode booking/payment/capability-link narrative.
+
+---
+
 ## Status update — 2026-06-12 (Phase-1 revenue protection)
 
 | Item | What changed |
