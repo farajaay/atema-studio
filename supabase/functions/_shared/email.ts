@@ -129,9 +129,14 @@ export async function sendEmail(args: SendArgs): Promise<SendResult> {
         auth:     { username: USER, password: PASS },
       },
     });
+    // denomailer 1.6.0 needs an explicit `encoding` per attachment. Our
+    // contract/invoice bytes are a Uint8Array, which requires encoding:'binary'
+    // — WITHOUT it denomailer drops the content and the attached .html files
+    // arrive EMPTY. (binary → it base64-encodes the bytes into the MIME part.)
     const attachments = (args.attachments ?? []).map(a => ({
       filename:    a.filename,
       contentType: a.contentType,
+      encoding:    'binary' as const,
       content:     a.content,
     }));
     await client.send({

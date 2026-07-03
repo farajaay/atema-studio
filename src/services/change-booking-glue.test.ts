@@ -203,13 +203,19 @@ describe('request_otp glue', () => {
     expect(emails).toHaveLength(0);
   });
 
-  it('surfaces a delivery failure instead of a fake success', async () => {
+  it('still advances to code entry on a flaky SMTP status (code is already stored)', async () => {
+    // The OTP row is minted BEFORE sending, and email delivery is best-effort:
+    // denomailer occasionally reports non-'sent' even after Zoho accepts the
+    // mail. Hard-failing stranded the bride with a code she'd received, so a
+    // flaky status must NOT block code entry — it returns ok:true, sent:false.
     const emails: SentEmail[] = [];
     const db = mockDb(defaultRoute());
     const res = await routeChangeRequest(db.client, { action: 'request_otp', token: TOKEN }, env([], emails, 'failed'));
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ ok: false, error: 'otp_send_failed' });
+    expect(await res.json()).toMatchObject({ ok: true, sent: false });
+    // The code WAS minted (so a delivered-but-flaky-status email still works).
+    expect(db.calls.some(c => c.table === 'booking_otps' && c.op === 'insert')).toBe(true);
   });
 });
 

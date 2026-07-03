@@ -329,9 +329,14 @@ serve(async (req) => {
   }
   const manageLink = manageToken ? `${SITE_ORIGIN}/#/manage/${manageToken}` : null;
 
-  // ── Email with contract + invoice attachments ─────────────────────────
-  // Sent SYNCHRONOUSLY before returning the response so the worker cannot
-  // be torn down before the SMTP session and audit row complete.
+  // ── Email with contract + invoice attachments (BACKGROUND) ────────────
+  // Runs AFTER the response returns, kept alive via EdgeRuntime.waitUntil
+  // (same mechanism as the WhatsApp notify below). Returning immediately after
+  // the DB insert stops the browser from timing out on a slow cold-start SMTP
+  // session (lazy denomailer import + Zoho TLS handshake) — that race was
+  // surfacing a false "booking failed" even though the row was saved and the
+  // email sent. Delivery is best-effort and audited in email_messages.
+  const emailTask = (async () => {
   if (email) {
     log('[email] preparing confirmation email');
     try {
@@ -445,6 +450,8 @@ serve(async (req) => {
       err('[email] unexpected error:', (e as Error).message);
     }
   }
+  })();
+  keepAlive(emailTask);
 
   // ── WhatsApp booking confirmation (fire-and-forget) ───────────────────
   if (waEnabled && whatsappOptIn) {

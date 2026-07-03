@@ -164,9 +164,18 @@ export async function handleRequestOtp(supabase: any, booking: any, env: Handler
   const sent = await env.sendEmail({
     to: email, subject: mail.subject, html: mail.html, text: mail.text, bookingId: booking.id,
   });
-  if (sent.status !== 'sent') return ok({ ok: false, error: 'otp_send_failed' });
-
-  return ok({ ok: true, sent: true, channel: 'email' });
+  // Delivery is best-effort and the OTP row is ALREADY stored above, so a flaky
+  // SMTP *status* must not strand the bride on an error screen holding a code
+  // she actually received. denomailer 1.6.0 + Zoho sometimes reports a non-'sent'
+  // status even after the message is accepted; hard-failing here was exactly
+  // what made the manage page "send the code but never let her enter it."
+  // Advance to code entry regardless; if it truly didn't arrive she can resend.
+  // (A missing recipient is still a hard stop above as no_email_on_file, and an
+  // unconfigured mailer is otp_send_unavailable.)
+  if (sent.status !== 'sent') {
+    console.warn('[change-otp] non-sent email status (code still stored):', sent.status, sent.error ?? '');
+  }
+  return ok({ ok: true, sent: sent.status === 'sent', channel: 'email' });
 }
 
 // ── Change package / add-ons (Phase 2) ───────────────────────────────────────
