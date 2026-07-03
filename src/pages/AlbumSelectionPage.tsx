@@ -8,9 +8,10 @@
 // it / the event date passes (enforced server-side). The choice is FINAL once
 // confirmed (plan §0). Noir editorial aesthetic, RTL-first, bilingual.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useLang } from '../hooks/useLang';
+import AlbumCoverExample from '../components/AlbumCoverExample';
 import {
   getAlbumSelectionByToken, fetchActiveDesigns, selectAlbumDesign,
   type AlbumDesign, type AlbumSelectionState,
@@ -46,6 +47,13 @@ export default function AlbumSelectionPage() {
   const fabric  = useMemo(() => designs.filter(d => d.material === 'fabric'),  [designs]);
   const leather = useMemo(() => designs.filter(d => d.material === 'leather'), [designs]);
   const chosen  = designs.find(d => d.id === state?.chosen_design_id) ?? null;
+  const pickedDesign = designs.find(d => d.id === picked) ?? null;
+
+  // Bring the example render into view when a swatch is picked.
+  const exampleRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (picked) exampleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [picked]);
 
   async function confirm() {
     if (!picked) return;
@@ -91,7 +99,13 @@ export default function AlbumSelectionPage() {
         <div style={{ textAlign: 'center', maxWidth: 480, margin: '0 auto', padding: '10px 0 50px' }}>
           <div style={eyebrow}>{tx(lang, 'تمّ الاختيار', 'YOUR CHOICE')}</div>
           <h1 style={display}>{tx(lang, 'غلافكِ محفوظ', 'Your cover is set')}</h1>
-          <div style={{ ...swatchTile(chosen), width: 200, height: 240, margin: '26px auto', borderRadius: 14 }} />
+          {chosen.example_url ? (
+            <ExamplePhoto url={chosen.example_url} alt={ar ? chosen.name_ar : chosen.name_en}
+              style={{ width: 'min(80vw, 360px)', margin: '26px auto' }} />
+          ) : (
+            <AlbumCoverExample design={chosen} size="hero" dir={dir}
+              style={{ width: 200, margin: '26px auto' }} />
+          )}
           <div style={{ fontFamily: "'Amiri', serif", fontSize: '1.5rem', color: 'var(--a-text)' }}>{ar ? chosen.name_ar : chosen.name_en}</div>
           <div style={{ ...soft, letterSpacing: '0.14em' }}>{chosen.code} · {chosen.material === 'leather' ? tx(lang, 'جلد', 'Leather') : tx(lang, 'قماش', 'Fabric')}</div>
           <p style={{ ...soft, marginTop: 22, lineHeight: 1.9 }}>
@@ -117,6 +131,43 @@ export default function AlbumSelectionPage() {
 
       <Section title={tx(lang, 'قماش كتّان', 'Linen Fabric')} items={fabric} picked={picked} onPick={setPicked} lang={lang} />
       <Section title={tx(lang, 'جلد مطبوع', 'Embossed Leather')} items={leather} picked={picked} onPick={setPicked} lang={lang} />
+
+      {/* Example render — how the finished album looks in the picked skin */}
+      {pickedDesign && (
+        <section ref={exampleRef} key={pickedDesign.id} className="fade-up"
+          style={{ maxWidth: 560, margin: '38px auto 0', textAlign: 'center' }}>
+          <div style={eyebrow}>{tx(lang, 'هكذا سيبدو ألبومكِ', 'YOUR ALBUM, LIKE THIS')}</div>
+          {pickedDesign.example_url ? (
+            <ExamplePhoto url={pickedDesign.example_url}
+              alt={ar ? pickedDesign.name_ar : pickedDesign.name_en}
+              style={{ width: 'min(86vw, 430px)', margin: '18px auto 0' }} />
+          ) : (
+            <AlbumCoverExample design={pickedDesign} size="hero" dir={dir}
+              style={{ width: 'min(64vw, 260px)', margin: '18px auto 0' }} />
+          )}
+          <div style={{ fontFamily: "'Amiri', serif", fontSize: '1.4rem', color: 'var(--a-text)', marginTop: 18 }}>
+            {ar ? pickedDesign.name_ar : pickedDesign.name_en}
+          </div>
+          <div style={{ ...soft, letterSpacing: '0.14em' }}>
+            {pickedDesign.code} · {pickedDesign.material === 'leather' ? tx(lang, 'جلد', 'Leather') : tx(lang, 'قماش', 'Fabric')}
+          </div>
+          {(ar ? pickedDesign.blurb_ar : pickedDesign.blurb_en) && (
+            <p style={{ ...soft, marginTop: 10, lineHeight: 1.9, maxWidth: 380, marginInline: 'auto' }}>
+              {ar ? pickedDesign.blurb_ar : pickedDesign.blurb_en}
+            </p>
+          )}
+          {pickedDesign.box_url && (
+            <>
+              <div style={{ ...eyebrow, marginTop: 26 }}>
+                {tx(lang, 'ويصلكِ في صندوق التقديم الفاخر', 'DELIVERED IN THE PRESENTATION BOX')}
+              </div>
+              <ExamplePhoto url={pickedDesign.box_url}
+                alt={tx(lang, 'صندوق التقديم', 'Presentation box')}
+                style={{ width: 'min(86vw, 430px)', margin: '14px auto 0' }} />
+            </>
+          )}
+        </section>
+      )}
 
       {/* Confirm bar */}
       {picked && (
@@ -171,6 +222,19 @@ function Section({ title, items, picked, onPick, lang }: {
 }
 
 // ── Bits ─────────────────────────────────────────────────────────────────
+/** Photographic mockup (…-album / …-box): webp + jpeg pair, fixed 4:3 frame. */
+function ExamplePhoto({ url, alt, style }: { url: string; alt: string; style?: React.CSSProperties }) {
+  const webp = url.replace(/\.jpe?g$/i, '.webp');
+  return (
+    <picture style={{ display: 'block', ...style }}>
+      {webp !== url && <source type="image/webp" srcSet={webp} />}
+      <img src={url} alt={alt} loading="lazy" decoding="async"
+        style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 14,
+          border: '1px solid var(--a-border)', boxShadow: '0 18px 40px rgba(0,0,0,0.35)' }} />
+    </picture>
+  );
+}
+
 const swatchTile = (d: AlbumDesign): React.CSSProperties =>
   d.preview_url
     ? { backgroundImage: `url(${d.preview_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }

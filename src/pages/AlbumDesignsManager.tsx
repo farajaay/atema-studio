@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AlbumCoverExample from '../components/AlbumCoverExample';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { ATEMA_COLORS } from '../config/constants';
@@ -22,7 +23,8 @@ import {
 const BLANK: DesignDraft = {
   code: '', material: 'fabric', texture: 'linen',
   name_ar: '', name_en: '', blurb_ar: '', blurb_en: '',
-  swatch_hex: '#B08A57', preview_url: null, active: true, sort_order: 0,
+  swatch_hex: '#B08A57', preview_url: null, example_url: null, box_url: null,
+  active: true, sort_order: 0,
 };
 
 export default function AlbumDesignsManager() {
@@ -152,8 +154,9 @@ function MaterialGroup({ title, items, onEdit, onDelete, onToggle }: {
         {items.map(d => (
           <div key={d.id} style={{ border: '1px solid var(--a-border)', borderRadius: 12, overflow: 'hidden',
             background: 'var(--a-surface)', opacity: d.active ? 1 : 0.5 }}>
-            <div style={{ height: 84, background: d.preview_url ? `center/cover url(${d.preview_url})` : d.swatch_hex,
-              position: 'relative' }}>
+            <div style={{ padding: '14px 0 10px', background: 'var(--a-bg)', display: 'flex',
+              justifyContent: 'center', position: 'relative' }}>
+              <AlbumCoverExample design={d} size="tile" style={{ width: 78 }} />
               <span style={{ position: 'absolute', top: 8, insetInlineStart: 8, background: 'rgba(0,0,0,0.55)',
                 color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6, letterSpacing: '0.05em' }}>
                 {d.code}
@@ -207,10 +210,14 @@ function EditPanel({ draft, setDraft, onSave, saving, onClose }: {
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--a-text-muted)' }}><X size={18} /></button>
         </div>
 
-        {/* Live swatch preview */}
-        <div style={{ height: 70, borderRadius: 10, marginBottom: 16, background: draft.swatch_hex,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700,
-          textShadow: '0 1px 4px rgba(0,0,0,0.5)', letterSpacing: '0.05em' }}>{draft.code || '—'}</div>
+        {/* Live cover preview — the same render the bride will see */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <AlbumCoverExample size="tile" style={{ width: 96 }}
+            design={{ ...draft, id: draft.id ?? 'draft' } as AlbumDesign} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--a-text-muted)', letterSpacing: '0.08em' }}>
+            {draft.code || '—'}
+          </span>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div><label style={lbl}>الكود</label><input style={field} value={draft.code} onChange={e => set({ code: e.target.value.toUpperCase() })} placeholder="F334 / NERO" /></div>
@@ -231,7 +238,9 @@ function EditPanel({ draft, setDraft, onSave, saving, onClose }: {
           <div><label style={lbl}>الاسم (إنجليزي)</label><input style={field} value={draft.name_en} onChange={e => set({ name_en: e.target.value })} /></div>
           <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>وصف قصير (عربي)</label><input style={field} value={draft.blurb_ar ?? ''} onChange={e => set({ blurb_ar: e.target.value })} /></div>
           <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>وصف قصير (إنجليزي)</label><input style={field} value={draft.blurb_en ?? ''} onChange={e => set({ blurb_en: e.target.value })} /></div>
-          <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>رابط صورة (اختياري)</label><input style={field} value={draft.preview_url ?? ''} onChange={e => set({ preview_url: e.target.value || null })} placeholder="/photos/..." /></div>
+          <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>رابط صورة الخامة (اختياري)</label><input style={field} value={draft.preview_url ?? ''} onChange={e => set({ preview_url: e.target.value || null })} placeholder="/photos/album/CODE.jpg" /></div>
+          <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>صورة الألبوم النموذجية (اختياري)</label><input style={field} value={draft.example_url ?? ''} onChange={e => set({ example_url: e.target.value || null })} placeholder="/photos/album/CODE-album.jpg" /></div>
+          <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>صورة صندوق التقديم (اختياري)</label><input style={field} value={draft.box_url ?? ''} onChange={e => set({ box_url: e.target.value || null })} placeholder="/photos/album/CODE-box.jpg" /></div>
           <div><label style={lbl}>الترتيب</label><input type="number" style={field} value={draft.sort_order} onChange={e => set({ sort_order: Number(e.target.value) })} /></div>
           <div style={{ display: 'flex', alignItems: 'end' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--a-text)' }}>

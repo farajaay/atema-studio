@@ -21,12 +21,18 @@
 
 ## 2. Live state (update this section on every handoff)
 
-*Last updated: 2026-07-03 (Claude, planning session).*
+*Last updated: 2026-07-03 (Claude, W2 execution session).*
 
 - `master` is clean and deployed; all Codex asset work (photos, album
   swatches, HLS videos, orphaned review page) is committed.
-- Active plan: `docs/plans/integration-2026-07.md`. Nothing from it has been
-  executed yet. Execution order and commit shape are in its §4.
+- Active plan: `docs/plans/integration-2026-07.md`.
+  - **W2 (album example render): ✅ done** — photographic mockups primary
+    (`example_url`/`box_url`, new migration
+    `migrations-2026-07-album-examples.sql` — owner must run it),
+    `AlbumCoverExample` CSS mock as fallback + admin previews. See plan §2
+    status note.
+  - **W1 (Films page) and W3 (integrity pass): not started.** Execution
+    order and commit shape are in plan §4.
 - Known suspect to fix during the integrity pass: portfolio seed
   `seed-portfolio-2026-07.sql` points at raw multi-MB `.JPG`s instead of the
   optimised pairs (plan §3.2).

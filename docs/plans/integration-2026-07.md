@@ -119,6 +119,19 @@ Until then they stay (they cost nothing and remain her full-pool review tool).
 
 ## 2. W2 — Album-cover example render on the selection page
 
+> **Status: ✅ SHIPPED 2026-07-03** — with a better architecture than planned
+> below. The owner supplied photographic mockup sheets (per-code finished
+> album + luxury presentation box, plus re-shot clean material swatches), so
+> the **photo mockups are the primary example render** and the CSS-composed
+> book mock (§2.2) ships as the fallback for admin-added custom colours and
+> as the admin tile/chip preview. Cut assets:
+> `public/photos/album/<CODE>{,-album,-box}.jpg/.webp` (54 pairs, 2.4 MB).
+> New columns `example_url` + `box_url` via
+> `database/migrations-2026-07-album-examples.sql` (idempotent — **owner must
+> run it after `migrations-2026-07-album.sql`**). Verified end-to-end with a
+> mocked-service harness: grid → pick → example + box render → confirm →
+> keepsake view, RTL, noir.
+
 ### 2.1 What exists vs what's asked
 
 The 18 material photos already render as **flat swatch tiles**

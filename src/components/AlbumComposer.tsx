@@ -11,6 +11,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import type { Booking } from '../hooks/useAdminData';
+import AlbumCoverExample from './AlbumCoverExample';
 import {
   getBookingAlbum, releaseAlbum, fetchAllDesigns, buildAlbumUrl,
   type AlbumDesign,
@@ -104,8 +105,8 @@ export default function AlbumComposer({ booking }: Props) {
       {chosen && (
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', border: '1px solid var(--a-border)',
           borderRadius: 12, padding: 12, margin: '14px 0', background: 'var(--a-surface-alt, var(--a-surface))' }}>
-          <div style={{ width: 54, height: 54, borderRadius: 9, flexShrink: 0,
-            background: chosen.preview_url ? `center/cover url(${chosen.preview_url})` : chosen.swatch_hex }} />
+          <AlbumCoverExample design={chosen} size="tile" emboss={false}
+            style={{ width: 54, flexShrink: 0 }} />
           <div>
             <div style={{ fontSize: 11, color: '#D4AF7A', fontWeight: 700 }}>اختيار العروس ✓</div>
             <div style={{ fontWeight: 700, color: 'var(--a-text)' }}>{chosen.name_ar} · {chosen.code}</div>
