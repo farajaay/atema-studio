@@ -20,6 +20,7 @@ export interface FilmCuration {
   caption_ar: string;
   caption_en: string;
   featured?: boolean;
+  published?: boolean;
 }
 
 export const FILM_CHAPTERS: Array<{ key: FilmChapterKey; ar: string; en: string }> = [

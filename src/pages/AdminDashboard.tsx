@@ -23,7 +23,7 @@ import {
   Search, Eye, Trash2, CheckCircle2,
   Clock, XCircle, CircleDollarSign, Users, AlertCircle,
   Loader2, X, Phone, Mail, MapPin, StickyNote, Save, TrendingUp, Layers,
-  Image as ImageIcon, BookOpen, Sparkles, BarChart3, Tag, Sliders,
+  Image as ImageIcon, BookOpen, Sparkles, BarChart3, Tag, Sliders, Clapperboard,
   FileText, Receipt, Undo2
 } from 'lucide-react';
 
@@ -544,6 +544,12 @@ export default function AdminDashboard() {
               border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
               fontSize: '13px', fontFamily: 'inherit', color: 'var(--a-text)', fontWeight: 600 }}>
             <BookOpen size={14} />{!isMobile && 'اليوميات'}
+          </button>
+          <button onClick={() => navigate('/admin/films')}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'var(--a-surface-alt)',
+              border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer',
+              fontSize: '13px', fontFamily: 'inherit', color: 'var(--a-text)', fontWeight: 600 }}>
+            <Clapperboard size={14} />{!isMobile && 'الأفلام'}
           </button>
           <button onClick={() => navigate('/admin/discount-codes')}
             style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'var(--a-surface-alt)',

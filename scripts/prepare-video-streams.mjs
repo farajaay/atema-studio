@@ -15,20 +15,20 @@ const HLS_ROOT = join(VIDEO_ROOT, 'hls');
 const MANIFEST_PATH = join(HLS_ROOT, 'manifest.json');
 
 const RAW_PLAYLIST = [
-  { id: 'clip-01', file: 'Facetune1701A602-8C92-46B2-824C-D15D3072F2DD.MP4' },
+  { id: 'clip-01', file: 'Facetune1701A602-8C92-46B2-824C-D15D3072F2DD.MP4', manualRotation: -90 },
   { id: 'clip-02', file: 'Facetune1FBB9BB3-4753-4176-AD6A-7455BFB9663B 2.MOV' },
   { id: 'clip-03', file: 'Facetune1FBB9BB3-4753-4176-AD6A-7455BFB9663B 2-1.MOV', aliasOf: 'clip-02' },
   { id: 'clip-04', file: 'Facetune1FBB9BB3-4753-4176-AD6A-7455BFB9663B.MP4' },
   { id: 'clip-05', file: 'Facetune20A2EFD1-9628-49E8-B80E-6F6D763E9D91.MP4' },
-  { id: 'clip-06', file: 'Facetune441554D1-A128-4A78-86C6-0D62D5FBB2BF.MP4' },
+  { id: 'clip-06', file: 'Facetune441554D1-A128-4A78-86C6-0D62D5FBB2BF.MP4', manualRotation: -90 },
   { id: 'clip-07', file: 'Facetune84157277-84BE-415F-A72F-84390080BFFC.MP4' },
-  { id: 'clip-08', file: 'Facetune98AC2677-034D-41CC-925F-C007B91FA0B9.MP4' },
-  { id: 'clip-09', file: 'Facetune9E6EFC66-D13D-4947-B4A0-384F6DB307E8.MP4' },
-  { id: 'clip-10', file: 'FacetuneAF261190-F330-41F2-A949-E7A2309878D7.MP4' },
-  { id: 'clip-11', file: 'FacetuneC2E398C2-2693-41E8-A470-F83383868F22.MP4' },
+  { id: 'clip-08', file: 'Facetune98AC2677-034D-41CC-925F-C007B91FA0B9.MP4', manualRotation: -90 },
+  { id: 'clip-09', file: 'Facetune9E6EFC66-D13D-4947-B4A0-384F6DB307E8.MP4', manualRotation: -90 },
+  { id: 'clip-10', file: 'FacetuneAF261190-F330-41F2-A949-E7A2309878D7.MP4', manualRotation: -90 },
+  { id: 'clip-11', file: 'FacetuneC2E398C2-2693-41E8-A470-F83383868F22.MP4', manualRotation: -90 },
   { id: 'clip-12', file: 'IMG_1240.mov' },
   { id: 'clip-13', file: 'ips-C5A611FC-96A2-4DE0-AD55-FE4029EEEF8B.mp4' },
-  { id: 'clip-14', file: 'video-output-096D7612-301B-47B2-9F19-664C48D28219-1.mov' },
+  { id: 'clip-14', file: 'video-output-096D7612-301B-47B2-9F19-664C48D28219-1.mov', manualRotation: -90 },
   { id: 'clip-15', file: 'video-output-22C3FCAE-F436-4A2F-AE07-B7DEDB02D25C-1.MOV' },
   { id: 'clip-16', file: 'video-output-5EF1F5E7-8CB9-4AFA-9201-C5EFA80A59C7-1.MOV' },
   { id: 'clip-17', file: 'video-output-6853DF27-8338-4B51-887A-5C63230A1284-1.MOV' },
@@ -74,12 +74,29 @@ function rotationFrom(stream) {
   return Number(raw) || 0;
 }
 
-function displaySize(stream) {
-  const rotation = Math.abs(rotationFrom(stream)) % 180;
+function normalizeRotation(value) {
+  const normalized = ((Number(value) % 360) + 360) % 360;
+  return normalized > 180 ? normalized - 360 : normalized;
+}
+
+function combinedRotation(stream, manualRotation = 0) {
+  return normalizeRotation(rotationFrom(stream) + manualRotation);
+}
+
+function displaySize(stream, manualRotation = 0) {
+  const rotation = Math.abs(combinedRotation(stream, manualRotation)) % 180;
   if (rotation === 90) {
     return { width: stream.height, height: stream.width };
   }
   return { width: stream.width, height: stream.height };
+}
+
+function rotationFilters(rotation) {
+  const normalized = normalizeRotation(rotation);
+  if (normalized === 90) return ['transpose=clock'];
+  if (normalized === -90) return ['transpose=cclock'];
+  if (Math.abs(normalized) === 180) return ['hflip', 'vflip'];
+  return [];
 }
 
 function makeRenditions(meta) {
@@ -118,7 +135,7 @@ function masterPlaylist(renditions) {
   return `${lines.join('\n')}\n`;
 }
 
-async function probe(inputPath) {
+async function probe(inputPath, manualRotation = 0) {
   const { stdout } = await execFileAsync(
     ffprobeStatic.path,
     ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', inputPath],
@@ -129,12 +146,15 @@ async function probe(inputPath) {
   const audio = data.streams.some((stream) => stream.codec_type === 'audio');
   if (!video) throw new Error(`No video stream in ${inputPath}`);
 
-  const size = displaySize(video);
+  const rotation = combinedRotation(video, manualRotation);
+  const size = displaySize(video, manualRotation);
   return {
     ...size,
     rawWidth: video.width,
     rawHeight: video.height,
-    rotation: rotationFrom(video),
+    metadataRotation: rotationFrom(video),
+    manualRotation,
+    rotation,
     duration: Number(video.duration ?? data.format?.duration ?? 0),
     fps: parseFrameRate(video.avg_frame_rate),
     hasAudio: audio,
@@ -158,12 +178,14 @@ async function encodeRendition(inputPath, outputDir, rendition, meta) {
   const fps = 30;
   const gop = Math.max(48, Math.round(fps * 2));
   const filter = [
+    ...rotationFilters(meta.rotation),
     `fps=${fps}`,
     `scale=${rendition.width}:${rendition.height}:flags=lanczos`,
     'setsar=1',
   ].join(',');
 
   const args = [
+    '-noautorotate',
     '-i', inputPath,
     '-map', '0:v:0',
     '-map', '0:a:0?',
@@ -204,9 +226,14 @@ async function encodePoster(inputPath, outputPath, meta) {
   const height = even(meta.height * scale);
   await runFfmpeg([
     '-ss', '1',
+    '-noautorotate',
     '-i', inputPath,
     '-frames:v', '1',
-    '-vf', `scale=${width}:${height}:flags=lanczos,setsar=1`,
+    '-vf', [
+      ...rotationFilters(meta.rotation),
+      `scale=${width}:${height}:flags=lanczos`,
+      'setsar=1',
+    ].join(','),
     '-q:v', '3',
     outputPath,
   ], 'poster extraction');
@@ -222,12 +249,15 @@ async function encodeClip(entry, processed) {
   assertInside(HLS_ROOT, outputDir);
   await mkdir(outputDir, { recursive: true });
 
-  const meta = await probe(inputPath);
+  const meta = await probe(inputPath, entry.manualRotation ?? 0);
   const original = await stat(inputPath);
   const renditions = makeRenditions(meta);
 
   console.log(`\n${entry.id} ${entry.file}`);
-  console.log(`  display ${meta.width}x${meta.height}, raw ${meta.rawWidth}x${meta.rawHeight}, rotate ${meta.rotation}, ${meta.duration.toFixed(1)}s`);
+  console.log(
+    `  display ${meta.width}x${meta.height}, raw ${meta.rawWidth}x${meta.rawHeight}, ` +
+    `metadata rotate ${meta.metadataRotation}, manual ${meta.manualRotation}, baked ${meta.rotation}, ${meta.duration.toFixed(1)}s`,
+  );
 
   for (const rendition of renditions) {
     console.log(`  -> ${rendition.label} ${rendition.width}x${rendition.height}`);
@@ -271,6 +301,7 @@ async function main() {
       sourceFile: entry.file,
       originalExt: entry.file.split('.').pop().toLowerCase(),
       duplicateOf: entry.aliasOf ?? null,
+      manualRotation: entry.manualRotation ?? 0,
       originalSize: original.size,
       ...stream,
     });

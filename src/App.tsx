@@ -28,6 +28,7 @@ const AdminDashboard       = lazy(() => import('./pages/AdminDashboard'));
 const PackagesManager      = lazy(() => import('./pages/PackagesManager'));
 const PortfolioManager     = lazy(() => import('./pages/PortfolioManager'));
 const JournalManager       = lazy(() => import('./pages/JournalManager'));
+const FilmsManager         = lazy(() => import('./pages/FilmsManager'));
 const DiscountCodesManager = lazy(() => import('./pages/DiscountCodesManager'));
 const AddonsManager        = lazy(() => import('./pages/AddonsManager'));
 const AlbumDesignsManager  = lazy(() => import('./pages/AlbumDesignsManager'));
@@ -95,6 +96,8 @@ export default function App() {
         <Suspense fallback={<AdminFallback />}><PortfolioManager /></Suspense>} />
       <Route path="/admin/journal"   element={
         <Suspense fallback={<AdminFallback />}><JournalManager /></Suspense>} />
+      <Route path="/admin/films"     element={
+        <Suspense fallback={<AdminFallback />}><FilmsManager /></Suspense>} />
       <Route path="/admin/discount-codes" element={
         <Suspense fallback={<AdminFallback />}><DiscountCodesManager /></Suspense>} />
       <Route path="/admin/addons" element={

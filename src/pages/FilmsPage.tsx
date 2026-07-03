@@ -7,38 +7,13 @@ import SiteFooter from '../components/SiteFooter';
 import FadeUp from '../components/FadeUp';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useLang } from '../hooks/useLang';
-import { FILM_CHAPTERS, FILMS } from '../content/films';
+import { FILM_CHAPTERS } from '../content/films';
 import type { FilmChapterKey, FilmCuration } from '../content/films';
-
-type Lang = 'ar' | 'en';
-
-interface ManifestRendition {
-  label: string;
-  width: number;
-  height: number;
-  bandwidth: number;
-}
-
-interface ManifestItem {
-  id: string;
-  order: number;
-  title: string;
-  duplicateOf: string | null;
-  hls: string;
-  poster: string;
-  duration: number;
-  width: number;
-  height: number;
-  renditions: ManifestRendition[];
-}
-
-interface FilmsManifest {
-  player: 'hls';
-  items: ManifestItem[];
-}
+import { fetchFilmsManifest, fetchPublishedFilmCurations } from '../services/films';
+import type { FilmManifestItem, FilmsManifest } from '../services/films';
 
 interface FilmView extends FilmCuration {
-  stream: ManifestItem;
+  stream: FilmManifestItem;
 }
 
 interface QualityOption {
@@ -46,7 +21,7 @@ interface QualityOption {
   label: string;
 }
 
-const MANIFEST_URL = '/videos/hls/manifest.json';
+type Lang = 'ar' | 'en';
 const tx = (lang: Lang, ar: string, en: string) => lang === 'ar' ? ar : en;
 
 function assetUrl(path: string) {
@@ -64,9 +39,10 @@ function qualityLabel(width: number, height: number) {
   return `${Math.min(width, height)}p`;
 }
 
-function joinFilms(manifest: FilmsManifest | null): FilmView[] {
+function joinFilms(manifest: FilmsManifest | null, curations: FilmCuration[]): FilmView[] {
   const streams = new Map((manifest?.items ?? []).map(item => [item.id, item]));
-  return FILMS
+  return curations
+    .filter(film => film.published !== false)
     .map(film => {
       const stream = streams.get(film.manifestId);
       return stream ? { ...film, stream } : null;
@@ -98,10 +74,11 @@ export default function FilmsPage() {
   const shouldAutoplayRef = useRef(false);
 
   const [manifest, setManifest] = useState<FilmsManifest | null>(null);
+  const [curations, setCurations] = useState<FilmCuration[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [chapter, setChapter] = useState<FilmChapterKey | 'all'>('all');
-  const [activeId, setActiveId] = useState(FILMS[0]?.manifestId ?? '');
+  const [activeId, setActiveId] = useState('');
   const [qualityOptions, setQualityOptions] = useState<QualityOption[]>([{ value: 'auto', label: 'Auto' }]);
   const [selectedQuality, setSelectedQuality] = useState('auto');
   const [playbackNote, setPlaybackNote] = useState('');
@@ -112,19 +89,17 @@ export default function FilmsPage() {
 
   useEffect(() => {
     let alive = true;
-    fetch(MANIFEST_URL, { cache: 'no-store' })
-      .then(response => {
-        if (!response.ok) throw new Error(`Manifest failed: ${response.status}`);
-        return response.json() as Promise<FilmsManifest>;
-      })
-      .then(data => {
+    Promise.allSettled([fetchFilmsManifest(), fetchPublishedFilmCurations()])
+      .then(([manifestResult, curationResult]) => {
         if (!alive) return;
-        setManifest(data);
-        setError(false);
-      })
-      .catch(() => {
-        if (!alive) return;
-        setError(true);
+        if (manifestResult.status === 'fulfilled') {
+          setManifest(manifestResult.value);
+          setError(false);
+        } else {
+          setManifest(null);
+          setError(true);
+        }
+        setCurations(curationResult.status === 'fulfilled' ? curationResult.value : []);
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -133,7 +108,7 @@ export default function FilmsPage() {
     return () => { alive = false; };
   }, []);
 
-  const films = useMemo(() => joinFilms(manifest), [manifest]);
+  const films = useMemo(() => joinFilms(manifest, curations), [manifest, curations]);
   const visibleFilms = useMemo(
     () => chapter === 'all' ? films : films.filter(film => film.chapter === chapter),
     [chapter, films],

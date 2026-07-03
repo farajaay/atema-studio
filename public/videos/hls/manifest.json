@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-03T18:18:19.363Z",
+  "generatedAt": "2026-07-03T20:30:39.183Z",
   "player": "hls",
   "items": [
     {
@@ -9,30 +9,31 @@
       "sourceFile": "Facetune1701A602-8C92-46B2-824C-D15D3072F2DD.MP4",
       "originalExt": "mp4",
       "duplicateOf": null,
+      "manualRotation": -90,
       "originalSize": 15920554,
       "outputId": "clip-01",
       "hls": "videos/hls/clip-01/master.m3u8",
       "poster": "videos/hls/clip-01/poster.jpg",
       "duration": 36.603233,
-      "width": 1280,
-      "height": 720,
+      "width": 720,
+      "height": 1280,
       "renditions": [
         {
           "label": "360p",
-          "width": 640,
-          "height": 360,
+          "width": 360,
+          "height": 640,
           "bandwidth": 940000
         },
         {
           "label": "540p",
-          "width": 960,
-          "height": 540,
+          "width": 540,
+          "height": 960,
           "bandwidth": 1510000
         },
         {
           "label": "720p",
-          "width": 1280,
-          "height": 720,
+          "width": 720,
+          "height": 1280,
           "bandwidth": 2410000
         }
       ]
@@ -44,6 +45,7 @@
       "sourceFile": "Facetune1FBB9BB3-4753-4176-AD6A-7455BFB9663B 2.MOV",
       "originalExt": "mov",
       "duplicateOf": null,
+      "manualRotation": 0,
       "originalSize": 105327575,
       "outputId": "clip-02",
       "hls": "videos/hls/clip-02/master.m3u8",
@@ -79,6 +81,7 @@
       "sourceFile": "Facetune1FBB9BB3-4753-4176-AD6A-7455BFB9663B 2-1.MOV",
       "originalExt": "mov",
       "duplicateOf": "clip-02",
+      "manualRotation": 0,
       "originalSize": 105327575,
       "outputId": "clip-02",
       "hls": "videos/hls/clip-02/master.m3u8",
@@ -114,6 +117,7 @@
       "sourceFile": "Facetune1FBB9BB3-4753-4176-AD6A-7455BFB9663B.MP4",
       "originalExt": "mp4",
       "duplicateOf": null,
+      "manualRotation": 0,
       "originalSize": 24666181,
       "outputId": "clip-04",
       "hls": "videos/hls/clip-04/master.m3u8",
@@ -149,6 +153,7 @@
       "sourceFile": "Facetune20A2EFD1-9628-49E8-B80E-6F6D763E9D91.MP4",
       "originalExt": "mp4",
       "duplicateOf": null,
+      "manualRotation": 0,
       "originalSize": 24621401,
       "outputId": "clip-05",
       "hls": "videos/hls/clip-05/master.m3u8",
@@ -184,30 +189,31 @@
       "sourceFile": "Facetune441554D1-A128-4A78-86C6-0D62D5FBB2BF.MP4",
       "originalExt": "mp4",
       "duplicateOf": null,
+      "manualRotation": -90,
       "originalSize": 3762539,
       "outputId": "clip-06",
       "hls": "videos/hls/clip-06/master.m3u8",
       "poster": "videos/hls/clip-06/poster.jpg",
       "duration": 8.905933,
-      "width": 1280,
-      "height": 720,
+      "width": 720,
+      "height": 1280,
       "renditions": [
         {
           "label": "360p",
-          "width": 640,
-          "height": 360,
+          "width": 360,
+          "height": 640,
           "bandwidth": 940000
         },
         {
           "label": "540p",
-          "width": 960,
-          "height": 540,
+          "width": 540,
+          "height": 960,
           "bandwidth": 1510000
         },
         {
           "label": "720p",
-          "width": 1280,
-          "height": 720,
+          "width": 720,
+          "height": 1280,
           "bandwidth": 2410000
         }
       ]
@@ -219,6 +225,7 @@
       "sourceFile": "Facetune84157277-84BE-415F-A72F-84390080BFFC.MP4",
       "originalExt": "mp4",
       "duplicateOf": null,
+      "manualRotation": 0,
       "originalSize": 24633474,
       "outputId": "clip-07",
       "hls": "videos/hls/clip-07/master.m3u8",
@@ -254,30 +261,31 @@
       "sourceFile": "Facetune98AC2677-034D-41CC-925F-C007B91FA0B9.MP4",
       "originalExt": "mp4",
       "duplicateOf": null,
+      "manualRotation": -90,
       "originalSize": 1847637,
       "outputId": "clip-08",
       "hls": "videos/hls/clip-08/master.m3u8",
       "poster": "videos/hls/clip-08/poster.jpg",
       "duration": 4.236156,
-      "width": 1280,
-      "height": 720,
+      "width": 720,
+      "height": 1280,
       "renditions": [
         {
           "label": "360p",
-          "width": 640,
-          "height": 360,
+          "width": 360,
+          "height": 640,
           "bandwidth": 940000
         },
         {
           "label": "540p",
-          "width": 960,
-          "height": 540,
+          "width": 540,
+          "height": 960,
           "bandwidth": 1510000
         },
         {
           "label": "720p",
-          "width": 1280,
-          "height": 720,
+          "width": 720,
+          "height": 1280,
           "bandwidth": 2410000
         }
       ]
@@ -289,30 +297,31 @@
       "sourceFile": "Facetune9E6EFC66-D13D-4947-B4A0-384F6DB307E8.MP4",
       "originalExt": "mp4",
       "duplicateOf": null,
+      "manualRotation": -90,
       "originalSize": 4782622,
       "outputId": "clip-09",
       "hls": "videos/hls/clip-09/master.m3u8",
       "poster": "videos/hls/clip-09/poster.jpg",
       "duration": 10.977633,
-      "width": 1280,
-      "height": 720,
+      "width": 720,
+      "height": 1280,
       "renditions": [
         {
           "label": "360p",
-          "width": 640,
-          "height": 360,
+          "width": 360,
+          "height": 640,
           "bandwidth": 940000
         },
         {
           "label": "540p",
-          "width": 960,
-          "height": 540,
+          "width": 540,
+          "height": 960,
           "bandwidth": 1510000
         },
         {
           "label": "720p",
-          "width": 1280,
-          "height": 720,
+          "width": 720,
+          "height": 1280,
           "bandwidth": 2410000
         }
       ]
@@ -324,30 +333,31 @@
       "sourceFile": "FacetuneAF261190-F330-41F2-A949-E7A2309878D7.MP4",
       "originalExt": "mp4",
       "duplicateOf": null,
+      "manualRotation": -90,
       "originalSize": 6615535,
       "outputId": "clip-10",
       "hls": "videos/hls/clip-10/master.m3u8",
       "poster": "videos/hls/clip-10/poster.jpg",
       "duration": 15.2152,
-      "width": 1280,
-      "height": 720,
+      "width": 720,
+      "height": 1280,
       "renditions": [
         {
           "label": "360p",
-          "width": 640,
-          "height": 360,
+          "width": 360,
+          "height": 640,
           "bandwidth": 940000
         },
         {
           "label": "540p",
-          "width": 960,
-          "height": 540,
+          "width": 540,
+          "height": 960,
           "bandwidth": 1510000
         },
         {
           "label": "720p",
-          "width": 1280,
-          "height": 720,
+          "width": 720,
+          "height": 1280,
           "bandwidth": 2410000
         }
       ]
@@ -359,30 +369,31 @@
       "sourceFile": "FacetuneC2E398C2-2693-41E8-A470-F83383868F22.MP4",
       "originalExt": "mp4",
       "duplicateOf": null,
+      "manualRotation": -90,
       "originalSize": 6615535,
       "outputId": "clip-11",
       "hls": "videos/hls/clip-11/master.m3u8",
       "poster": "videos/hls/clip-11/poster.jpg",
       "duration": 15.2152,
-      "width": 1280,
-      "height": 720,
+      "width": 720,
+      "height": 1280,
       "renditions": [
         {
           "label": "360p",
-          "width": 640,
-          "height": 360,
+          "width": 360,
+          "height": 640,
           "bandwidth": 940000
         },
         {
           "label": "540p",
-          "width": 960,
-          "height": 540,
+          "width": 540,
+          "height": 960,
           "bandwidth": 1510000
         },
         {
           "label": "720p",
-          "width": 1280,
-          "height": 720,
+          "width": 720,
+          "height": 1280,
           "bandwidth": 2410000
         }
       ]
@@ -394,6 +405,7 @@
       "sourceFile": "IMG_1240.mov",
       "originalExt": "mov",
       "duplicateOf": null,
+      "manualRotation": 0,
       "originalSize": 67539225,
       "outputId": "clip-12",
       "hls": "videos/hls/clip-12/master.m3u8",
@@ -429,6 +441,7 @@
       "sourceFile": "ips-C5A611FC-96A2-4DE0-AD55-FE4029EEEF8B.mp4",
       "originalExt": "mp4",
       "duplicateOf": null,
+      "manualRotation": 0,
       "originalSize": 6654598,
       "outputId": "clip-13",
       "hls": "videos/hls/clip-13/master.m3u8",
@@ -464,30 +477,31 @@
       "sourceFile": "video-output-096D7612-301B-47B2-9F19-664C48D28219-1.mov",
       "originalExt": "mov",
       "duplicateOf": null,
+      "manualRotation": -90,
       "originalSize": 7675352,
       "outputId": "clip-14",
       "hls": "videos/hls/clip-14/master.m3u8",
       "poster": "videos/hls/clip-14/poster.jpg",
       "duration": 5.56,
-      "width": 1080,
-      "height": 1350,
+      "width": 1350,
+      "height": 1080,
       "renditions": [
         {
           "label": "360p",
-          "width": 360,
-          "height": 450,
+          "width": 450,
+          "height": 360,
           "bandwidth": 940000
         },
         {
           "label": "540p",
-          "width": 540,
-          "height": 676,
+          "width": 676,
+          "height": 540,
           "bandwidth": 1510000
         },
         {
           "label": "720p",
-          "width": 720,
-          "height": 900,
+          "width": 900,
+          "height": 720,
           "bandwidth": 2410000
         }
       ]
@@ -499,6 +513,7 @@
       "sourceFile": "video-output-22C3FCAE-F436-4A2F-AE07-B7DEDB02D25C-1.MOV",
       "originalExt": "mov",
       "duplicateOf": null,
+      "manualRotation": 0,
       "originalSize": 25411388,
       "outputId": "clip-15",
       "hls": "videos/hls/clip-15/master.m3u8",
@@ -534,6 +549,7 @@
       "sourceFile": "video-output-5EF1F5E7-8CB9-4AFA-9201-C5EFA80A59C7-1.MOV",
       "originalExt": "mov",
       "duplicateOf": null,
+      "manualRotation": 0,
       "originalSize": 25004298,
       "outputId": "clip-16",
       "hls": "videos/hls/clip-16/master.m3u8",
@@ -569,6 +585,7 @@
       "sourceFile": "video-output-6853DF27-8338-4B51-887A-5C63230A1284-1.MOV",
       "originalExt": "mov",
       "duplicateOf": null,
+      "manualRotation": 0,
       "originalSize": 28572932,
       "outputId": "clip-17",
       "hls": "videos/hls/clip-17/master.m3u8",
@@ -604,6 +621,7 @@
       "sourceFile": "video-output-7DC0D162-E3D2-4C12-BE4B-830B3E5CFDE0-1.MOV",
       "originalExt": "mov",
       "duplicateOf": null,
+      "manualRotation": 0,
       "originalSize": 28577455,
       "outputId": "clip-18",
       "hls": "videos/hls/clip-18/master.m3u8",
@@ -639,6 +657,7 @@
       "sourceFile": "video-output-BB3F55B8-A1CD-470D-8A64-694CF3E54B59-1.MOV",
       "originalExt": "mov",
       "duplicateOf": null,
+      "manualRotation": 0,
       "originalSize": 24993067,
       "outputId": "clip-19",
       "hls": "videos/hls/clip-19/master.m3u8",
