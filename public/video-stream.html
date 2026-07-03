@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>ATEMA Video Review</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cormorant+Garamond:wght@500;600&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --a-bg: #0b0b0b;
+        --a-surface: #141414;
+        --a-surface-alt: #1c1c1c;
+        --a-heading: #efe3d1;
+        --a-text: #d8cdb9;
+        --a-muted: rgba(216, 205, 185, 0.68);
+        --a-faint: rgba(216, 205, 185, 0.42);
+        --a-gold: #d4af7a;
+        --a-gold-deep: #bb864b;
+        --a-border: rgba(212, 175, 122, 0.16);
+        --a-border-strong: rgba(212, 175, 122, 0.34);
+        --a-shadow: rgba(0, 0, 0, 0.38);
+        --a-danger: #df9b7f;
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-height: 100%;
+        background: var(--a-bg);
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        overflow-x: hidden;
+        background:
+          linear-gradient(135deg, rgba(212, 175, 122, 0.09), transparent 34rem),
+          radial-gradient(circle at 88% 12%, rgba(187, 134, 75, 0.11), transparent 22rem),
+          var(--a-bg);
+        color: var(--a-text);
+        font-family: Tajawal, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .shell {
+        width: min(1680px, 100%);
+        min-height: 100vh;
+        margin: 0 auto;
+        padding: clamp(16px, 2vw, 28px);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+        gap: clamp(16px, 2vw, 28px);
+      }
+
+      .stage {
+        min-width: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 18px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 2px 2px 0;
+      }
+
+      .brand {
+        min-width: 0;
+      }
+
+      .wordmark {
+        margin: 0;
+        color: var(--a-heading);
+        font-family: "Amiri", serif;
+        font-size: clamp(2rem, 4vw, 4.6rem);
+        font-weight: 700;
+        letter-spacing: 0;
+        line-height: 0.95;
+      }
+
+      .subtitle {
+        margin: 8px 0 0;
+        color: var(--a-muted);
+        font-family: "Cormorant Garamond", serif;
+        font-size: clamp(1.05rem, 1.5vw, 1.45rem);
+        line-height: 1.25;
+      }
+
+      .meter {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--a-heading);
+        direction: ltr;
+      }
+
+      .meter span {
+        display: inline-flex;
+        min-width: 42px;
+        min-height: 42px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--a-border);
+        background: rgba(20, 20, 20, 0.74);
+        color: var(--a-gold);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .player-wrap {
+        min-height: 0;
+        display: grid;
+        grid-template-rows: minmax(280px, 1fr) auto;
+        overflow: hidden;
+        border: 1px solid var(--a-border);
+        background: rgba(10, 10, 10, 0.72);
+        box-shadow: 0 24px 80px var(--a-shadow);
+      }
+
+      .video-frame {
+        position: relative;
+        min-height: 0;
+        background: #050505;
+        display: grid;
+        place-items: center;
+      }
+
+      video {
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-height: calc(100vh - 190px);
+        object-fit: contain;
+        background: #050505;
+      }
+
+      .status {
+        position: absolute;
+        inset: auto 18px 18px auto;
+        max-width: min(520px, calc(100% - 36px));
+        padding: 10px 12px;
+        border: 1px solid var(--a-border);
+        background: rgba(11, 11, 11, 0.78);
+        color: var(--a-text);
+        backdrop-filter: blur(16px);
+        line-height: 1.55;
+      }
+
+      .status:empty {
+        display: none;
+      }
+
+      .player-info {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: center;
+        padding: 18px;
+        border-top: 1px solid var(--a-border);
+        background: rgba(20, 20, 20, 0.92);
+      }
+
+      .current-title {
+        margin: 0;
+        color: var(--a-heading);
+        font-family: "Cormorant Garamond", "Amiri", serif;
+        font-size: clamp(1.5rem, 2.2vw, 2.35rem);
+        font-weight: 600;
+        line-height: 1.05;
+        direction: ltr;
+      }
+
+      .meta-line {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 9px;
+        color: var(--a-muted);
+        direction: ltr;
+        font-size: 0.94rem;
+        line-height: 1.35;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 4px 9px;
+        border: 1px solid var(--a-border);
+        background: rgba(212, 175, 122, 0.08);
+        color: var(--a-text);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .controls {
+        display: flex;
+        align-items: center;
+        justify-content: end;
+        gap: 8px;
+        direction: ltr;
+      }
+
+      .icon-button,
+      .text-button {
+        min-width: 44px;
+        min-height: 44px;
+        border: 1px solid var(--a-border);
+        background: rgba(11, 11, 11, 0.52);
+        color: var(--a-heading);
+        transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+      }
+
+      .icon-button {
+        width: 44px;
+        display: inline-grid;
+        place-items: center;
+        padding: 0;
+      }
+
+      .text-button {
+        padding: 0 14px;
+      }
+
+      .icon-button:hover,
+      .text-button:hover,
+      .icon-button[aria-pressed="true"],
+      .text-button[aria-pressed="true"] {
+        border-color: var(--a-border-strong);
+        background: rgba(212, 175, 122, 0.12);
+        color: var(--a-gold);
+      }
+
+      .icon-button svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .sidebar {
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        gap: 14px;
+        padding: 16px;
+        border: 1px solid var(--a-border);
+        background: rgba(20, 20, 20, 0.82);
+        box-shadow: 0 24px 80px var(--a-shadow);
+      }
+
+      .tools {
+        display: grid;
+        gap: 10px;
+      }
+
+      .search {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid var(--a-border);
+        background: rgba(11, 11, 11, 0.6);
+        color: var(--a-heading);
+        direction: ltr;
+        padding: 0 12px;
+        outline: none;
+      }
+
+      .search:focus {
+        border-color: var(--a-border-strong);
+      }
+
+      .filters {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        direction: ltr;
+      }
+
+      .filter {
+        min-height: 38px;
+        border: 1px solid var(--a-border);
+        background: rgba(11, 11, 11, 0.46);
+        color: var(--a-muted);
+      }
+
+      .filter[aria-pressed="true"] {
+        border-color: var(--a-border-strong);
+        background: rgba(212, 175, 122, 0.12);
+        color: var(--a-gold);
+      }
+
+      .list-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-top: 2px;
+      }
+
+      .list-title {
+        margin: 0;
+        color: var(--a-heading);
+        font-family: "Amiri", serif;
+        font-size: 1.35rem;
+        line-height: 1;
+      }
+
+      .count {
+        color: var(--a-muted);
+        direction: ltr;
+        font-size: 0.92rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .playlist {
+        min-height: 0;
+        overflow: auto;
+        padding-left: 4px;
+        display: grid;
+        align-content: start;
+        gap: 8px;
+        scrollbar-color: var(--a-gold-deep) transparent;
+      }
+
+      .item {
+        width: 100%;
+        min-height: 74px;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid transparent;
+        background: rgba(11, 11, 11, 0.28);
+        color: inherit;
+        text-align: start;
+      }
+
+      .item:hover,
+      .item[aria-current="true"] {
+        border-color: var(--a-border-strong);
+        background: rgba(212, 175, 122, 0.1);
+      }
+
+      .index {
+        width: 38px;
+        height: 38px;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid var(--a-border);
+        color: var(--a-gold);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .item-name {
+        display: block;
+        overflow-wrap: anywhere;
+        color: var(--a-heading);
+        direction: ltr;
+        line-height: 1.25;
+      }
+
+      .item-meta {
+        display: block;
+        margin-top: 6px;
+        color: var(--a-muted);
+        direction: ltr;
+        font-size: 0.86rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .format {
+        min-width: 48px;
+        padding: 5px 7px;
+        border: 1px solid var(--a-border);
+        color: var(--a-muted);
+        text-align: center;
+        font-size: 0.78rem;
+        letter-spacing: 0;
+      }
+
+      .empty {
+        display: none;
+        padding: 28px 16px;
+        border: 1px solid var(--a-border);
+        color: var(--a-muted);
+        text-align: center;
+      }
+
+      .empty[data-visible="true"] {
+        display: block;
+      }
+
+      @media (max-width: 980px) {
+        .shell {
+          min-height: 100vh;
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          min-height: 420px;
+        }
+
+        .topbar,
+        .player-info {
+          align-items: start;
+          grid-template-columns: 1fr;
+          flex-direction: column;
+        }
+
+        .player-info {
+          display: grid;
+        }
+
+        .controls {
+          width: 100%;
+          justify-content: start;
+          flex-wrap: wrap;
+        }
+
+        video {
+          max-height: 64vh;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .shell {
+          padding: 10px;
+          gap: 12px;
+        }
+
+        .topbar {
+          gap: 10px;
+        }
+
+        .meter {
+          width: 100%;
+          justify-content: space-between;
+        }
+
+        .filters {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .player-info,
+        .sidebar {
+          padding: 12px;
+        }
+
+        .item {
+          grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .format {
+          grid-column: 2;
+          justify-self: start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="stage" aria-label="Video player">
+        <header class="topbar">
+          <div class="brand">
+            <h1 class="wordmark">مراجعة الفيديو</h1>
+            <p class="subtitle">ATEMA Studio motion review</p>
+          </div>
+          <div class="meter" aria-label="Playlist position">
+            <span id="currentNumber">01</span>
+            <span id="totalNumber">19</span>
+          </div>
+        </header>
+
+        <section class="player-wrap">
+          <div class="video-frame">
+            <video id="player" controls playsinline preload="metadata"></video>
+            <div class="status" id="status" role="status"></div>
+          </div>
+          <footer class="player-info">
+            <div>
+              <h2 class="current-title" id="currentTitle"></h2>
+              <div class="meta-line" id="currentMeta"></div>
+            </div>
+            <div class="controls" aria-label="Playback controls">
+              <button class="icon-button" id="prevBtn" type="button" aria-label="Previous video">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 20 9 12l10-8v16Z" /><path d="M5 19V5" /></svg>
+              </button>
+              <button class="icon-button" id="nextBtn" type="button" aria-label="Next video">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 4 10 8-10 8V4Z" /><path d="M19 5v14" /></svg>
+              </button>
+              <button class="text-button" id="muteBtn" type="button" aria-pressed="false">Mute</button>
+              <button class="text-button" id="loopBtn" type="button" aria-pressed="false">Loop</button>
+            </div>
+          </footer>
+        </section>
+      </section>
+
+      <aside class="sidebar" aria-label="Video playlist">
+        <div class="tools">
+          <input class="search" id="search" type="search" placeholder="Search videos" autocomplete="off" />
+          <div class="filters" role="group" aria-label="Video filters">
+            <button class="filter" type="button" data-filter="all" aria-pressed="true">All</button>
+            <button class="filter" type="button" data-filter="mp4" aria-pressed="false">MP4</button>
+            <button class="filter" type="button" data-filter="mov" aria-pressed="false">MOV</button>
+            <button class="filter" type="button" data-filter="large" aria-pressed="false">Large</button>
+          </div>
+        </div>
+
+        <div class="list-head">
+          <h2 class="list-title">المقاطع</h2>
+          <span class="count" id="visibleCount"></span>
+        </div>
+
+        <div class="playlist" id="playlist"></div>
+        <div class="empty" id="empty">No matching videos.</div>
+      </aside>
+    </main>
+
+    <script type="module">
+      const videos = [
+        { file: 'Facetune1701A602-8C92-46B2-824C-D15D3072F2DD.MP4', source: '01-facetune-1701a602.mp4', size: 7014451, originalSize: 15920554 },
+        { file: 'Facetune1FBB9BB3-4753-4176-AD6A-7455BFB9663B 2.MOV', source: '02-facetune-1fbb9bb3-2.mp4', size: 10460951, originalSize: 105327575 },
+        { file: 'Facetune1FBB9BB3-4753-4176-AD6A-7455BFB9663B 2-1.MOV', source: '02-facetune-1fbb9bb3-2.mp4', size: 10460951, originalSize: 105327575 },
+        { file: 'Facetune1FBB9BB3-4753-4176-AD6A-7455BFB9663B.MP4', source: '04-facetune-1fbb9bb3.mp4', size: 10672129, originalSize: 24666181 },
+        { file: 'Facetune20A2EFD1-9628-49E8-B80E-6F6D763E9D91.MP4', source: '05-facetune-20a2efd1.mp4', size: 10489050, originalSize: 24621401 },
+        { file: 'Facetune441554D1-A128-4A78-86C6-0D62D5FBB2BF.MP4', source: '06-facetune-441554d1.mp4', size: 1379157, originalSize: 3762539 },
+        { file: 'Facetune84157277-84BE-415F-A72F-84390080BFFC.MP4', source: '07-facetune-84157277.mp4', size: 10526188, originalSize: 24633474 },
+        { file: 'Facetune98AC2677-034D-41CC-925F-C007B91FA0B9.MP4', source: '08-facetune-98ac2677.mp4', size: 798757, originalSize: 1847637 },
+        { file: 'Facetune9E6EFC66-D13D-4947-B4A0-384F6DB307E8.MP4', source: '09-facetune-9e6efc66.mp4', size: 1370795, originalSize: 4782622 },
+        { file: 'FacetuneAF261190-F330-41F2-A949-E7A2309878D7.MP4', source: '10-facetune-af261190.mp4', size: 3489085, originalSize: 6615535 },
+        { file: 'FacetuneC2E398C2-2693-41E8-A470-F83383868F22.MP4', source: '11-facetune-c2e398c2.mp4', size: 3489085, originalSize: 6615535 },
+        { file: 'IMG_1240.mov', source: '12-img-1240.mp4', size: 6025010, originalSize: 67539225 },
+        { file: 'ips-C5A611FC-96A2-4DE0-AD55-FE4029EEEF8B.mp4', source: '13-ips-c5a611fc.mp4', size: 1471806, originalSize: 6654598 },
+        { file: 'video-output-096D7612-301B-47B2-9F19-664C48D28219-1.mov', source: '14-video-output-096d7612.mp4', size: 655458, originalSize: 7675352 },
+        { file: 'video-output-22C3FCAE-F436-4A2F-AE07-B7DEDB02D25C-1.MOV', source: '15-video-output-22c3fcae.mp4', size: 1474589, originalSize: 25411388 },
+        { file: 'video-output-5EF1F5E7-8CB9-4AFA-9201-C5EFA80A59C7-1.MOV', source: '16-video-output-5ef1f5e7.mp4', size: 1423464, originalSize: 25004298 },
+        { file: 'video-output-6853DF27-8338-4B51-887A-5C63230A1284-1.MOV', source: '17-video-output-6853df27.mp4', size: 2952937, originalSize: 28572932 },
+        { file: 'video-output-7DC0D162-E3D2-4C12-BE4B-830B3E5CFDE0-1.MOV', source: '18-video-output-7dc0d162.mp4', size: 3098807, originalSize: 28577455 },
+        { file: 'video-output-BB3F55B8-A1CD-470D-8A64-694CF3E54B59-1.MOV', source: '19-video-output-bb3f55b8.mp4', size: 1433230, originalSize: 24993067 },
+      ].map((video, index) => {
+        const ext = video.source.split('.').pop().toLowerCase();
+        const originalExt = video.file.split('.').pop().toLowerCase();
+        return {
+          ...video,
+          index,
+          ext,
+          originalExt,
+          title: cleanTitle(video.file),
+          url: `videos/stream/${encodeURIComponent(video.source)}`,
+        };
+      });
+
+      const state = {
+        active: 0,
+        filter: 'all',
+        query: '',
+      };
+
+      const player = document.querySelector('#player');
+      const playlist = document.querySelector('#playlist');
+      const search = document.querySelector('#search');
+      const filters = Array.from(document.querySelectorAll('.filter'));
+      const visibleCount = document.querySelector('#visibleCount');
+      const empty = document.querySelector('#empty');
+      const currentTitle = document.querySelector('#currentTitle');
+      const currentMeta = document.querySelector('#currentMeta');
+      const currentNumber = document.querySelector('#currentNumber');
+      const totalNumber = document.querySelector('#totalNumber');
+      const status = document.querySelector('#status');
+      const prevBtn = document.querySelector('#prevBtn');
+      const nextBtn = document.querySelector('#nextBtn');
+      const muteBtn = document.querySelector('#muteBtn');
+      const loopBtn = document.querySelector('#loopBtn');
+
+      totalNumber.textContent = pad(videos.length);
+
+      function cleanTitle(file) {
+        return file
+          .replace(/\.[^.]+$/, '')
+          .replace(/[-_]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      function pad(num) {
+        return String(num).padStart(2, '0');
+      }
+
+      function formatSize(bytes) {
+        if (bytes >= 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+        return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+      }
+
+      function formatDuration(seconds) {
+        if (!Number.isFinite(seconds) || seconds <= 0) return 'metadata pending';
+        const minutes = Math.floor(seconds / 60);
+        const rest = Math.floor(seconds % 60);
+        return `${minutes}:${String(rest).padStart(2, '0')}`;
+      }
+
+      function createPill(text) {
+        const pill = document.createElement('span');
+        pill.className = 'pill';
+        pill.textContent = text;
+        return pill;
+      }
+
+      function matches(video) {
+        const queryMatch = !state.query || video.file.toLowerCase().includes(state.query) || video.title.toLowerCase().includes(state.query);
+        if (!queryMatch) return false;
+        if (state.filter === 'all') return true;
+        if (state.filter === 'large') return (video.originalSize ?? video.size) >= 25 * 1024 * 1024;
+        return video.originalExt === state.filter;
+      }
+
+      function filteredVideos() {
+        return videos.filter(matches);
+      }
+
+      function refreshConstrainedList() {
+        const visible = filteredVideos();
+        if (visible.length > 0 && !visible.some(video => video.index === state.active)) {
+          selectVideo(visible[0].index);
+          return;
+        }
+        renderPlaylist();
+      }
+
+      function renderPlaylist() {
+        const visible = filteredVideos();
+        playlist.replaceChildren();
+        visibleCount.textContent = `${visible.length} / ${videos.length}`;
+        empty.dataset.visible = visible.length === 0 ? 'true' : 'false';
+
+        for (const video of visible) {
+          const button = document.createElement('button');
+          button.className = 'item';
+          button.type = 'button';
+          button.setAttribute('aria-current', video.index === state.active ? 'true' : 'false');
+          button.addEventListener('click', () => selectVideo(video.index, true));
+
+          const index = document.createElement('span');
+          index.className = 'index';
+          index.textContent = pad(video.index + 1);
+
+          const copy = document.createElement('span');
+          const name = document.createElement('span');
+          name.className = 'item-name';
+          name.textContent = video.title;
+          const meta = document.createElement('span');
+          meta.className = 'item-meta';
+          meta.textContent = `${video.originalExt.toUpperCase()} -> ${video.ext.toUpperCase()} · ${formatSize(video.size)}`;
+          copy.append(name, meta);
+
+          const format = document.createElement('span');
+          format.className = 'format';
+          format.textContent = video.originalExt.toUpperCase();
+
+          button.append(index, copy, format);
+          playlist.append(button);
+        }
+      }
+
+      function renderCurrent() {
+        const video = videos[state.active];
+        currentNumber.textContent = pad(state.active + 1);
+        currentTitle.textContent = video.title;
+        currentMeta.replaceChildren(
+          createPill(video.ext.toUpperCase()),
+          createPill(formatSize(video.size)),
+          createPill(formatDuration(player.duration)),
+        );
+      }
+
+      function selectVideo(index, shouldPlay = false) {
+        const video = videos[index] ?? videos[0];
+        state.active = video.index;
+        status.textContent = '';
+        player.src = video.url;
+        player.load();
+        renderCurrent();
+        renderPlaylist();
+
+        if (shouldPlay) {
+          player.play().catch(() => {
+            status.textContent = 'Playback is waiting for a user gesture or browser support.';
+          });
+        }
+      }
+
+      function move(delta) {
+        const visible = filteredVideos();
+        if (visible.length === 0) return;
+        const currentVisibleIndex = visible.findIndex(video => video.index === state.active);
+        const base = currentVisibleIndex >= 0 ? currentVisibleIndex : 0;
+        const next = visible[(base + delta + visible.length) % visible.length];
+        selectVideo(next.index, true);
+      }
+
+      function setFilter(filter) {
+        state.filter = filter;
+        for (const button of filters) {
+          button.setAttribute('aria-pressed', button.dataset.filter === filter ? 'true' : 'false');
+        }
+        refreshConstrainedList();
+      }
+
+      search.addEventListener('input', () => {
+        state.query = search.value.trim().toLowerCase();
+        refreshConstrainedList();
+      });
+
+      for (const button of filters) {
+        button.addEventListener('click', () => setFilter(button.dataset.filter));
+      }
+
+      prevBtn.addEventListener('click', () => move(-1));
+      nextBtn.addEventListener('click', () => move(1));
+      muteBtn.addEventListener('click', () => {
+        player.muted = !player.muted;
+        muteBtn.setAttribute('aria-pressed', player.muted ? 'true' : 'false');
+        muteBtn.textContent = player.muted ? 'Muted' : 'Mute';
+      });
+      loopBtn.addEventListener('click', () => {
+        player.loop = !player.loop;
+        loopBtn.setAttribute('aria-pressed', player.loop ? 'true' : 'false');
+      });
+
+      player.addEventListener('loadedmetadata', renderCurrent);
+      player.addEventListener('error', () => {
+        const video = videos[state.active];
+        status.textContent = `${video.ext.toUpperCase()} playback is not supported by this browser.`;
+      });
+      player.addEventListener('ended', () => {
+        if (!player.loop) move(1);
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.target === search) return;
+        if (event.key === 'ArrowLeft') move(1);
+        if (event.key === 'ArrowRight') move(-1);
+        if (event.key === ' ') {
+          event.preventDefault();
+          if (player.paused) player.play();
+          else player.pause();
+        }
+      });
+
+      renderPlaylist();
+      selectVideo(0);
+    </script>
+  </body>
+</html>
