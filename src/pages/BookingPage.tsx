@@ -931,7 +931,18 @@ function BookingFormModal({
   const grp: React.CSSProperties = { display:'flex', flexDirection:'column' };
 
   return (
-    <div className="atema-modal open" onClick={isPaymentStage ? undefined : onClose}>
+    <div
+      className="atema-modal open"
+      onClick={() => {
+        // Tapping the backdrop must NOT cancel the booking — that would wipe
+        // everything the bride has typed. On mobile a tap outside an input is
+        // how you dismiss the keyboard, so we only blur the focused field
+        // here. Closing is deliberate, via the ✕ button in the header.
+        if (typeof document !== 'undefined') {
+          (document.activeElement as HTMLElement | null)?.blur();
+        }
+      }}
+    >
       <div className="atema-modal-box" onClick={e => e.stopPropagation()}
         style={{ direction: lang==='ar'?'rtl':'ltr', fontFamily:'Tajawal,sans-serif' }}>
 
