@@ -3,8 +3,28 @@
 > **Status:** proposed (not built). Planning doc only.
 > **Author:** system session, 2026-07-03.
 > **One-liner:** after a shoot happens, the bride receives a private link to
-> choose her album design from a curated palette; the studio sees her choice
-> and produces the album.
+> choose her album **cover style** from a curated palette; the studio sees her
+> choice and produces the album.
+
+---
+
+## 0. Decisions locked (2026-07-03, owner)
+
+These settle the §7 open questions and shape the design below:
+
+- **A "design" = a cover style.** The palette is a set of album *cover* styles
+  (not page-layout families). Simplifies the data model and the customer page.
+- **Release is manual** for now — Fatima clicks "release + send" after the
+  gallery is delivered. A **staged automatic** workflow (auto-release N days
+  post-event via the `wa-reminders` cron) comes **later**, not in Phase 1/2.
+- **Choice is final once confirmed** — no change window. After the bride
+  confirms, the selection locks (studio can still override manually if needed).
+- **No price impact** — every cover style is included; selection never changes
+  the total, so it stays a scoped `SECURITY DEFINER` RPC and never touches the
+  `change-booking` money path.
+
+Still to decide (minor, non-blocking for Phase 1): how many cover styles in the
+palette, and the post-event reminder cadence (both belong to Phase 3).
 
 ---
 
@@ -103,8 +123,9 @@ States:
 2. **Ready, unselected**: grid of `album_designs` cards — each a `<picture>`
    WebP preview (optimised per CLAUDE.md §4.5), bilingual name + blurb, a
    "اختاري هذا التصميم / Choose this design" CTA, optional note field.
-3. **Selected**: shows the chosen design + a "change my choice" affordance
-   (allowed until an admin-set lock, or until `album_selected_at + N days`).
+3. **Selected (locked)**: shows the chosen cover style and a confirmation
+   message. No "change" affordance — the choice is final once confirmed
+   (decision §0). Only the studio can override, from the admin modal.
 
 All customer-controlled strings (the note) pass through `esc()` anywhere they
 re-render into HTML (contract/invoice discipline, CLAUDE.md §4.4).
@@ -146,21 +167,16 @@ proper template if we register one).
 
 ---
 
-## 7. Open product decisions (need Fatima's input)
+## 7. Product decisions — RESOLVED (see §0)
 
-1. **Palette size & content** — how many designs? Is a "design" a *cover
-   style*, a *page-layout family*, or both bundled? Any tie to package tier
-   (A4 vs A3, page count)?
-2. **Single vs. shortlist** — pick exactly one, or favourite a few for Fatima
-   to advise on?
-3. **Release trigger** — auto the moment `event_date` passes, or always a
-   manual "release" click after the gallery is delivered? (Leaning manual for
-   Phase 1 — she controls timing.)
-4. **Change window** — can the bride change her choice after confirming? Until
-   when (a lock, or N days)?
-5. **Deadline / nudge** — remind if she hasn't chosen after X days?
-6. **Does the choice affect price?** (e.g., an upgraded cover as a paid add-on
-   → then it needs the money discipline of `change-booking`, not a plain RPC.)
+| Question | Decision |
+|---|---|
+| What is a "design"? | **Cover style** (not page layouts) |
+| Single vs. shortlist | **Single** — pick one, confirm |
+| Release trigger | **Manual** now; staged auto-release later (Phase 3) |
+| Change window | **None** — locked once confirmed; studio can override |
+| Price impact | **None** — plain RPC, no `change-booking` money path |
+| Palette size / reminder cadence | Open, non-blocking — decide during Phase 3 |
 
 ---
 
@@ -192,8 +208,8 @@ unit tests, like `reschedule.ts`/`change.ts`).
 - [ ] Bride's note `esc()`-escaped on every render surface.
 - [ ] Preview images optimised (`optimise-images.mjs`) and served via
       `<picture>`.
-- [ ] If selection can change price, it goes through `change-booking`
-      (server-recomputed total), not a bare RPC.
+- [x] Selection has **no price impact** (decision §0) → a scoped
+      `SECURITY DEFINER` RPC is correct; it must NOT write any monetary column.
 
 ---
 
