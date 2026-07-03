@@ -21,7 +21,7 @@
 
 ## 2. Live state (update this section on every handoff)
 
-*Last updated: 2026-07-04 (Codex, W3 integrity completion).*
+*Last updated: 2026-07-04 (Codex, gallery refresh follow-up).*
 
 - Latest completed local pass: W3 from `docs/plans/integration-2026-07.md`.
   Report: `docs/reviews/2026-07-04-integration-integrity.md`.
@@ -35,6 +35,9 @@
   and `npm run build` pass. W3 also fixed the July portfolio seed to use
   optimized images and added
   `database/migrations-2026-07-portfolio-optimised-urls.sql`.
+- **Gallery refresh follow-up:** portfolio/journal admin editors now include a
+  shared picker from `src/content/photoPool.ts`; the stronger public refresh is
+  in `database/migrations-2026-07-gallery-image-refresh.sql`.
 - Live/operator follow-ups remain: apply July SQL in Supabase, verify security
   advisor/RLS and Edge Function deployed versions, then run the full test-mode
   booking/payment/capability-link narrative.

@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { ATEMA_COLORS } from '../config/constants';
+import PublicPhotoPicker from '../components/PublicPhotoPicker';
 import {
   fetchJournalAll, upsertJournalPost, deleteJournalPost, uploadJournalCover, slugify,
 } from '../services/journal';
@@ -282,25 +283,31 @@ export default function JournalManager() {
                     <X size={12} /> تغيير
                   </button>
                 </div>
-              ) : (
-                <label style={{
-                  display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center',
-                  gap: 8, padding: '28px 16px', border: '1.5px dashed var(--a-border-strong)',
-                  borderRadius: 8, cursor: 'pointer', color: 'var(--a-text-soft)',
-                }}>
-                  {uploading ? (
-                    <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
-                  ) : (
-                    <>
-                      <BookOpen size={22} />
-                      <span style={{ fontSize: 13 }}>اختر صورة غلاف</span>
-                    </>
-                  )}
-                  <input type="file" accept="image/*" hidden
-                    onChange={e => { const f = e.target.files?.[0]; if (f) handleCover(f); }} />
-                </label>
-              )}
+              ) : null}
+
+              <PublicPhotoPicker
+                selectedUrl={edit.cover_url}
+                onSelect={url => setEdit(e => ({ ...(e ?? {}), cover_url: url }))}
+              />
+
+              <label style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                gap: 8, padding: '22px 16px', marginTop: 10,
+                border: '1.5px dashed var(--a-border-strong)',
+                borderRadius: 8, cursor: 'pointer', color: 'var(--a-text-soft)',
+              }}>
+                {uploading ? (
+                  <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <>
+                    <BookOpen size={22} />
+                    <span style={{ fontSize: 13 }}>رفع غلاف جديد</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" hidden
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleCover(f); }} />
+              </label>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

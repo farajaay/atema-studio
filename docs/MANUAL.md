@@ -339,7 +339,10 @@ Row Level Security:
   `get_booking_by_token()` `SECURITY DEFINER` RPC (anon never touches the
   `bookings` table); all writes go through the `change-booking` Edge Function.
 
-Supabase Storage buckets: `portfolio`, `journal` (image uploads).
+Supabase Storage buckets: `portfolio`, `journal` (new admin uploads). The
+portfolio and journal editors can also choose from the curated public photo
+pool in `src/content/photoPool.ts`, which points at optimized assets under
+`public/photos/`.
 
 ---
 
@@ -470,6 +473,11 @@ The composer can only pick from images you've published in
 **Admin → Portfolio Manager**. The richer that library, the more varied
 the boards. Aim for at least 4–6 published items in each of `bride`,
 `couture`, and `editorial` so the auto-selection has room to breathe.
+
+Portfolio and Journal managers also expose **اختيار من صور الموقع** inside
+the image/cover editor. That picker uses the curated optimized site-photo pool
+(`src/content/photoPool.ts`) so you can reuse already-deployed photos without
+uploading a duplicate into Supabase Storage.
 
 ### Where it lives in code
 

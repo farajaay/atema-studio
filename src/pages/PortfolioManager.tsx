@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { ATEMA_COLORS } from '../config/constants';
+import PublicPhotoPicker from '../components/PublicPhotoPicker';
 import {
   fetchPortfolioAll, upsertPortfolioItem, deletePortfolioItem, uploadPortfolioImage,
   CATEGORIES,
@@ -269,25 +270,31 @@ export default function PortfolioManager() {
                     <X size={12} /> تغيير
                   </button>
                 </div>
-              ) : (
-                <label style={{
-                  display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center',
-                  gap: 8, padding: '32px 16px', border: '1.5px dashed var(--a-border-strong)',
-                  borderRadius: 8, cursor: 'pointer', color: 'var(--a-text-soft)',
-                }}>
-                  {uploading ? (
-                    <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
-                  ) : (
-                    <>
-                      <ImageIcon size={22} />
-                      <span style={{ fontSize: 13 }}>اختر صورة للرفع</span>
-                    </>
-                  )}
-                  <input type="file" accept="image/*" hidden
-                    onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-                </label>
-              )}
+              ) : null}
+
+              <PublicPhotoPicker
+                selectedUrl={edit.image_url}
+                onSelect={url => setEdit(e => ({ ...(e ?? {}), image_url: url }))}
+              />
+
+              <label style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                gap: 8, padding: '22px 16px', marginTop: 10,
+                border: '1.5px dashed var(--a-border-strong)',
+                borderRadius: 8, cursor: 'pointer', color: 'var(--a-text-soft)',
+              }}>
+                {uploading ? (
+                  <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <>
+                    <ImageIcon size={22} />
+                    <span style={{ fontSize: 13 }}>رفع صورة جديدة</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" hidden
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+              </label>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
