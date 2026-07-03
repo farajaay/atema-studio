@@ -103,9 +103,10 @@ interface PkgPhoto { file: string; position: string; }
 const PKG_PHOTO: Record<string, PkgPhoto> = {
   engagement: { file: 'B6B52466-B962-4C33-804E-135D26C25236.JPG', position: 'top left' },
   // Custom Foundation — the singleton base for "Design Your Package".
-  // Untitled-2.JPG is "Gilded silence" — minimal, calm, evokes "beginning".
+  // Untitled-3.JPG — warm, welcoming smile from the same editorial set;
+  // an inviting face for the entry tier where the bride starts building.
   // Distinct from every other package card so the base reads as its own thing.
-  customBase: { file: 'Untitled-2.JPG',                            position: 'center 28%' },
+  customBase: { file: 'Untitled-3.JPG',                            position: 'center 25%' },
   classic:    { file: 'IMG_5620.JPG',                              position: 'center 25%' },
   royal:      { file: 'IMG_5607.JPG',                              position: 'center 28%' },
   signature:  { file: 'IMG_5525.JPG',                              position: 'center 22%' },
@@ -286,8 +287,9 @@ function PkgDetailsModal({ pkg, lang, selected, onSelect, onClose }: {
       display:'flex', alignItems:'center', justifyContent:'center', padding:'20px',
     }}>
       <div onClick={e => e.stopPropagation()} dir="rtl" style={{
-        background:'white', borderRadius:'20px', width:'100%', maxWidth:'480px',
+        background: T.popupBg, borderRadius:'20px', width:'100%', maxWidth:'480px',
         maxHeight:'90vh', overflowY:'auto',
+        border: `1px solid ${T.popupBorder}`,
         boxShadow:'0 24px 64px rgba(26,26,26,0.22)',
       }}>
         {/* Photo header */}
