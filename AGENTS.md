@@ -28,14 +28,12 @@
   populated; `film_entries` live with 6 published clips — the owner keeps the
   rest disabled deliberately: weak audio / repetitive takes; assets and
   registry entries stay in the repo).
-- **⚠ Two-step SQL fix still owed by the operator, in this order:**
-  1. run `migrations-2026-07-portfolio-optimised-urls.sql` (6 portfolio rows
-     still point at raw multi-MB `/photos/IMG_*.JPG` files);
-  2. re-run `migrations-2026-07-gallery-image-refresh.sql` (its matchers
-     expect the `.optimised.jpg` URLs from step 1, and its journal covers
-     were clobbered by `journal-cover-reshuffle`, which ran after it).
-  **Never re-run `migrations-2026-07-journal-cover-reshuffle.sql`** — it is
-  marked superseded in its header.
+- ✅ **Two-step SQL fix applied and re-verified live (2026-07-04):** zero
+  portfolio rows on raw `.JPG`, the six stuck rows and all eight journal
+  covers now match `gallery-image-refresh` exactly, and every referenced
+  image returns 200 on production. The entire July SQL set is now verified
+  applied. **Never re-run `journal-cover-reshuffle.sql`** — marked
+  superseded in its header.
 - **Orphan review surface deleted** (owner approved the Films wording):
   `public/atema-motion-review-f7c9a2.html` + `public/video-review.js` are
   gone; all HLS clips remain, and the admin Films Manager's "sync defaults"

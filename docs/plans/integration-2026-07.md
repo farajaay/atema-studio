@@ -27,15 +27,11 @@ committed and pushed on `master`. Do not rebuild any of it.**
 
 **What is genuinely outstanding** (updated after the 2026-07-04 live-DB check):
 
-- **Two-step SQL fix (operator):** run
-  `migrations-2026-07-portfolio-optimised-urls.sql`, then **re-run**
-  `migrations-2026-07-gallery-image-refresh.sql` — in that order. Six
-  portfolio rows still point at raw `/photos/IMG_*.JPG` (the optimised-urls
-  step was skipped, so the refresh matchers missed them), and the journal
-  covers were reverted by `journal-cover-reshuffle` running after the
-  refresh (that file is now marked superseded — never re-run it).
-  Everything else from the July SQL list is verified applied
-  (album, album-examples, films).
+- ~~Two-step SQL fix~~ ✅ done + re-verified live 2026-07-04: no raw `.JPG`
+  rows remain, portfolio + journal match `gallery-image-refresh` exactly,
+  and every referenced image serves 200 on production. The full July SQL
+  set (album, album-examples, films, optimised-urls, gallery refresh) is
+  verified applied. `journal-cover-reshuffle` is superseded — never re-run.
 - **Real money-path smoke:** run the full test-mode booking narrative once
   live SQL and functions are current.
 - ~~Orphan cleanup~~ ✅ done 2026-07-04 — owner approved the Films wording;
