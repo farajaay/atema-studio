@@ -69,6 +69,29 @@ for before/after comparison.
 | E1 (founder portrait) | Owner-consent gated. |
 | E2 (Eastern-Province-rooted frames) | Requires a new shoot. |
 
+### Status re-check — 2026-07-04 (pre-launch)
+
+Live-verified and reconciled with the July launch decisions:
+
+| # | May status | July reality |
+|---|---|---|
+| A1/A2/A4/A6, B5, C4 | shipped | **still live** — robots/sitemap 200 (sitemap now also lists `/films`), OG + JSON-LD present, share buttons working. |
+| A5 (Voices) | parked pending real quotes | ⚠ **A placeholder carousel shipped anyway** (`Testimonials.tsx`, live on the booking page) with *fictional named quotes* marked `TODO[CONTENT]`. **Replace with 3 real consented quotes or hide before launch** — invented testimonials on a commercial surface is a trust/compliance hazard. |
+| C1/C5 (Apple Pay / Mada) | parked on Moyasar config | **Superseded** — cards deferred entirely (transfer-only launch). The admin settings flags + `allowedMethods` plumbing already exist; when cards activate, these become config flips, not code. |
+| C2 (anchor bundle) | owner call | still open — one hour of code once Fatima names the bundle. |
+| C3 (24h reply pledge) | owner commitment | still open — copy only. |
+| D1–D3 (paid) | budget-gated | still budget-gated. Note: **D1 (Click-to-WhatsApp ads) is NOT blocked by the missing Meta send-approval** — inbound wa.me chats land on the studio phone regardless. |
+| E1 (founder portrait) | consent-gated | ✅ **done since** — portrait + origin story live on `/about`. |
+| E2 (Eastern-Province frames) | needs a shoot | still open; the July pool/films are couture-editorial, not region-rooted. |
+| E3 (/seasons page) | — | still parked. |
+
+New assets since May that the proposal predates: the public **/films** page
+(ready-made Reels source), the album-cover ritual with photographic mockups
+(post-delivery content), and dual-channel notifications. The companion
+execution piece is the owner's Arabic workbook
+(*دليل صياغة استراتيجية التسويق*, PDF, 2026-07-04) — this proposal is the
+market evidence; the workbook is the drafting sheet.
+
 ### How to verify the shipped items
 
 1. **Share preview:** paste `https://atemastudio.xyz/` into a fresh WhatsApp chat after the deploy reaches gh-pages. The preview should render with the Promotion artwork + title + description.
