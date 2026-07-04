@@ -21,7 +21,25 @@
 
 ## 2. Live state (update this section on every handoff)
 
-*Last updated: 2026-07-04 (Claude, browser verification pass).*
+*Last updated: 2026-07-04 (Claude, live-DB verification + orphan retirement).*
+
+- **Live Supabase verified via anon REST (2026-07-04):** July album +
+  album-examples + films migrations are applied (`example_url`/`box_url`
+  populated; `film_entries` live with 6 published clips — the owner keeps the
+  rest disabled deliberately: weak audio / repetitive takes; assets and
+  registry entries stay in the repo).
+- **⚠ Two-step SQL fix still owed by the operator, in this order:**
+  1. run `migrations-2026-07-portfolio-optimised-urls.sql` (6 portfolio rows
+     still point at raw multi-MB `/photos/IMG_*.JPG` files);
+  2. re-run `migrations-2026-07-gallery-image-refresh.sql` (its matchers
+     expect the `.optimised.jpg` URLs from step 1, and its journal covers
+     were clobbered by `journal-cover-reshuffle`, which ran after it).
+  **Never re-run `migrations-2026-07-journal-cover-reshuffle.sql`** — it is
+  marked superseded in its header.
+- **Orphan review surface deleted** (owner approved the Films wording):
+  `public/atema-motion-review-f7c9a2.html` + `public/video-review.js` are
+  gone; all HLS clips remain, and the admin Films Manager's "sync defaults"
+  restores any missing registry rows for toggling.
 
 - **Browser-level verification of `/films` (production build): passed.**
   Driven with headless Chromium against `vite preview`: page renders (RTL,

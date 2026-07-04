@@ -25,15 +25,23 @@ committed and pushed on `master`. Do not rebuild any of it.**
 | P0 security: anon SELECT leak on `bookings` closed | ✅ done | `5e6...` (`5e8cf4c`), `1005af9` (definer view for `public_booked_dates`) |
 | Email-layer bug sweep (empty attachments, false booking error, OTP dead-end, background OTP send) | ✅ done | `0d2a25b`, `552e0af`, `a65ca8c` |
 
-**What is genuinely outstanding** (after the 2026-07-04 W3 pass):
+**What is genuinely outstanding** (updated after the 2026-07-04 live-DB check):
 
-- **Owner/live SQL follow-through:** apply the July migrations/seeds listed in
-  the W3 report, then verify Supabase advisor/RLS and Edge Function versions.
-- **Real money-path smoke:** run the full test-mode booking narrative once live
-  SQL and functions are current.
-- **Orphan cleanup:** delete `public/atema-motion-review-f7c9a2.html` and
-  `public/video-review.js` only after the owner approves the curated Films page
-  wording.
+- **Two-step SQL fix (operator):** run
+  `migrations-2026-07-portfolio-optimised-urls.sql`, then **re-run**
+  `migrations-2026-07-gallery-image-refresh.sql` — in that order. Six
+  portfolio rows still point at raw `/photos/IMG_*.JPG` (the optimised-urls
+  step was skipped, so the refresh matchers missed them), and the journal
+  covers were reverted by `journal-cover-reshuffle` running after the
+  refresh (that file is now marked superseded — never re-run it).
+  Everything else from the July SQL list is verified applied
+  (album, album-examples, films).
+- **Real money-path smoke:** run the full test-mode booking narrative once
+  live SQL and functions are current.
+- ~~Orphan cleanup~~ ✅ done 2026-07-04 — owner approved the Films wording;
+  the review page + script are deleted. The non-published clips stay in the
+  repo by owner request (weak audio / repetitive takes) and can be toggled
+  any time from the admin Films Manager.
 
 ---
 

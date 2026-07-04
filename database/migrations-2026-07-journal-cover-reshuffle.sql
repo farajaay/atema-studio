@@ -1,5 +1,10 @@
 -- ATEMA STUDIO - Journal cover reshuffle (July 2026)
 --
+-- ⛔ SUPERSEDED — DO NOT RE-RUN. migrations-2026-07-gallery-image-refresh.sql
+-- carries the newer cover set, and this file's WHERE guard ("any /photos/
+-- cover") will happily overwrite the refresh's values if run afterwards —
+-- which is exactly what happened on 2026-07-04. Kept for history only.
+--
 -- Refreshes the seeded journal covers to the optimized editorial photo set.
 -- The WHERE guard protects any cover later uploaded through JournalManager
 -- because those Supabase Storage URLs do not live under /photos/.
