@@ -780,7 +780,22 @@ export default function AdminDashboard() {
                       <td style={{ padding: '12px 14px', color: 'var(--a-text)', whiteSpace: 'nowrap' }}>{b.event_date}</td>
                       <td style={{ padding: '12px 14px', fontWeight: 700, color: ATEMA_COLORS.champagne, whiteSpace: 'nowrap' }}>{b.total.toLocaleString()} ر.س</td>
                       <td style={{ padding: '12px 14px' }}><StatusBadge status={b.status} /></td>
-                      <td style={{ padding: '12px 14px' }}><PayBadge status={b.payment_status} /></td>
+                      <td style={{ padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                          <PayBadge status={b.payment_status} />
+                          {(b.topup_amount_due ?? 0) > 0 && (
+                            <span title="رصيد ترقية مستحق — يُصفَّر من بطاقة الحجز بعد التحقق من الإيصال"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px',
+                                fontSize: '11px', fontWeight: 700, color: 'var(--a-gold)',
+                                border: '1px solid var(--a-border-strong)', borderRadius: '20px',
+                                padding: '2px 9px', background: 'var(--a-surface-alt)' }}>
+                              <span style={{ width: 7, height: 7, borderRadius: '50%',
+                                background: 'var(--a-gold)', flexShrink: 0 }} />
+                              +{Number(b.topup_amount_due).toLocaleString('ar-SA')} ر.س
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td style={{ padding: '12px 14px' }}>
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button onClick={() => setSelected(b)} title="عرض / تعديل"
