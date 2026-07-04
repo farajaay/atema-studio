@@ -24,6 +24,11 @@ export interface Booking {
   // Must stay in this union — its absence previously crashed AdminDashboard
   // when PAYMENT_CONFIG[status] returned undefined for the transfer flow.
   payment_status: 'unpaid' | 'awaiting_transfer' | 'paid' | 'refunded';
+  /** Outstanding balance from a self-service package upgrade
+      (change-booking sets it; card payments auto-clear it via
+      verify-payment; transfer payments are cleared manually from the
+      admin booking modal once the receipt is verified). */
+  topup_amount_due?: number;
   created_at: string;
   /** Discount fields (added 2026-05-21) — present when a code was applied. */
   discount_code?:   string | null;

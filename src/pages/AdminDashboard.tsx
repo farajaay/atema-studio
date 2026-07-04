@@ -193,6 +193,8 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled, settings }: 
   const [saved, setSaved]     = useState(false);
   const [refundArmed, setRefundArmed] = useState(false);
   const [refunding, setRefunding]     = useState(false);
+  const [topupArmed, setTopupArmed]     = useState(false);
+  const [clearingTopup, setClearingTopup] = useState(false);
 
   // Effective VAT respects global setting: if VAT is disabled globally, per-booking toggle is ignored.
   const effectiveVatOn  = globalVatEnabled && vatOn;
@@ -383,6 +385,50 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled, settings }: 
               <option value="refunded">مُسترد</option>
             </select>
           </div>
+
+          {/* Outstanding top-up from a package upgrade. With card payments
+              deferred, the bride settles by bank transfer — Fatima verifies
+              the receipt (WhatsApp / bank app), then clears the balance here. */}
+          {(booking.topup_amount_due ?? 0) > 0 && (
+            <div style={{ border: '1px solid var(--a-border-strong)', background: 'var(--a-surface-alt, var(--a-surface))',
+              borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--a-gold)', marginBottom: '6px' }}>
+                رصيد ترقية مستحق: {Number(booking.topup_amount_due).toLocaleString('ar-SA')} ر.س
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--a-text-soft)', marginBottom: '10px', lineHeight: 1.7 }}>
+                نتج عن ترقية الباقة من صفحة إدارة الحجز. يُسدَّد بالتحويل البنكي — بعد التحقق من الإيصال،
+                صفّري الرصيد هنا. (الدفع بالبطاقة يصفّره تلقائياً عند تفعيله.)
+              </div>
+              {!topupArmed ? (
+                <button onClick={() => setTopupArmed(true)}
+                  style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--a-border-strong)',
+                    background: 'var(--a-surface)', color: 'var(--a-gold)', fontWeight: 600,
+                    cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit' }}>
+                  تم استلام المبلغ — تصفير الرصيد
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button disabled={clearingTopup}
+                    onClick={async () => {
+                      setClearingTopup(true);
+                      await onSave(booking.id, { topup_amount_due: 0 });
+                      setClearingTopup(false);
+                    }}
+                    style={{ padding: '8px 16px', borderRadius: '8px', border: 'none',
+                      background: 'var(--a-gold)', color: '#0B0B0B', fontWeight: 700,
+                      cursor: clearingTopup ? 'wait' : 'pointer', fontSize: '12px', fontFamily: 'inherit' }}>
+                    {clearingTopup ? 'جاري…' : 'نعم — تأكيد الاستلام'}
+                  </button>
+                  <button onClick={() => setTopupArmed(false)}
+                    style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--a-border)',
+                      background: 'var(--a-surface)', color: 'var(--a-text)', fontWeight: 600,
+                      cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit' }}>
+                    تراجع
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--a-text)', marginBottom: '7px' }}>
