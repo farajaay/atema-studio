@@ -57,6 +57,11 @@ jobs:
             echo "::error::and re-run the deploy."
             exit 1
           fi
+          if [ -z "${VITE_MOYASAR_PUBLISHABLE_KEY:-}" ]; then
+            echo "::warning::VITE_MOYASAR_PUBLISHABLE_KEY is unset — the deployed site"
+            echo "::warning::cannot take card payments; customers see the WhatsApp"
+            echo "::warning::hand-off notice instead. Set the repository secret to enable cards."
+          fi
           npm run build
 
       - name: Verify Supabase URL was baked into the bundle

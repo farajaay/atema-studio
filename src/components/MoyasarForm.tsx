@@ -66,22 +66,30 @@ export default function MoyasarForm({ depositSAR, description, bookingRef, booki
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sdkReady]);
 
-  // Key not configured yet
+  // Key not configured — a customer surface must never leak build internals.
+  // The bride sees a calm hand-off to WhatsApp; the env hint appears in dev only.
   if (!PUBLISHABLE_KEY) {
     return (
       <div style={{ padding:'32px 24px', textAlign:'center',
-        fontFamily:'Tajawal,sans-serif', color:'var(--a-gold)' }}>
-        <div style={{ fontSize:'2rem', marginBottom:'12px' }}>⚠️</div>
-        <p style={{ fontSize:'0.9rem', lineHeight:1.7 }}>
+        fontFamily:'Tajawal,sans-serif', color:'var(--a-text)' }}>
+        <p style={{ fontSize:'0.92rem', lineHeight:1.9, color:'var(--a-text)' }}>
           {lang === 'ar'
-            ? 'لم يتم تكوين بوابة الدفع بعد. أضف مفتاح Moyasar إلى ملف .env'
-            : 'Payment gateway not configured. Add your Moyasar publishable key to .env'}
+            ? 'الدفع بالبطاقة غير متاح في هذه اللحظة، وحجزكِ محفوظ كما هو. راسلينا عبر واتساب وسنُتمّ الدفع معكِ مباشرة.'
+            : 'Card payment is unavailable at this moment — your booking is safe as it is. Message us on WhatsApp and we will complete the payment with you directly.'}
         </p>
-        <code style={{ display:'block', marginTop:'10px', fontSize:'0.78rem',
-          background:'var(--a-surface-alt)', padding:'8px 12px', borderRadius:'6px',
-          fontFamily:'monospace', color:'var(--a-text)' }}>
-          VITE_MOYASAR_PUBLISHABLE_KEY=pk_test_...
-        </code>
+        <a href="https://wa.me/966548323496" target="_blank" rel="noreferrer"
+          style={{ display:'inline-block', marginTop:'16px', padding:'11px 26px',
+            background:'var(--a-gold)', color:'#0B0B0B', borderRadius:'10px',
+            textDecoration:'none', fontWeight:700, fontSize:'0.88rem' }}>
+          {lang === 'ar' ? 'التواصل عبر واتساب' : 'Message us on WhatsApp'}
+        </a>
+        {import.meta.env.DEV && (
+          <code style={{ display:'block', marginTop:'18px', fontSize:'0.78rem',
+            background:'var(--a-surface-alt)', padding:'8px 12px', borderRadius:'6px',
+            fontFamily:'monospace', color:'var(--a-text)' }}>
+            VITE_MOYASAR_PUBLISHABLE_KEY=pk_test_...
+          </code>
+        )}
       </div>
     );
   }
