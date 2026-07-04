@@ -29,9 +29,18 @@
   GitHub Actions repository secret**, so the deployed bundle cannot mount
   Moyasar (`a8d6afb` replaced the old developer-hint panel with a graceful
   bilingual WhatsApp hand-off; deploy.yml now warns when the key is absent).
-  **Owner action: add the repo secret (pk_test for the smoke, pk_live at
-  launch), then re-run the deploy** — cards stay on the WhatsApp notice
-  until then.
+  **Owner decision (2026-07-04): card payments are deferred — the studio
+  runs transfer-only for now.** Transfer-only is first-class, not an error
+  state: the booking chooser already hides the card option without the key,
+  and the manage-page top-up now renders bank-transfer settlement
+  (`TopUpTransfer` — official IBAN + WhatsApp receipt hand-off, shared
+  facts in `src/content/payment.ts`). When cards activate later: set the
+  `VITE_MOYASAR_PUBLISHABLE_KEY` repo secret (+ matching `MOYASAR_SECRET_KEY`
+  in Supabase, same test/live mode) and redeploy — both surfaces switch to
+  the card form automatically. Note: a transfer top-up is confirmed manually
+  (receipt via WhatsApp, like deposits); `bookings.topup_amount_due` stays
+  as the bookkeeping record — only card payments auto-clear it via
+  `verify-payment`.
 
 - **Live Supabase verified via anon REST (2026-07-04):** July album +
   album-examples + films migrations are applied (`example_url`/`box_url`

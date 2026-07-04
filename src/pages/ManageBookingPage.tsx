@@ -13,6 +13,7 @@ import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
 import DatePicker from '../components/DatePicker';
 import MoyasarForm from '../components/MoyasarForm';
+import { BANK, WHATSAPP_NUMBER } from '../content/payment';
 import { useLang } from '../hooks/useLang';
 import {
   getBookingByToken,
@@ -29,6 +30,65 @@ import {
   validateNewDate,
   rescheduleReasonText,
 } from '../../supabase/functions/_shared/reschedule';
+
+// Card payments are deferred until the studio activates Moyasar; while the
+// key is absent the top-up settles by bank transfer, like the deposit.
+const MOYASAR_KEY_PRESENT =
+  !!(import.meta.env.VITE_MOYASAR_PUBLISHABLE_KEY as string | undefined);
+
+/** Bank-transfer settlement for a package-upgrade balance. Mirrors the
+    deposit flow: transfer to the official IBAN, then send the receipt over
+    WhatsApp (the receipt reader confirms it studio-side). */
+function TopUpTransfer({ amount, bookingRef, ar }: {
+  amount: number; bookingRef: string; ar: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+  const amountTxt = amount.toLocaleString(ar ? 'ar-SA' : 'en-US');
+  const waText = encodeURIComponent(ar
+    ? `مرحباً، أودّ تسوية رصيد الحجز ${bookingRef} بمبلغ ${amountTxt} ر.س عبر التحويل البنكي. سأرسل الإيصال هنا.`
+    : `Hello, I would like to settle the balance of ${amountTxt} SAR for booking ${bookingRef} by bank transfer. I will send the receipt here.`);
+  const row: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    gap: 10, padding: '9px 0', borderBottom: '1px solid var(--a-border)', fontSize: '0.88rem', color: 'var(--a-text)' };
+  return (
+    <div style={{ border: '1px solid var(--a-border)', borderRadius: 10, padding: '16px 18px' }}>
+      <p style={{ color: 'var(--a-text)', lineHeight: 1.9, marginBottom: 12, fontSize: '0.9rem' }}>
+        {ar
+          ? 'يُسوَّى المبلغ عبر التحويل البنكي إلى حسابنا الرسمي — وهو نفسه المذكور في صفحة السياسات:'
+          : 'The balance settles by bank transfer to our official account — the same one listed on the policy page:'}
+      </p>
+      <div style={row}>
+        <span style={{ color: 'var(--a-text-soft)' }}>{ar ? 'البنك' : 'Bank'}</span>
+        <span>{ar ? BANK.name : BANK.nameEn}</span>
+      </div>
+      <div style={row}>
+        <span style={{ color: 'var(--a-text-soft)' }}>{ar ? 'المستفيد' : 'Beneficiary'}</span>
+        <span>{ar ? BANK.holder : BANK.holderEn}</span>
+      </div>
+      <div style={{ ...row, borderBottom: 'none' }}>
+        <span style={{ color: 'var(--a-text-soft)' }}>IBAN</span>
+        <button onClick={() => { navigator.clipboard?.writeText(BANK.iban);
+            setCopied(true); setTimeout(() => setCopied(false), 1800); }}
+          title={ar ? 'نسخ' : 'Copy'}
+          style={{ background: 'none', border: '1px solid var(--a-border)', borderRadius: 7,
+            padding: '5px 10px', cursor: 'pointer', color: copied ? '#34d399' : 'var(--a-gold)',
+            fontSize: '0.8rem', direction: 'ltr', fontFamily: 'monospace' }}>
+          {copied ? (ar ? 'تم النسخ ✓' : 'Copied ✓') : BANK.iban}
+        </button>
+      </div>
+      <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waText}`} target="_blank" rel="noreferrer"
+        style={{ display: 'block', textAlign: 'center', marginTop: 14, padding: '11px',
+          background: 'var(--a-gold)', color: '#0B0B0B', borderRadius: 9,
+          textDecoration: 'none', fontWeight: 700, fontSize: '0.88rem' }}>
+        {ar ? 'إرسال إيصال التحويل عبر واتساب' : 'Send the transfer receipt on WhatsApp'}
+      </a>
+      <p style={{ color: 'var(--a-text-soft)', fontSize: '0.78rem', marginTop: 10, lineHeight: 1.8 }}>
+        {ar
+          ? 'حجزكِ محدَّث ومحفوظ؛ نؤكد استلام المبلغ فور وصول الإيصال.'
+          : 'Your booking is updated and safe; we confirm the payment as soon as the receipt arrives.'}
+      </p>
+    </div>
+  );
+}
 
 function reasonToText(reason: string | undefined, lang: 'ar' | 'en'): string {
   if (!reason) return lang === 'ar' ? 'تعذّر إتمام الطلب.' : 'The request could not be completed.';
@@ -294,16 +354,21 @@ export default function ManageBookingPage() {
                       {changeResult.topUpDue.toLocaleString(ar ? 'ar-SA' : 'en-US')} {ar ? 'ر.س' : 'SAR'}
                     </strong>
                   </p>
-                  <MoyasarForm
-                    depositSAR={changeResult.topUpDue}
-                    description={ar
-                      ? `تسوية رصيد الحجز ${booking?.booking_ref ?? ''}`
-                      : `Balance top-up for booking ${booking?.booking_ref ?? ''}`}
-                    bookingRef={booking?.booking_ref ?? ''}
-                    bookingId={booking?.id ?? ''}
-                    lang={lang}
-                    purpose="topup"
-                  />
+                  {MOYASAR_KEY_PRESENT ? (
+                    <MoyasarForm
+                      depositSAR={changeResult.topUpDue}
+                      description={ar
+                        ? `تسوية رصيد الحجز ${booking?.booking_ref ?? ''}`
+                        : `Balance top-up for booking ${booking?.booking_ref ?? ''}`}
+                      bookingRef={booking?.booking_ref ?? ''}
+                      bookingId={booking?.id ?? ''}
+                      lang={lang}
+                      purpose="topup"
+                    />
+                  ) : (
+                    <TopUpTransfer amount={changeResult.topUpDue}
+                      bookingRef={booking?.booking_ref ?? ''} ar={ar} />
+                  )}
                 </div>
               ) : (
                 <p style={{ color: 'var(--a-text-soft)', fontSize: '0.85rem' }}>

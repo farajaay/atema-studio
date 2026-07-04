@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Copy, Check, FileText, Receipt, MessageCircle, Building2, Hash, User as UserIcon, Clock, Eye, Download } from 'lucide-react';
 import { openDocumentInNewTab, downloadDocument } from '../services/invoice';
+// Bank + WhatsApp facts are shared with the manage-page top-up flow.
+import { BANK, WHATSAPP_NUMBER } from '../content/payment';
 
 type Lang = 'ar' | 'en';
 const tx = (l: Lang, ar: string, en: string) => l === 'ar' ? ar : en;
@@ -21,18 +23,6 @@ const C = {
   black:     'var(--a-heading)',
 };
 const ICON_GOLD = '#D4AF7A';
-
-// Bank details (Al Rajhi — Fatima Bohassan)
-const BANK = {
-  name:    'بنك الراجحي',
-  nameEn:  'Al Rajhi Bank',
-  iban:    'SA0380000000329608010885626',
-  account: '329608010885626',
-  holder:  'فاطمة بوحسن',
-  holderEn:'Fatima Bohassan',
-};
-
-const WHATSAPP_NUMBER = '966548323496';
 
 interface Props {
   lang:           Lang;
