@@ -30,6 +30,9 @@ import { routeChangeRequest, corsHeaders, fail } from './handlers.ts';
 const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const OWNER_PHONE           = Deno.env.get('OWNER_WA_NUMBER');
+// Studio inbox for change alerts — falls back to the Zoho sender account,
+// which is the studio's own mailbox.
+const OWNER_EMAIL           = Deno.env.get('OWNER_EMAIL') ?? Deno.env.get('ZOHO_SMTP_USER');
 const SITE_ORIGIN           = Deno.env.get('SITE_ORIGIN') ?? 'https://atemastudio.xyz';
 
 // Keep the worker alive for background work (OTP email) so we can return the
@@ -55,15 +58,16 @@ serve(async (req) => {
 
   return await routeChangeRequest(supabase, body, {
     ownerPhone: OWNER_PHONE,
+    ownerEmail: OWNER_EMAIL,
     siteOrigin: SITE_ORIGIN,
     keepAlive,
     notify: async (phone, message) => {
       if (!phone) return;
       await sendText(phone, message).catch(() => {});
     },
-    sendEmail: async ({ to, subject, html, text, bookingId }) => {
+    sendEmail: async ({ to, subject, html, text, bookingId, template }) => {
       try {
-        const r = await sendEmail({ to, subject, html, text, template: 'change_otp', bookingId });
+        const r = await sendEmail({ to, subject, html, text, template: template ?? 'change_otp', bookingId });
         return { status: r.status, error: r.error };
       } catch (e) {
         return { status: 'failed', error: (e as Error).message };

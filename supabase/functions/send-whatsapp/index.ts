@@ -1,9 +1,22 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Defence-in-depth twin of the callers' gate: even a direct invocation
+// respects the admin WhatsApp switch (app_settings.wa_enabled). When off we
+// return before composing anything — no transport attempt, no failure logs.
+async function waEnabled(): Promise<boolean> {
+  const url = Deno.env.get('SUPABASE_URL');
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !key) return false;
+  const { data } = await createClient(url, key)
+    .from('app_settings').select('wa_enabled').limit(1).maybeSingle();
+  return !!data?.wa_enabled;
+}
 
 // Uses Twilio WhatsApp API — set these in Supabase Dashboard → Settings → Edge Function Secrets
 const TWILIO_SID    = Deno.env.get('TWILIO_ACCOUNT_SID')  || '';
@@ -14,6 +27,12 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
+    if (!(await waEnabled())) {
+      return new Response(JSON.stringify({ success: true, skipped: true, reason: 'wa_disabled' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { phone, name, bookingRef, package: pkg, packageAr, total, eventDate, manageLink } = await req.json();
     // Support both legacy `package` field and newer `packageAr` field.
     const packageName = packageAr || pkg || '';

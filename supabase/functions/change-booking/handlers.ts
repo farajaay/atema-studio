@@ -21,6 +21,9 @@ import { sumActiveAddons } from '../_shared/pricing.ts';
 import { computePackageChange } from '../_shared/change.ts';
 import { generateOtp, hashOtp, verifyOtp, OTP_TTL_MS } from '../_shared/otp.ts';
 import { renderChangeOtpEmail } from '../_shared/email-otp.ts';
+import {
+  renderRescheduleEmail, renderPackageChangeEmail, renderOwnerChangeAlertEmail,
+} from '../_shared/email-change.ts';
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
@@ -31,6 +34,8 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 /** Runtime dependencies injected by index.ts (and mocked in tests). */
 export interface HandlerEnv {
   ownerPhone?: string;
+  /** Studio inbox for change alerts — the email twin of ownerPhone. */
+  ownerEmail?: string;
   siteOrigin: string;
   /** Send a WhatsApp text. Must never throw (wrap the transport). */
   notify: (phone: string | undefined, message: string) => Promise<void>;
@@ -39,6 +44,8 @@ export interface HandlerEnv {
    *  silently claiming "sent". Must never throw (wrap the transport). */
   sendEmail?: (args: {
     to: string; subject: string; html: string; text: string; bookingId?: string | null;
+    /** email_messages audit label; defaults to 'change_otp' in index.ts. */
+    template?: string;
   }) => Promise<{ status: 'sent' | 'skipped' | 'failed'; error?: string }>;
   /** Keep the worker alive for a background task (OTP email) so request_otp can
    *  return immediately without the SMTP session being torn down. No-op in
@@ -57,6 +64,26 @@ export function ok(body: unknown): Response {
   return new Response(JSON.stringify(body), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+/** Fire a confirmation email in the background (delivery is audited in
+ *  email_messages; failures surface via the admin failed-sends banner).
+ *  Returns whether a send was dispatched at all — used for the honest
+ *  `notified` channels in the response. */
+function dispatchEmail(
+  env: HandlerEnv, to: string | null | undefined,
+  mail: { subject: string; html: string; text: string }, bookingId: string,
+  template?: string,
+): boolean {
+  const addr = String(to ?? '').trim();
+  if (!env.sendEmail || !addr) return false;
+  const task = env.sendEmail({
+    to: addr, subject: mail.subject, html: mail.html, text: mail.text, bookingId, template,
+  }).then(r => {
+    if (r.status !== 'sent') console.warn('[change-email] non-sent status:', r.status, r.error ?? '');
+  }).catch(e => console.warn('[change-email] send threw:', (e as Error).message));
+  if (env.keepAlive) env.keepAlive(task);
+  return true;
 }
 
 /** Token lookup + action dispatch — the whole POST body lifecycle after JSON
@@ -120,6 +147,20 @@ export async function handleReschedule(supabase: any, booking: any, body: any, w
     { event_date: booking.event_date, event_time: booking.event_time },
     { event_date: newDate, event_time: newTime }, 0);
 
+  // Dual-channel policy: email ALWAYS (the parallel channel while Meta
+  // approval is pending); WhatsApp additionally when wa_enabled is on. The
+  // WA block is guarded up-front so a disabled channel costs nothing — no
+  // attempt, no failure logs.
+  const emailSent = dispatchEmail(env, booking.customer_email, renderRescheduleEmail({
+    bookingRef: booking.booking_ref, customerName: booking.customer_name,
+    newDate, newTime,
+  }), booking.id, 'change_reschedule');
+  if (env.ownerEmail) {
+    dispatchEmail(env, env.ownerEmail, renderOwnerChangeAlertEmail({
+      kind: 'reschedule', bookingRef: booking.booking_ref,
+      lines: [`الموعد: ${booking.event_date} ← ${newDate} (الساعة ${newTime})`],
+    }), booking.id, 'change_owner_alert');
+  }
   if (waEnabled) {
     await env.notify(booking.customer_phone,
       `✓ تم تأجيل حجزك\nرقم الحجز: ${booking.booking_ref}\nالموعد الجديد: ${newDate} الساعة ${newTime}\nبانتظارك 🤍`);
@@ -131,6 +172,8 @@ export async function handleReschedule(supabase: any, booking: any, body: any, w
     ok: true, bookingRef: booking.booking_ref,
     eventDate: newDate, eventTime: newTime,
     rescheduleCount: (booking.reschedule_count ?? 0) + 1,
+    // Honest channel report — the page words its confirmation from this.
+    notified: { wa: waEnabled, email: emailSent },
   });
 }
 
@@ -205,7 +248,16 @@ export async function handleChangePackage(supabase: any, booking: any, body: any
     }
     return fail('otp_' + v.reason, 401);
   }
-  await supabase.from('booking_otps').update({ consumed_at: new Date().toISOString() }).eq('id', otpRow.id);
+  // Atomic single-use: the conditional update wins for exactly one request.
+  // If two tabs submit the same code simultaneously, the loser sees no row
+  // and is turned away — the manage link is one capability, not a lock, so
+  // this is what enforces "one change per code".
+  const { data: consumed, error: consumeErr } = await supabase.from('booking_otps')
+    .update({ consumed_at: new Date().toISOString() })
+    .eq('id', otpRow.id).is('consumed_at', null)
+    .select('id').maybeSingle();
+  if (consumeErr) return fail('otp_consume_failed', 500, consumeErr.message);
+  if (!consumed) return fail('otp_required', 401);
 
   // Can't change a booking whose event has already passed.
   const today = env.today ? env.today() : new Date().toISOString().slice(0, 10);
@@ -267,6 +319,20 @@ export async function handleChangePackage(supabase: any, booking: any, body: any
     dueLine = `\nالمبلغ المتبقّي للدفع: ${change.topUpDue.toLocaleString('ar-SA')} ر.س`;
     if (manageLink) dueLine += `\nادفعي الآن: ${manageLink}`;
   }
+  // Dual-channel policy — same shape as reschedule: email always, WA extra.
+  const emailSent = dispatchEmail(env, booking.customer_email, renderPackageChangeEmail({
+    bookingRef: booking.booking_ref, customerName: booking.customer_name,
+    total: change.total, topUpDue: change.topUpDue, manageUrl: manageLink,
+  }), booking.id, 'change_package_confirm');
+  if (env.ownerEmail) {
+    dispatchEmail(env, env.ownerEmail, renderOwnerChangeAlertEmail({
+      kind: 'package', bookingRef: booking.booking_ref,
+      lines: [
+        `الإجمالي: ${booking.total} ← ${change.total} (${change.direction})`,
+        change.topUpDue > 0 ? `المتبقّي للدفع: ${change.topUpDue.toLocaleString('ar-SA')} ر.س` : 'لا مبالغ إضافية مستحقة.',
+      ],
+    }), booking.id, 'change_owner_alert');
+  }
   if (waEnabled) {
     await env.notify(booking.customer_phone,
       `✓ تم تعديل باقتك\nرقم الحجز: ${booking.booking_ref}\nالإجمالي الجديد: ${change.total.toLocaleString('ar-SA')} ر.س${dueLine}`);
@@ -278,6 +344,7 @@ export async function handleChangePackage(supabase: any, booking: any, body: any
     ok: true, bookingRef: booking.booking_ref,
     subtotal: change.subtotal, vat: change.vat, total: change.total,
     delta: change.delta, direction: change.direction, topUpDue: change.topUpDue,
+    notified: { wa: waEnabled, email: emailSent },
   });
 }
 

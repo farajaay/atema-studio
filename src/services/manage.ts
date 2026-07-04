@@ -31,6 +31,10 @@ export async function getBookingByToken(token: string): Promise<ManagedBooking |
   return (row as ManagedBooking | null) ?? null;
 }
 
+/** Which confirmation channels the server actually used — the page words
+    its success message from this instead of assuming WhatsApp. */
+export interface NotifiedChannels { wa: boolean; email: boolean }
+
 export interface RescheduleResult {
   ok: boolean;
   /** Reason code on failure — e.g. 'reschedule_too_close', 'date_unavailable'. */
@@ -38,6 +42,7 @@ export interface RescheduleResult {
   eventDate?: string;
   eventTime?: string;
   rescheduleCount?: number;
+  notified?: NotifiedChannels;
 }
 
 export async function rescheduleBooking(input: {
@@ -58,6 +63,7 @@ export async function rescheduleBooking(input: {
       eventDate: row.eventDate as string,
       eventTime: row.eventTime as string,
       rescheduleCount: Number(row.rescheduleCount ?? 0),
+      notified: row.notified as NotifiedChannels | undefined,
     };
   }
   const reason = typeof row.error === 'string'

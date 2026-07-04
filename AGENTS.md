@@ -21,7 +21,20 @@
 
 ## 2. Live state (update this section on every handoff)
 
-*Last updated: 2026-07-04 (Claude, money-path smoke follow-up).*
+*Last updated: 2026-07-04 (Claude, dual-channel notification policy).*
+
+- **Notification policy (owner decision — Meta approval never came):**
+  email is the ALWAYS channel; WhatsApp is additive behind the existing
+  `app_settings.wa_enabled` switch (admin panel toggle, default off). Every
+  sender guards BEFORE entering WA code — off = no attempt, no failure logs:
+  `create-booking` (already), `change-booking` (already), `wa-reminders`
+  (already), and now `send-whatsapp` (internal gate added). change-booking
+  gained the missing email parallels: bride reschedule / package-change
+  confirmations + studio alerts (`_shared/email-change.ts`,
+  `OWNER_EMAIL` env falls back to `ZOHO_SMTP_USER`), and its responses
+  report `notified: {wa, email}` so the manage page states the real
+  channel instead of always claiming WhatsApp. OTP consumption is now an
+  atomic conditional update (single-use holds under concurrent tabs).
 
 - **Owner's live smoke (2026-07-04): reschedule ✓ (WA confirmation sent),
   OTP delivery ✓, package change + server-recomputed totals ✓.** The top-up

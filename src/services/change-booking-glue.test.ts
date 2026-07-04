@@ -74,6 +74,7 @@ function env(
 ): HandlerEnv {
   return {
     ownerPhone: '+966500000000',
+    ownerEmail: 'studio@example.test',
     siteOrigin: 'https://example.test',
     notify: async (phone, message) => { messages.push({ phone, message }); },
     sendEmail: async ({ to, subject, html, text }) => {
@@ -157,6 +158,39 @@ describe('reschedule glue', () => {
     expect((await res.json()).error).toBe('date_unavailable');
     expect(db.calls.some(c => c.table === 'bookings' && c.op === 'update')).toBe(false);
   });
+
+  it('always emails bride + studio, and reports both channels when WA is on', async () => {
+    const messages: Array<{ phone?: string; message: string }> = [];
+    const emails: SentEmail[] = [];
+    const db = mockDb(defaultRoute());
+    const res = await routeChangeRequest(db.client,
+      { action: 'reschedule', token: TOKEN, newDate: isoPlus(20), newTime: '19:00' },
+      env(messages, emails));
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).notified).toEqual({ wa: true, email: true });
+    expect(emails.map(e => e.to).sort()).toEqual(['noura@example.test', 'studio@example.test']);
+    expect(messages.length).toBe(2); // bride + owner WA
+  });
+
+  it('skips WhatsApp entirely when the switch is off — email only, honestly reported', async () => {
+    const messages: Array<{ phone?: string; message: string }> = [];
+    const emails: SentEmail[] = [];
+    const db = mockDb((call) => {
+      if (call.table === 'bookings' && call.op === 'select' && filterValue(call, 'eq')?.[0] === 'manage_token') {
+        return { data: booking() };
+      }
+      if (call.table === 'app_settings') return { data: { wa_enabled: false } };
+      return { data: null, error: null };
+    });
+    const res = await routeChangeRequest(db.client,
+      { action: 'reschedule', token: TOKEN, newDate: isoPlus(20) }, env(messages, emails));
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).notified).toEqual({ wa: false, email: true });
+    expect(messages.length).toBe(0);           // WA code path never entered
+    expect(emails.length).toBe(2);             // bride confirmation + studio alert
+  });
 });
 
 // ── OTP issuance ──────────────────────────────────────────────────────────────
@@ -237,6 +271,10 @@ function changeRoute(opts: { otp?: Awaited<ReturnType<typeof otpRow>> | null; b?
     if (call.table === 'bookings' && call.op === 'select') return { data: b };
     if (call.table === 'app_settings') return { data: { wa_enabled: true } };
     if (call.table === 'booking_otps' && call.op === 'select') return { data: opts.otp ?? null };
+    // Atomic single-use consume: `update … is(consumed_at, null) … select()`
+    // returns the row exactly once — the mock always "wins" the race.
+    if (call.table === 'booking_otps' && call.op === 'update' &&
+        (call.payload as { consumed_at?: string })?.consumed_at) return { data: { id: 'otp-1' } };
     if (call.table === 'packages') return { data: opts.pkg === undefined ? PKG_ROYAL : opts.pkg };
     if (call.table === 'addons') return { data: [ADDON_HENNA] };
     return { data: null, error: null };

@@ -132,6 +132,8 @@ export default function ManageBookingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  // Channels the server actually confirmed through — see NotifiedChannels.
+  const [notified, setNotified] = useState<{ wa: boolean; email: boolean } | null>(null);
 
   // Package/add-on change (step-up OTP)
   const [packages, setPackages] = useState<ChangeOption[]>([]);
@@ -222,6 +224,7 @@ export default function ManageBookingPage() {
     setSubmitting(false);
     if (res.ok) {
       setSuccess(true);
+      setNotified(res.notified ?? null);
       setBooking(b => b ? { ...b, event_date: res.eventDate ?? newDate, event_time: res.eventTime ?? newTime, reschedule_count: res.rescheduleCount ?? b.reschedule_count + 1 } : b);
     } else {
       setError(reasonToText(res.reason, lang));
@@ -291,8 +294,14 @@ export default function ManageBookingPage() {
 
           {success ? (
             <p style={{ color: 'var(--a-gold)' }}>
-              {ar ? `تم تأجيل حجزك إلى ${booking.event_date} الساعة ${booking.event_time}. أرسلنا لك تأكيداً عبر واتساب.`
-                  : `Your booking has moved to ${booking.event_date} at ${booking.event_time}. We've sent you a WhatsApp confirmation.`}
+              {ar ? `تم تأجيل حجزك إلى ${booking.event_date} الساعة ${booking.event_time}.` +
+                    (notified?.wa && notified?.email ? ' أرسلنا لك تأكيداً عبر واتساب والبريد الإلكتروني.'
+                      : notified?.email ? ' أرسلنا لك تأكيداً عبر البريد الإلكتروني.'
+                      : notified?.wa ? ' أرسلنا لك تأكيداً عبر واتساب.' : '')
+                  : `Your booking has moved to ${booking.event_date} at ${booking.event_time}.` +
+                    (notified?.wa && notified?.email ? ' We\'ve sent a confirmation by WhatsApp and email.'
+                      : notified?.email ? ' We\'ve sent a confirmation by email.'
+                      : notified?.wa ? ' We\'ve sent a WhatsApp confirmation.' : '')}
             </p>
           ) : !eligibility?.allowed ? (
             <p style={{ color: 'var(--a-text-soft)' }}>{rescheduleReasonText(eligibility?.reason ?? 'invalid', lang)}</p>
