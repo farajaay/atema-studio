@@ -96,3 +96,31 @@ These remain operator/live checks, not code blockers:
 - Decide whether raw camera files should leave `public/photos/` for an
   untracked archive. The local worktree still contains a large media queue that
   W3 did not stage.
+
+---
+
+## Addendum — 2026-07-04 (later the same day, post-live verification)
+
+Read this before acting on the list above; several items closed and one
+recommendation is now **retracted**:
+
+- ⛔ **Do NOT apply `migrations-2026-07-journal-cover-reshuffle.sql`.** It
+  was run live *after* `gallery-image-refresh` and overwrote the refreshed
+  journal covers (its WHERE guard matches any `/photos/` cover). The file now
+  carries a SUPERSEDED header. The correct pair —
+  `portfolio-optimised-urls` then a `gallery-image-refresh` re-run — was
+  applied and re-verified against production.
+- ✅ Live SQL verified applied via anon REST (album, album-examples, films,
+  optimised-urls, gallery refresh); RLS spot-checked (anon sees nothing on
+  bookings/otps/contracts/invoices/discounts); all five Edge Functions
+  answering.
+- ✅ Owner ran the money-path smoke: reschedule + WA, OTP delivery, package
+  change with server totals. It exposed the unset Moyasar publishable key →
+  launch decision recorded: **transfer-only, cards deferred**; the top-up now
+  settles by IBAN + WhatsApp receipt, cleared from the admin booking modal.
+- ⚠ "Latest pages-build-deployment succeeded" did not hold: 3 of 4 later
+  ingestions failed on the ~200 MB payload. Mitigation shipped: film streams
+  move to Supabase Storage (`migrations-2026-07-videos-bucket.sql` +
+  `supabase-videos-sync.yml`; frontend is Storage-first with repo fallback).
+- Still genuinely open: raw camera `.JPG` originals remain in
+  `public/photos/` (~19 MB deployed weight) — low priority, decide at leisure.
