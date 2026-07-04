@@ -21,7 +21,17 @@
 
 ## 2. Live state (update this section on every handoff)
 
-*Last updated: 2026-07-04 (Codex, gallery refresh follow-up).*
+*Last updated: 2026-07-04 (Claude, browser verification pass).*
+
+- **Browser-level verification of `/films` (production build): passed.**
+  Driven with headless Chromium against `vite preview`: page renders (RTL,
+  chapters, playlist, quality UI), and the full HLS chain works — manifest →
+  level playlists → segments, ABR ladder, retries. One caveat for future
+  agents: **sandboxed/open-source Chromium builds lack H.264/AAC**
+  (`MediaSource.isTypeSupported → false`), so decode fails there with the
+  page's "تعذر تشغيل هذا المقطع الآن" note — that is the test environment,
+  not a bug; real browsers ship those codecs. Also verified `npm run lint`,
+  `npm test` (141/141), `npm run build` on the same tree.
 
 - Latest completed local pass: W3 from `docs/plans/integration-2026-07.md`.
   Report: `docs/reviews/2026-07-04-integration-integrity.md`.
