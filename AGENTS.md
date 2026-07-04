@@ -21,7 +21,17 @@
 
 ## 2. Live state (update this section on every handoff)
 
-*Last updated: 2026-07-04 (Claude, live-DB verification + orphan retirement).*
+*Last updated: 2026-07-04 (Claude, money-path smoke follow-up).*
+
+- **Owner's live smoke (2026-07-04): reschedule ✓ (WA confirmation sent),
+  OTP delivery ✓, package change + server-recomputed totals ✓.** The top-up
+  card step surfaced that `VITE_MOYASAR_PUBLISHABLE_KEY` is **unset as a
+  GitHub Actions repository secret**, so the deployed bundle cannot mount
+  Moyasar (`a8d6afb` replaced the old developer-hint panel with a graceful
+  bilingual WhatsApp hand-off; deploy.yml now warns when the key is absent).
+  **Owner action: add the repo secret (pk_test for the smoke, pk_live at
+  launch), then re-run the deploy** — cards stay on the WhatsApp notice
+  until then.
 
 - **Live Supabase verified via anon REST (2026-07-04):** July album +
   album-examples + films migrations are applied (`example_url`/`box_url`
