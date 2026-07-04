@@ -21,102 +21,79 @@
 
 ## 2. Live state (update this section on every handoff)
 
-*Last updated: 2026-07-04 (Claude, film streams → Supabase Storage).*
+*Last updated: 2026-07-04, end of day (Claude → Codex handoff note).*
 
-- **Film streams are moving off GitHub Pages** (the ~200 MB payload made
-  GitHub's pages-build-deployment fail intermittently — 3 of 4 runs on
-  2026-07-04). The frontend now loads the HLS manifest **Storage-first with
-  repo-local fallback** (`src/services/films.ts`), so nothing breaks at any
-  stage. **Operator sequence:** (1) apply
-  `migrations-2026-07-videos-bucket.sql`, (2) run the
-  "Sync film streams to Supabase Storage" workflow, (3) confirm `/#/films`
-  plays from Storage, (4) THEN delete `public/videos/` in a follow-up
-  commit (until then the fallback keeps working). Arabic admin manual
-  refreshed with §§١٧–٢٢ (July features) — the PDF hand-offs are generated
-  from it.
+**Codex — picking up from here, read this instead of scrolling history.**
+Everything below is live-verified against production unless marked otherwise.
+Your W1/W3 work all held; three of your loose ends were closed, one of your
+recommendations was retracted (details below, nothing personal — the facts
+moved after your session).
 
-- **Notification policy (owner decision — Meta approval never came):**
-  email is the ALWAYS channel; WhatsApp is additive behind the existing
-  `app_settings.wa_enabled` switch (admin panel toggle, default off). Every
-  sender guards BEFORE entering WA code — off = no attempt, no failure logs:
-  `create-booking` (already), `change-booking` (already), `wa-reminders`
-  (already), and now `send-whatsapp` (internal gate added). change-booking
-  gained the missing email parallels: bride reschedule / package-change
-  confirmations + studio alerts (`_shared/email-change.ts`,
-  `OWNER_EMAIL` env falls back to `ZOHO_SMTP_USER`), and its responses
-  report `notified: {wa, email}` so the manage page states the real
-  channel instead of always claiming WhatsApp. OTP consumption is now an
-  atomic conditional update (single-use holds under concurrent tabs).
+### Where the system stands (launch is days away)
 
-- **Owner's live smoke (2026-07-04): reschedule ✓ (WA confirmation sent),
-  OTP delivery ✓, package change + server-recomputed totals ✓.** The top-up
-  card step surfaced that `VITE_MOYASAR_PUBLISHABLE_KEY` is **unset as a
-  GitHub Actions repository secret**, so the deployed bundle cannot mount
-  Moyasar (`a8d6afb` replaced the old developer-hint panel with a graceful
-  bilingual WhatsApp hand-off; deploy.yml now warns when the key is absent).
-  **Owner decision (2026-07-04): card payments are deferred — the studio
-  runs transfer-only for now.** Transfer-only is first-class, not an error
-  state: the booking chooser already hides the card option without the key,
-  and the manage-page top-up now renders bank-transfer settlement
-  (`TopUpTransfer` — official IBAN + WhatsApp receipt hand-off, shared
-  facts in `src/content/payment.ts`). When cards activate later: set the
-  `VITE_MOYASAR_PUBLISHABLE_KEY` repo secret (+ matching `MOYASAR_SECRET_KEY`
-  in Supabase, same test/live mode) and redeploy — both surfaces switch to
-  the card form automatically. Note: a transfer top-up is confirmed manually
-  (receipt via WhatsApp, like deposits); `bookings.topup_amount_due` stays
-  as the bookkeeping record — only card payments auto-clear it via
-  `verify-payment`.
+- **All July SQL is applied and live-verified** (album, album-examples,
+  films, portfolio-optimised-urls, gallery-image-refresh). RLS spot-checked
+  via anon REST: bookings/otps/contracts/invoices/discounts leak nothing.
+  All five Edge Functions answer. Owner ran the money-path smoke: reschedule,
+  OTP, package change, transfer top-up — all good.
+- **Launch decisions locked in code:** transfer-only payments (cards deferred
+  behind `VITE_MOYASAR_PUBLISHABLE_KEY` + `MOYASAR_SECRET_KEY`; admin clears
+  `topup_amount_due` from the booking modal, gold receivable chip in the
+  table) and dual-channel notifications (email ALWAYS via
+  `_shared/email-change.ts` + `email-confirmation`/`email-otp`; WhatsApp
+  additive behind `app_settings.wa_enabled`, default off; every sender
+  guards before entering WA code; change-booking returns `notified:{wa,email}`
+  and the manage page words itself from it). OTP consume is an atomic
+  conditional update. Tests now 143.
+- **Wordmark is Tajawal light** (owner call) — `.atema-wordmark`/`.atema-sub`.
+- **Orphan review page deleted** (owner approved the /films wording). The
+  6-clip published cut is the owner's curation; unpublished clips stay in
+  repo + registry deliberately (weak audio / repeats).
+- **Image weight pruned:** 16 unreferenced files gone (Promotion_Mobile +
+  B39F4EE0 families, orphan .optimised twins, raw .JPGs whose optimised
+  copies are the referenced ones); promo-card recompressed 394→108 KB
+  (it is preloaded on first paint). All deletions were checked against code
+  refs (incl. BASE-interpolated + derived-webp patterns, photoPool stems)
+  AND live DB rows.
 
-- **Live Supabase verified via anon REST (2026-07-04):** July album +
-  album-examples + films migrations are applied (`example_url`/`box_url`
-  populated; `film_entries` live with 6 published clips — the owner keeps the
-  rest disabled deliberately: weak audio / repetitive takes; assets and
-  registry entries stay in the repo).
-- ✅ **Two-step SQL fix applied and re-verified live (2026-07-04):** zero
-  portfolio rows on raw `.JPG`, the six stuck rows and all eight journal
-  covers now match `gallery-image-refresh` exactly, and every referenced
-  image returns 200 on production. The entire July SQL set is now verified
-  applied. **Never re-run `journal-cover-reshuffle.sql`** — marked
-  superseded in its header.
-- **Orphan review surface deleted** (owner approved the Films wording):
-  `public/atema-motion-review-f7c9a2.html` + `public/video-review.js` are
-  gone; all HLS clips remain, and the admin Films Manager's "sync defaults"
-  restores any missing registry rows for toggling.
+### Corrections to your session's artifacts (already committed)
 
-- **Browser-level verification of `/films` (production build): passed.**
-  Driven with headless Chromium against `vite preview`: page renders (RTL,
-  chapters, playlist, quality UI), and the full HLS chain works — manifest →
-  level playlists → segments, ABR ladder, retries. One caveat for future
-  agents: **sandboxed/open-source Chromium builds lack H.264/AAC**
-  (`MediaSource.isTypeSupported → false`), so decode fails there with the
-  page's "تعذر تشغيل هذا المقطع الآن" note — that is the test environment,
-  not a bug; real browsers ship those codecs. Also verified `npm run lint`,
-  `npm test` (141/141), `npm run build` on the same tree.
+- ⛔ **`migrations-2026-07-journal-cover-reshuffle.sql` is retracted** — your
+  W3 report told the operator to apply it, but run after gallery-image-refresh
+  it overwrites the refreshed covers (its WHERE matches any /photos/ cover;
+  that exact accident happened live). The file header + your report
+  (`docs/reviews/2026-07-04-integration-integrity.md`, see Addendum) both say
+  do-not-re-run now.
+- ⚠ **Your "pages-build-deployment succeeded" observation didn't hold** —
+  3 of 4 later ingestions failed on the ~200 MB payload. Mitigation is
+  built: films load **Storage-first with repo fallback**
+  (`src/services/films.ts`), `migrations-2026-07-videos-bucket.sql` creates
+  the public bucket, `.github/workflows/supabase-videos-sync.yml` uploads
+  (manifest last, self-verifying). **Owner still has to run those two steps;
+  after `/#/films` plays from Storage, delete `public/videos/` (~204 MB) in
+  a follow-up commit.** Until then the fallback keeps everything working.
+- ⚠ **Your May testimonials placeholder is now a launch blocker:**
+  `Testimonials.tsx` ships FICTIONAL named bride quotes (your own
+  TODO[CONTENT] comment says so) and it is live on the booking page. Owner
+  was told: supply 3 real consented quotes or the carousel gets hidden.
+  If you touch this area first, don't ship more placeholder quotes.
 
-- Latest completed local pass: W3 from `docs/plans/integration-2026-07.md`.
-  Report: `docs/reviews/2026-07-04-integration-integrity.md`.
-- **W1 (Films page): done.** Public `/#/films` is routed/nav-linked, backed by
-  `public/videos/hls/manifest.json`, `src/content/films.ts`, and the
-  Supabase-backed admin Films Manager at `/#/admin/films`.
-- **W2 (album example render): done.** Photographic mockups are primary
-  (`example_url`/`box_url`, migration
-  `migrations-2026-07-album-examples.sql`), with `AlbumCoverExample` fallback.
-- **W3 (local integrity pass): done.** `npm run lint`, `npm test` (141/141),
-  and `npm run build` pass. W3 also fixed the July portfolio seed to use
-  optimized images and added
-  `database/migrations-2026-07-portfolio-optimised-urls.sql`.
-- **Gallery refresh follow-up:** portfolio/journal admin editors now include a
-  shared picker from `src/content/photoPool.ts`; the stronger public refresh is
-  in `database/migrations-2026-07-gallery-image-refresh.sql`.
-- Live/operator follow-ups remain: apply July SQL in Supabase, verify security
-  advisor/RLS and Edge Function deployed versions, then run the full test-mode
-  booking/payment/capability-link narrative.
-- Orphaned video review page (`public/atema-motion-review-f7c9a2.html`) is
-  still present and `noindex`. Delete it only after the owner approves the
-  curated Films page wording.
-- The local worktree may still contain a large unstaged media queue under
-  `public/photos/` and raw `public/videos/` sources from the photo/video
-  optimizer work. Do not stage those unless the owner explicitly asks.
+### Open items, in priority order
+
+1. Testimonials: real quotes in or carousel out (above).
+2. Videos → Storage operator steps, then delete `public/videos/`.
+3. Owner retires LAUNCH15 and mints the real launch code.
+4. Marketing follow-ups (see `docs/marketing-proposal-2026-05/README.md`
+   §"Status re-check — 2026-07-04"): anchor bundle (C2) + 24h pledge (C3)
+   await owner words; E2 region-rooted frames need a shoot; paid D1 is NOT
+   blocked by Meta (inbound wa.me works without send-approval).
+5. Low-priority tracker: L-5 / L-6 / L-9 in `docs/bugs.md`; raw `.jpeg`
+   legacy originals (bride-hero.jpeg etc.) are still referenced as
+   legacy-matchers only — safe to revisit later, not urgent.
+
+Owner-facing hand-offs generated this session (PDFs, not in the repo): the
+Arabic admin guide (from the refreshed `docs/MANUAL.ar.md`), the Arabic
+marketing workbook, and a system relationship map.
 
 ## 3. Handoff protocol
 
