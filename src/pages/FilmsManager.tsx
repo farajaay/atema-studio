@@ -24,6 +24,8 @@ import type { FilmManifestItem } from '../services/films';
 
 function assetUrl(path?: string) {
   if (!path) return '';
+  // Absolute URLs arrive pre-resolved by the films service (Supabase Storage).
+  if (/^https?:\/\//.test(path)) return path;
   return path.startsWith('/') ? path : `/${path}`;
 }
 

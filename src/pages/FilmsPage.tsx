@@ -25,6 +25,8 @@ type Lang = 'ar' | 'en';
 const tx = (lang: Lang, ar: string, en: string) => lang === 'ar' ? ar : en;
 
 function assetUrl(path: string) {
+  // Absolute URLs arrive pre-resolved by the films service (Supabase Storage).
+  if (/^https?:\/\//.test(path)) return path;
   return path.startsWith('/') ? path : `/${path}`;
 }
 

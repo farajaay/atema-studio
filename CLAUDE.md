@@ -380,6 +380,9 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   - `database/migrations-2026-07-album-examples.sql` (example_url + box_url —
     photographic album/box mockups on the selection page; run after the
     album migration)
+  - `database/migrations-2026-07-videos-bucket.sql` (public `videos` Storage
+    bucket — then run the "Sync film streams" workflow; see AGENTS.md for
+    the 4-step sequence before deleting `public/videos/`)
   - `database/seed-packages-2026-05.sql` (6 packages + 11 add-ons — required
     if `packages` table is empty; the booking flow falls back to the DEMO
     catalogue without it, but the Edge Function still needs real rows to

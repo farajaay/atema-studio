@@ -21,7 +21,19 @@
 
 ## 2. Live state (update this section on every handoff)
 
-*Last updated: 2026-07-04 (Claude, dual-channel notification policy).*
+*Last updated: 2026-07-04 (Claude, film streams → Supabase Storage).*
+
+- **Film streams are moving off GitHub Pages** (the ~200 MB payload made
+  GitHub's pages-build-deployment fail intermittently — 3 of 4 runs on
+  2026-07-04). The frontend now loads the HLS manifest **Storage-first with
+  repo-local fallback** (`src/services/films.ts`), so nothing breaks at any
+  stage. **Operator sequence:** (1) apply
+  `migrations-2026-07-videos-bucket.sql`, (2) run the
+  "Sync film streams to Supabase Storage" workflow, (3) confirm `/#/films`
+  plays from Storage, (4) THEN delete `public/videos/` in a follow-up
+  commit (until then the fallback keeps working). Arabic admin manual
+  refreshed with §§١٧–٢٢ (July features) — the PDF hand-offs are generated
+  from it.
 
 - **Notification policy (owner decision — Meta approval never came):**
   email is the ALWAYS channel; WhatsApp is additive behind the existing

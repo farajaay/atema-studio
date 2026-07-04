@@ -1,0 +1,66 @@
+# ATEMA STUDIO — one-time (re-runnable) upload of the HLS film streams to
+# Supabase Storage, so the ~200 MB video payload leaves the GitHub Pages
+# deploy path (its size made GitHub's pages-build-deployment step fail
+# intermittently).
+#
+# Order of operations:
+#   1. Apply database/migrations-2026-07-videos-bucket.sql (creates the
+#      public `videos` bucket) — via the supabase-migrations workflow or the
+#      SQL editor.
+#   2. Run THIS workflow (Actions → "Sync film streams to Supabase Storage"
+#      → Run workflow).
+#   3. Verify /#/films still plays (the site prefers Storage automatically).
+#   4. Delete public/videos/ from the repo in a follow-up commit.
+#
+# Re-running is safe: uploads overwrite objects of the same path.
+
+name: Sync film streams to Supabase Storage
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      - name: Upload HLS tree (manifest last)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ ! -d public/videos/hls ]; then
+            echo "::error::public/videos/hls is gone from the repo — nothing to upload."
+            echo "::error::If Storage is already populated this workflow is obsolete."
+            exit 1
+          fi
+          # Upload segments/posters/playlists first, the manifest LAST — the
+          # frontend switches to Storage the moment the manifest appears, so
+          # it must never be visible before the streams it points at.
+          mv public/videos/hls/manifest.json /tmp/manifest.json
+          supabase storage cp -r --experimental public/videos/hls ss:///videos/hls
+          mv /tmp/manifest.json public/videos/hls/manifest.json
+          supabase storage cp --experimental public/videos/hls/manifest.json ss:///videos/hls/manifest.json
+
+      - name: Verify manifest is publicly served
+        run: |
+          set -euo pipefail
+          URL="${{ secrets.VITE_SUPABASE_URL }}/storage/v1/object/public/videos/hls/manifest.json"
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+          if [ "$code" != "200" ]; then
+            echo "::error::Manifest not reachable at $URL (HTTP $code)."
+            echo "::error::Did you apply migrations-2026-07-videos-bucket.sql first?"
+            exit 1
+          fi
+          echo "Storage manifest live: $URL"
+          echo "Next: verify /#/films plays, then delete public/videos/ from the repo."

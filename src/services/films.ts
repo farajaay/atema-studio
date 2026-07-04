@@ -51,7 +51,44 @@ interface FilmEntryRow {
   deleted_at?: string | null;
 }
 
+// ── Stream hosting ──────────────────────────────────────────────────────────
+// The HLS ladders are moving OFF GitHub Pages (the ~200 MB payload was making
+// Pages' own deploy-sync step fail intermittently) into the public Supabase
+// Storage bucket `videos` (same folder shape: videos/hls/<clip>/…).
+// Load order: Storage first, repo-local /videos/ as fallback — so the site
+// works identically before, during, and after the one-time upload
+// (.github/workflows/supabase-videos-sync.yml).
+const SUPABASE_URL_ENV = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? '';
+const STORAGE_VIDEOS_BASE = SUPABASE_URL_ENV
+  ? `${SUPABASE_URL_ENV.replace(/\/$/, '')}/storage/v1/object/public/videos`
+  : '';
+const LOCAL_VIDEOS_BASE = '/videos';
+
 export const FILMS_MANIFEST_URL = '/videos/hls/manifest.json';
+
+/** Resolve a manifest-relative path (e.g. "videos/hls/clip-01/poster.jpg")
+ *  against the base that actually served the manifest. */
+function resolveStreamUrl(base: string, path: string): string {
+  return `${base}/${path.replace(/^\/?videos\//, '')}`;
+}
+
+async function tryManifest(base: string): Promise<FilmsManifest | null> {
+  try {
+    const response = await fetch(`${base}/hls/manifest.json`, { cache: 'no-store' });
+    if (!response.ok) return null;
+    const manifest = await response.json() as FilmsManifest;
+    return {
+      ...manifest,
+      items: (manifest.items ?? []).map(item => ({
+        ...item,
+        hls:    resolveStreamUrl(base, item.hls),
+        poster: resolveStreamUrl(base, item.poster),
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
 
 function toRow(film: FilmCuration): FilmEntryRow {
   return {
@@ -90,9 +127,13 @@ function fallbackFilms(publishedOnly: boolean) {
 }
 
 export async function fetchFilmsManifest(): Promise<FilmsManifest | null> {
-  const response = await fetch(FILMS_MANIFEST_URL, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`Films manifest failed: ${response.status}`);
-  return response.json() as Promise<FilmsManifest>;
+  if (STORAGE_VIDEOS_BASE) {
+    const fromStorage = await tryManifest(STORAGE_VIDEOS_BASE);
+    if (fromStorage) return fromStorage;
+  }
+  const fromLocal = await tryManifest(LOCAL_VIDEOS_BASE);
+  if (!fromLocal) throw new Error('Films manifest failed on both storage and local hosts');
+  return fromLocal;
 }
 
 export async function fetchPublishedFilmCurations(): Promise<FilmCuration[]> {
