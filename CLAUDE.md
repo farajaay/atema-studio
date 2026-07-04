@@ -387,18 +387,30 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   - `database/seed-journal-2026-05.sql` (6 journal posts)
   - `database/seed-portfolio-2026-05-expanded.sql` (23 portfolio items —
     **use this, not the old `seed-portfolio-2026-05.sql`**)
-- Meta Business verification + permanent access token.
-- Submit 6 WA templates to Meta (copy from `docs/integrations/wa-platform.md` §6).
-- Supabase secrets: `META_WA_*`, `ANTHROPIC_API_KEY`, `OWNER_WA_NUMBER`,
-  `CRON_SECRET`, `ZOHO_SMTP_*` (see `docs/integrations/email.md` §2.4),
-  `SITE_ORIGIN`, **`MOYASAR_SECRET_KEY`** (the `sk_...` key from Moyasar dashboard — required by `verify-payment`).
-- Deploy WA Edge Functions: `supabase functions deploy wa-webhook wa-receipt wa-reminders`.
-- Deploy payment-verification Edge Function: `supabase functions deploy verify-payment`.
-- Deploy the self-service Edge Function: `supabase functions deploy change-booking`.
-- Schedule cron at `*/30 * * * *`.
-- Drop the legacy public bookings INSERT RLS policy after `create-booking`
-  Edge Function is deployed and stable (Patch C-3 finish).
-- Activate Moyasar live mode + update callback URL to atemastudio.xyz.
+- **WhatsApp is OPTIONAL (July 2026 decision — Meta approval never came).**
+  Email is the always-channel; WA is additive behind the admin switch
+  `app_settings.wa_enabled` (default off; every sender guards before entering
+  WA code — off costs nothing). Only when the owner decides to activate WA:
+  Meta Business verification + permanent token, submit the 6 templates
+  (`docs/integrations/wa-platform.md` §6), set `META_WA_*` + `CRON_SECRET`,
+  schedule the `wa-reminders` cron at `*/30 * * * *`, then flip the switch.
+- Supabase secrets (email path — the live one): `ZOHO_SMTP_*`
+  (see `docs/integrations/email.md` §2.4), `SITE_ORIGIN`, `OWNER_WA_NUMBER`,
+  optional `OWNER_EMAIL` (change alerts; defaults to the Zoho sender),
+  `ANTHROPIC_API_KEY` (receipt vision — WA-dependent).
+- Edge Function deploys are **automatic** (`supabase-functions.yml` on any
+  `supabase/functions/**` push to master); manual `supabase functions deploy`
+  is emergency-only.
+- **Card payments are DEFERRED (July 2026 decision)** — the studio runs
+  transfer-only, and the code treats that as first-class (booking chooser
+  hides cards; manage-page top-up shows IBAN + WA receipt hand-off; admin
+  clears `topup_amount_due` from the booking modal). To activate cards later:
+  set the `VITE_MOYASAR_PUBLISHABLE_KEY` GitHub secret + matching
+  `MOYASAR_SECRET_KEY` Supabase secret (same test/live mode) and redeploy —
+  both surfaces switch to the card form automatically.
+- ~~Drop the legacy public bookings INSERT RLS policy~~ — superseded:
+  `migrations-2026-06-fix-booking-insert.sql` deliberately keeps a
+  constrained anon-INSERT fallback behind the Edge Function.
 
 ### Owner attention (time-sensitive)
 - **LAUNCH15 has likely expired** — it was valid 20 days from when
@@ -453,6 +465,28 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   `.github/workflows/supabase-secrets.yml` (manual, pushes secrets from GH Actions store),
   `.github/workflows/supabase-functions.yml` (auto on `supabase/functions/**` push, + manual),
   `.github/workflows/supabase-migrations.yml` (manual, applies `database/migrations-*.sql` via Supabase Management API — `only-file` input for single-file runs, `include-seeds` for full catalogue). Operator setup in `BACKEND_SETUP.md` §1 + §3 and `docs/integrations/email.md` §2.4 + §2.5.
+- ✅ **July 2026 integration pass** (plan: `docs/plans/integration-2026-07.md`;
+  all live-verified against production):
+  - Films page `/#/films` (nav + footer + sitemap), curated registry in
+    `src/content/films.ts` + Supabase-backed admin Films Manager
+    (`/#/admin/films`, `migrations-2026-07-films.sql`); orphan review page
+    deleted; owner keeps weak/repetitive clips unpublished.
+  - Album example render — per-cover photographic mockups
+    (`example_url`/`box_url`, `migrations-2026-07-album-examples.sql`) with
+    `AlbumCoverExample` CSS mock as fallback + admin previews.
+  - Gallery refresh (portfolio + journal repointed at the optimised July
+    pool; `journal-cover-reshuffle` is SUPERSEDED — never re-run it).
+  - **Transfer-only payments as first-class** — manage-page top-up shows
+    IBAN + WA receipt hand-off (`TopUpTransfer`, facts in
+    `src/content/payment.ts`); admin clears `topup_amount_due` from the
+    booking modal; bookings table marks receivables with a gold chip.
+  - **Dual-channel notifications** — email always, WA additive behind
+    `app_settings.wa_enabled`; change-booking sends bride + studio emails
+    (`_shared/email-change.ts`) and reports `notified:{wa,email}` so the
+    manage page states the real channel; OTP consume is atomic single-use.
+  - Wordmark switched from Cinzel to Tajawal light (matches the Atelier
+    portrait placeholder face) — `.atema-wordmark`/`.atema-sub` in
+    `index.html`.
 
 Full tracker: [`docs/bugs.md`](./docs/bugs.md).
 
@@ -488,8 +522,10 @@ the canonical voice samples.
 
 ---
 
-*Last updated: 2026-06-12 — full system review (report under `docs/reviews/`),
-Phase-0 housekeeping (doc truth pass, tracker closes, anti-impersonation copy),
-and Phase-1 revenue protection: contract/invoice regeneration + versioned
-document storage (+ RLS fix for an anon PII leak on those tables),
-refund-deposit button, failed-sends banner, change-booking glue tests.*
+*Last updated: 2026-07-04 — July integration pass complete and live-verified
+(Films page, album photographic mockups, gallery refresh), launch decisions
+locked in code: transfer-only payments (cards deferred behind the Moyasar
+secrets), dual-channel notifications (email always, WhatsApp additive behind
+`app_settings.wa_enabled`), admin top-up clearing + receivable chip, wordmark
+→ Tajawal light. Cross-agent state: `AGENTS.md`. Prior review history:
+`docs/reviews/`.*

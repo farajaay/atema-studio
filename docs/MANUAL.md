@@ -996,6 +996,46 @@ stored offline at the studio.
 
 ---
 
+## 13j. Transfer-only payments & the WhatsApp switch (July 2026)
+
+Two launch decisions live in the product now; this is how you operate them.
+
+### Payments are transfer-only (cards deferred)
+
+- The booking flow offers **bank transfer only** while the Moyasar key is
+  unset; the customer copies the official Al Rajhi IBAN and sends her
+  receipt on WhatsApp, as before.
+- **Package-upgrade top-ups** (from the bride's manage page) settle the same
+  way: after an upgrade she sees the IBAN + a WhatsApp button pre-filled
+  with her booking ref and the exact amount.
+- **Your side:** bookings with an outstanding upgrade balance show a **gold
+  chip** (● +amount) next to the payment badge in the dashboard list. Open
+  the booking → under حالة الدفع you'll see **رصيد ترقية مستحق** with a
+  two-tap **"تم استلام المبلغ — تصفير الرصيد"** button. Verify the transfer
+  receipt first (WhatsApp / bank app), then clear it. The chip disappears.
+- Activating cards later needs no code: set the
+  `VITE_MOYASAR_PUBLISHABLE_KEY` GitHub secret + a matching-mode
+  `MOYASAR_SECRET_KEY` Supabase secret and redeploy — card forms appear
+  everywhere automatically, and card top-ups clear themselves.
+
+### Notifications: email always, WhatsApp by switch
+
+- **Email is the channel that always fires**: booking confirmation (with
+  contract + invoice), the package-change OTP, reschedule and
+  package-change confirmations to the bride, and change alerts to the
+  studio inbox (atema@ by default; set an `OWNER_EMAIL` Supabase secret to
+  redirect them).
+- **WhatsApp is additive**, controlled by the **الإعدادات → WhatsApp**
+  toggle (`wa_enabled`, currently OFF because Meta approval is pending).
+  Off = the WA code path is skipped entirely — no failed sends, no log
+  noise. On = customers get both channels; lifecycle reminders
+  (`wa-reminders`) start working too, provided the Meta credentials +
+  cron are configured (`docs/integrations/wa-platform.md`).
+- Watch the **failed-sends banner** on the dashboard — it's your early
+  warning if Zoho (or WhatsApp, when enabled) starts failing.
+
+---
+
 ## 15. Package hero photos & object positioning
 
 Each package card renders a hero photo above the card body. The
