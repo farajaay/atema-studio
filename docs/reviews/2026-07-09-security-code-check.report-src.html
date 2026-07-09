@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ATEMA STUDIO — Security &amp; Code Check — 2026-07-09</title>
+<style>
+  /* ATEMA STUDIO stationery palette — mirrors src/theme/stationery.ts.
+     Per CLAUDE.md §4.1 a printed/sent artifact wears STATIONERY tokens,
+     not the noir/ivory screen themes. No hex here that isn't a token. */
+  :root{
+    --paper:#F9F5F0; --paperAlt:#FBF6EE; --paperWarn:#FFF8F0; --card:#FFFFFF;
+    --ink:#2C2218; --inkSoft:#4A3728; --inkMuted:#8C6B4F; --inkFaint:#B09880;
+    --goldChampagne:#C9B393; --goldDeep:#8C6B4F; --goldHi:#E8D9C5;
+    --borderHair:#E8D9C5; --borderDash:#D6BFA3;
+    --noir:#1A1A1A; --noirMid:#2C2C2C; --noirWarm:#4A3728;
+    --noirGrad:linear-gradient(135deg,#1A1A1A,#2C2C2C,#4A3728);
+    --warnInk:#5C3D1E;
+    --okBg:#EAF2EC; --okInk:#3F6B53; --okBorder:#B7CFC0;
+    --warnBg:#FBF1E5; --warnIn:#A07043; --warnBorder:#DFC0A0;
+    --font-display:'Cormorant Garamond',serif;
+    --font-body:'Tajawal',sans-serif;
+    --font-wordmark:'Amiri',serif;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Tajawal:wght@300;400;600;700&display=swap');
+
+  @page{ size:A4; margin:14mm; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:var(--font-body); color:var(--ink);
+    background:var(--paper); font-size:10.4px; line-height:1.62;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+
+  /* ── Header band (the one dark surface — noir gradient) ── */
+  .band{
+    background:var(--noirGrad); color:var(--goldHi);
+    padding:26px 30px 22px; border-radius:3px;
+    margin-bottom:22px;
+  }
+  .wordmark{
+    font-family:var(--font-wordmark); font-size:23px; letter-spacing:.42em;
+    color:var(--goldHi); margin:0 0 3px; font-weight:400;
+    padding-left:.42em;
+  }
+  .band .sub{ font-family:var(--font-display); font-style:italic;
+    font-size:13px; color:#E8D9C5cc; letter-spacing:.06em; margin:0 0 14px; }
+  .band .title{ font-family:var(--font-display); font-weight:600;
+    font-size:22px; letter-spacing:.02em; margin:0; color:#fff; }
+  .meta-grid{ display:flex; flex-wrap:wrap; gap:2px 26px; margin-top:12px;
+    font-size:9px; letter-spacing:.03em; }
+  .meta-grid b{ color:var(--goldChampagne); font-weight:600; }
+  .meta-grid span{ color:#E8D9C5b0; }
+
+  /* ── Cards / sections ── */
+  .card{
+    background:var(--card); border:1px solid var(--borderHair);
+    border-radius:3px; padding:16px 20px; margin-bottom:14px;
+    box-shadow:0 4px 24px rgba(0,0,0,0.05);
+  }
+  h2.sec{
+    font-family:var(--font-display); font-weight:600; font-size:16px;
+    color:var(--inkMuted); letter-spacing:.04em; margin:0 0 4px;
+    padding-bottom:7px; border-bottom:1px solid var(--borderHair);
+    display:flex; align-items:baseline; gap:10px;
+  }
+  h2.sec .n{ font-family:var(--font-wordmark); font-size:12px;
+    color:var(--goldChampagne); letter-spacing:.1em; }
+  h3{ font-family:var(--font-display); font-size:12.5px; color:var(--inkSoft);
+    margin:14px 0 5px; font-weight:600; letter-spacing:.02em; }
+  p{ margin:7px 0; }
+  .lede{ font-family:var(--font-display); font-style:italic; font-size:12.5px;
+    color:var(--inkSoft); line-height:1.7; }
+  code{ font-family:'Courier New',monospace; font-size:9px;
+    background:var(--paperAlt); color:var(--warnInk);
+    padding:1px 4px; border-radius:2px; }
+  a{ color:var(--goldDeep); }
+  strong{ color:var(--ink); }
+
+  /* ── Verdict banner ── */
+  .verdict{
+    display:flex; align-items:center; gap:16px;
+    background:var(--paperWarn); border:1px solid var(--warnBorder);
+    border-left:4px solid var(--warnIn);
+    border-radius:3px; padding:14px 20px; margin-bottom:16px;
+  }
+  .verdict .badge{ font-family:var(--font-display); font-weight:700;
+    font-size:19px; letter-spacing:.14em; color:var(--warnIn);
+    white-space:nowrap; }
+  .verdict .txt{ font-size:10px; color:var(--inkSoft); }
+
+  /* ── Tables ── */
+  table{ width:100%; border-collapse:collapse; margin:9px 0; font-size:9px;
+    page-break-inside:avoid; }
+  th{ text-align:left; font-family:var(--font-body); font-weight:700;
+    font-size:8.4px; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--inkMuted); border-bottom:1.5px solid var(--goldChampagne);
+    padding:6px 8px; }
+  td{ padding:6px 8px; border-bottom:1px solid var(--borderHair);
+    vertical-align:top; color:var(--inkSoft); }
+  tr:last-child td{ border-bottom:none; }
+  td b{ color:var(--ink); }
+
+  /* ── Severity chips (stationery status tokens) ── */
+  .chip{ display:inline-block; font-size:7.6px; font-weight:700;
+    letter-spacing:.06em; padding:1.5px 7px; border-radius:9px;
+    white-space:nowrap; text-transform:uppercase; }
+  .chip.ok{ background:var(--okBg); color:var(--okInk); border:1px solid var(--okBorder); }
+  .chip.high{ background:var(--warnBg); color:#9A3B22; border:1px solid var(--warnBorder); }
+  .chip.med{ background:var(--warnBg); color:var(--warnIn); border:1px solid var(--warnBorder); }
+  .chip.low{ background:var(--paperAlt); color:var(--inkMuted); border:1px solid var(--borderHair); }
+  .chip.crit{ background:#3a1414; color:#F3D8C8; border:1px solid #6b2a2a; }
+
+  /* ── Finding block ── */
+  .finding{ border-left:3px solid var(--goldDeep); padding:4px 0 4px 14px;
+    margin:14px 0; page-break-inside:avoid; }
+  .finding.high{ border-left-color:#9A3B22; }
+  .finding.med{ border-left-color:var(--warnIn); }
+  .finding.low{ border-left-color:var(--goldChampagne); }
+  .finding .fh{ font-family:var(--font-display); font-weight:600; font-size:12px;
+    color:var(--ink); margin-bottom:4px; }
+  .finding .row{ font-size:9px; margin:3px 0; color:var(--inkSoft); }
+  .finding .row .k{ color:var(--inkMuted); font-weight:600; }
+  pre{ background:var(--paperAlt); border:1px solid var(--borderHair);
+    border-radius:3px; padding:9px 11px; font-family:'Courier New',monospace;
+    font-size:8px; line-height:1.5; color:var(--warnInk); overflow-x:auto;
+    white-space:pre-wrap; margin:6px 0; }
+
+  ul{ margin:6px 0; padding-left:17px; }
+  li{ margin:3px 0; }
+  .foot{ text-align:center; font-family:var(--font-display); font-style:italic;
+    font-size:9px; color:var(--inkFaint); margin-top:20px;
+    padding-top:12px; border-top:1px solid var(--borderHair); }
+  .rule{ height:1px; background:var(--borderDash); margin:2px 0 0;
+    opacity:.55; }
+  .section-break{ page-break-before:always; }
+</style>
+</head>
+<body>
+
+  <div class="band">
+    <div class="wordmark">ATEMA&nbsp;STUDIO</div>
+    <p class="sub">تدقيق أمني وفحص للشيفرة — Security &amp; Code Check</p>
+    <p class="title">Full Security &amp; Code Check</p>
+    <div class="meta-grid">
+      <div><b>Date</b> <span>2026-07-09</span></div>
+      <div><b>Commit</b> <span>203e6b9 (master)</span></div>
+      <div><b>Auditor</b> <span>Claude Code — Anthropic</span></div>
+      <div><b>Method</b> <span>Static analysis + tool execution</span></div>
+      <div><b>Plan</b> <span>docs/plans/security-code-check-2026-07.md</span></div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <div class="badge">🟠 AMBER</div>
+    <div class="txt"><strong>Every prior patch holds; all gates green.</strong>
+      One new HIGH (H-11: column-unrestricted anon UPDATE on <code>bookings</code>
+      — a takeover/tamper window on pending, unpaid rows), one dormant MEDIUM,
+      one LOW, and two process gaps. Two dependency advisories were fixed in
+      this pass. Amber because H-11 is real money-and-PII surface, but the
+      exposure is a transient state, writes are blind, and the fix is a
+      ~30-minute RPC swap.</div>
+  </div>
+
+  <div class="card">
+    <h2 class="sec"><span class="n">I</span> Executive summary</h2>
+    <p class="lede">The codebase is in strong shape. Every previously-patched
+      finding from C-1 through M-11 (plus H-10 and L-8) holds with zero
+      regressions, the mechanical gates are all green, the production bundle is
+      hardened as designed, and the two July P0 migrations correctly closed the
+      bookings PII leak found during album verification.</p>
+    <p>This pass surfaced <strong>one new HIGH finding (H-11)</strong>: the RLS
+      policy that lets the transfer screen mark a booking <code>awaiting_transfer</code>
+      is row-level, not column-level, so anyone holding the public anon key can
+      blind-overwrite <em>every</em> column — including <code>manage_token</code>,
+      <code>customer_email</code>, <code>total</code>, and <code>event_date</code> —
+      on any booking still in the pending &amp; unpaid window. One dormant MEDIUM
+      (phishing relay in <code>send-whatsapp</code>, inert while WhatsApp is off),
+      one LOW (JSON-LD breakout on admin-authored journal content), and two
+      process gaps (July migrations absent from the CI manifest; the P0 fix
+      untracked in <code>docs/bugs.md</code>) complete the picture.</p>
+  </div>
+
+  <div class="card">
+    <h2 class="sec"><span class="n">II</span> Static baseline</h2>
+    <table>
+      <tr><th>Gate</th><th>2026-07-03</th><th>This pass — 2026-07-09</th></tr>
+      <tr><td><code>npm audit</code></td><td>0 vulns</td><td><b>2 found</b> (vite HIGH, Windows dev-only · @babel/core LOW, dev-time) → <span class="chip ok">fixed → 0</span></td></tr>
+      <tr><td><code>npm run lint</code></td><td>clean</td><td><b>clean</b></td></tr>
+      <tr><td><code>npm test</code></td><td>139/139</td><td><b>143/143</b> · 16 files</td></tr>
+      <tr><td><code>npm run build</code></td><td>clean</td><td><b>clean</b> (tsc -b + vite)</td></tr>
+      <tr><td>Sourcemaps in <code>dist/</code></td><td>0</td><td><b>0</b></td></tr>
+      <tr><td><code>console.log</code> in bundle</td><td>0</td><td><b>0</b></td></tr>
+      <tr><td>JS bundle weight</td><td>—</td><td><b>1.3 MB raw / ~367 KB gzip</b> · 25 chunks</td></tr>
+      <tr><td>Static payload note</td><td>—</td><td><code>dist/videos</code> = <b>203 MB</b> (Storage-sync pending, §VII)</td></tr>
+    </table>
+    <p>Both dependency advisories were published upstream after the last audit;
+      the fix is a lockfile-only patch bump (31 packages) committed with this
+      report. Neither reaches the production bundle — both are
+      dev-server/build-time and one is Windows-only.</p>
+  </div>
+
+  <div class="card">
+    <h2 class="sec"><span class="n">III</span> Regression sweep — all prior patches hold</h2>
+    <table>
+      <tr><th>ID</th><th>Invariant</th><th>Verdict</th><th>Evidence</th></tr>
+      <tr><td><b>C-1</b></td><td>Customer strings escaped in HTML templates</td><td><span class="chip ok">holds</span></td><td><code>esc()</code> ×16 contract, ×14 invoice, ×8/11/4 emails</td></tr>
+      <tr><td><b>C-3</b></td><td>Totals recomputed server-side</td><td><span class="chip ok">holds</span></td><td><code>create-booking:164</code> recompute block</td></tr>
+      <tr><td><b>H-2/M-8</b></td><td>No <code>Math.random</code> in ref / invoice / token</td><td><span class="chip ok">holds</span></td><td>only patch comments remain; CSPRNG throughout</td></tr>
+      <tr><td><b>H-6</b></td><td><code>mood_boards</code> not anon-enumerable</td><td><span class="chip ok">holds</span></td><td>RPC read <code>moodboard.ts:224</code></td></tr>
+      <tr><td><b>H-9</b></td><td>No anon SELECT on <code>bookings</code></td><td><span class="chip ok">re-hardened</span></td><td>July P0 lockdown + definer-view</td></tr>
+      <tr><td><b>H-10</b></td><td><code>contracts</code>/<code>invoices</code> admin-only SELECT</td><td><span class="chip ok">holds</span></td><td><code>migrations-2026-06-documents:73</code></td></tr>
+      <tr><td><b>M-9</b></td><td>Fallback insert persists discount audit</td><td><span class="chip ok">holds</span></td><td><code>booking.ts:314</code></td></tr>
+      <tr><td><b>M-10</b></td><td>Discount preview rate-limited</td><td><span class="chip ok">holds</span></td><td>per-IP token-bucket, 429</td></tr>
+      <tr><td><b>M-11</b></td><td>Payment verified server-side</td><td><span class="chip ok">holds</span></td><td><code>verify-payment</code> Moyasar secret + metadata match</td></tr>
+      <tr><td><b>HMAC</b></td><td><code>wa-webhook</code> verifies signature</td><td><span class="chip ok">holds</span></td><td><code>_shared/wa.ts:163</code></td></tr>
+      <tr><td><b>Bundle</b></td><td>terser + mangle + drop_console + no map</td><td><span class="chip ok">holds</span></td><td><code>vite.config.ts:16-37</code> + built output</td></tr>
+    </table>
+    <p>The July P0 pair (<code>bookings-pii-lockdown</code> +
+      <code>public-booked-dates-definer</code>) is well-designed: explicit drops,
+      a catch-all loop that cannot touch the authenticated policy, and the
+      view converted to definer-semantics safe projection rather than
+      re-widening table RLS. It is, however, untracked — see DOC-2.</p>
+  </div>
+
+  <div class="card section-break">
+    <h2 class="sec"><span class="n">IV</span> New findings</h2>
+
+    <div class="finding high">
+      <div class="fh"><span class="chip high">High</span>&nbsp; H-11 · Anon UPDATE on <code>bookings</code> is column-unrestricted — takeover / tamper window</div>
+      <div class="row"><span class="k">Files</span> — <code>migrations-2026-05-rls-hardening.sql:140-149</code> (policy "Anon update — payment intent only"; mirrored in <code>bundle-existing-db.sql:223</code>) · consumer <code>src/components/BankTransferPayment.tsx:140-142</code></div>
+      <div class="row"><span class="k">Defect</span> — RLS is row-level. The policy's <code>USING</code> gates which <em>rows</em> anon may touch (<code>status='pending' and payment_status='unpaid'</code>) and <code>WITH CHECK</code> constrains only three columns in the post-image; it does not restrict <em>which columns</em> change. Anyone with the anon key can <code>PATCH /rest/v1/bookings?status=eq.pending&amp;payment_status=eq.unpaid</code> setting any column on all matching rows — overwrite <code>manage_token</code>/<code>album_token</code> (→ self-service page takeover), null <code>total</code>/<code>deposit</code>, move <code>event_date</code>, or corrupt PII. Writes are blind (July lockdown removed anon SELECT), but blind mass-overwrite is enough.</div>
+      <div class="row"><span class="k">Window</span> — transient per booking (creation → payment-path choice), but always open for whichever bookings are in flight; an attacker can poll.</div>
+      <div class="row"><span class="k">Fix (~30 min)</span> — drop the anon UPDATE policy; replace the one legitimate write with a single-purpose <code>SECURITY DEFINER</code> RPC (the <code>mark_mood_board_viewed</code> pattern):</div>
+      <pre>drop policy if exists "Anon update — payment intent only" on public.bookings;
+create or replace function public.mark_awaiting_transfer(p_booking_id uuid)
+returns boolean language sql security definer set search_path = public as $$
+  update public.bookings
+     set payment_status='awaiting_transfer', payment_method='bank_transfer'
+   where id=p_booking_id and status='pending' and payment_status='unpaid'
+   returning true;
+$$;
+grant execute on function public.mark_awaiting_transfer(uuid) to anon, authenticated;</pre>
+      <div class="row">Then switch <code>BankTransferPayment.tsx</code> to <code>supabase.rpc('mark_awaiting_transfer', { p_booking_id: bookingId })</code>.</div>
+    </div>
+    <div class="rule"></div>
+
+    <div class="finding med">
+      <div class="fh"><span class="chip med">Medium</span>&nbsp; M-12 · <code>send-whatsapp</code> has no caller authorisation — latent phishing relay</div>
+      <div class="row"><span class="k">File</span> — <code>supabase/functions/send-whatsapp/index.ts</code></div>
+      <div class="row"><span class="k">Defect</span> — accepts <code>phone</code>, <code>name</code>, <code>total</code>, and <code>manageLink</code> (an arbitrary URL) from the body with no authz beyond the default JWT gate the public anon key satisfies. Anyone could make the studio's WhatsApp number send a legitimate-looking confirmation with an attacker-chosen "إدارة حجزك" link to any phone.</div>
+      <div class="row"><span class="k">Why not High today</span> — dormant: <code>wa_enabled</code> defaults off (function returns <code>skipped</code>) and Twilio secrets are unset. Live the day WhatsApp is switched on.</div>
+      <div class="row"><span class="k">Fix</span> — require an internal shared secret (reuse the <code>CRON_SECRET</code> pattern, constant-time compare) passed by <code>create-booking</code>, or accept only a service-role JWT. Gate this into the WA-activation checklist so the switch can't be flipped first. Also: this function speaks Twilio while the rest of the WA stack speaks Meta Cloud API — reconcile when touched.</div>
+    </div>
+    <div class="rule"></div>
+
+    <div class="finding low">
+      <div class="fh"><span class="chip low">Low</span>&nbsp; L-11 · JSON-LD serialisation allows <code>&lt;/script&gt;</code> breakout on journal content</div>
+      <div class="row"><span class="k">File</span> — <code>src/pages/JournalPostPage.tsx:184-204</code></div>
+      <div class="row"><span class="k">Defect</span> — post title/excerpt serialised with <code>JSON.stringify</code> into a <code>&lt;script type="application/ld+json"&gt;</code> via <code>dangerouslySetInnerHTML</code>. <code>JSON.stringify</code> doesn't escape <code>/</code>, so a field containing <code>&lt;/script&gt;</code> terminates the element and injects markup. Admin-authored only (single trusted admin) → Low, same species as C-1.</div>
+      <div class="row"><span class="k">Fix (1 line)</span> — <code>JSON.stringify(...).replace(/&lt;/g,'\\u003c')</code></div>
+    </div>
+    <div class="rule"></div>
+
+    <div class="finding med">
+      <div class="fh"><span class="chip med">Process</span>&nbsp; DOC-1 · CI migration manifest frozen at June 2026</div>
+      <div class="row"><span class="k">File</span> — <code>.github/workflows/supabase-migrations.yml:87-131</code></div>
+      <div class="row"><span class="k">Defect</span> — the ordered manifest ends at <code>migrations-2026-06-fix-booking-insert.sql</code>. None of the nine July migrations — including the P0 <code>bookings-pii-lockdown</code> — are listed; the workflow would warn "on disk but not in manifest (skipping)". Currently disabled (owner request), which contains the risk, but it's a trap for whoever re-enables it.</div>
+      <div class="row"><span class="k">Fix</span> — append the July files in dependency order (lockdown before definer-view; album before album-examples), or add a "frozen / hand-run only" banner.</div>
+    </div>
+    <div class="rule"></div>
+
+    <div class="finding low">
+      <div class="fh"><span class="chip low">Process</span>&nbsp; DOC-2 · P0 PII-lockdown fix untracked in the audit trail</div>
+      <div class="row"><span class="k">Defect</span> — the July P0 (anon could read the whole <code>bookings</code> table incl. capability tokens) exists only as comments in two migration files: no <code>docs/bugs.md</code> ID, no <code>CLAUDE.md</code> §6 run-list entry, no report. The most severe finding of the July cycle shouldn't live outside the tracker.</div>
+      <div class="row"><span class="k">Fix</span> — tracked as of this report (entered in <code>docs/bugs.md</code>); add both migrations to <code>CLAUDE.md</code> §6's run-list alongside the H-11 patch.</div>
+    </div>
+
+    <h3>Classified SAFE (grep hits with reasons)</h3>
+    <p>No hardcoded secrets; no <code>service_role</code> in client code; the three
+      other <code>dangerouslySetInnerHTML</code> sites render hardcoded constants
+      (guard comments present); <code>Access-Control-Allow-Origin: *</code> on Edge
+      Functions is acceptable (no cookie auth — capability tokens + server
+      checks); the only <code>http://</code> literal is an SVG namespace; all three
+      <code>VITE_*</code> vars are publishable by design.</p>
+  </div>
+
+  <div class="card">
+    <h2 class="sec"><span class="n">V</span> Post-launch surface &amp; process adequacy</h2>
+    <h3>Fresh-eyes review (since 2026-07-04)</h3>
+    <p>Film-streams work moved HLS to Supabase Storage with a repo fallback and a
+      sync workflow on existing secrets — no new trust boundary. The
+      <code>videos</code> bucket is public-read, write via service-role only.
+      Album RPCs are exemplary: token-keyed, column-scoped, server-enforced
+      time-gate and lock, <code>set search_path</code>. Films table SELECT is
+      <code>published</code>-filtered; writes admin-only.</p>
+    <h3>Documentation &amp; work-process — verdict: ADEQUATE, 2 gaps</h3>
+    <p><strong>Working (verified, not assumed):</strong> <code>CLAUDE.md</code>,
+      <code>AGENTS.md</code>, and <code>PROJECT.md</code> match shipped code on every
+      claim sampled; each feature has an operating doc; the two-palette rule,
+      esc() rule, migration discipline, and UPSERT-seed rule are actually
+      followed across the last 10 commits; one-feature-one-commit with
+      prose-first messages holds; the bugs tracker carried every pre-July
+      finding with IDs and commits. <strong>The 2 gaps</strong> are DOC-1 and
+      DOC-2 above — the same root cause (July patched faster than it
+      documented). Neither invalidates the process; both are cheap, and DOC-2
+      is closed by this report.</p>
+  </div>
+
+  <div class="card">
+    <h2 class="sec"><span class="n">VI</span> Owner actions — live-only</h2>
+    <ul>
+      <li><b>Confirm the P0 pair ran in production</b> (lockdown then definer-view; both idempotent). Anon smoke: <code>GET /bookings?select=customer_phone&amp;limit=1</code> → <code>[]</code>; <code>GET /public_booked_dates?limit=1</code> → rows.</li>
+      <li><b>Apply the H-11 patch</b> (new migration + redeployed bundle). Until then, be aware of the pending/unpaid tamper window.</li>
+      <li>Before enabling WhatsApp: apply the M-12 caller-auth patch and redeploy <code>send-whatsapp</code>.</li>
+      <li>Re-run the Supabase advisor after H-11; verify deployed Edge Function versions match <code>master</code>.</li>
+      <li><code>dist/videos</code> (203 MB) still ships with every deploy — complete the 4-step Storage-sync sequence in <code>AGENTS.md</code>, then delete <code>public/videos/</code>.</li>
+      <li>LAUNCH15 expiry — retire or replace.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    ATEMA STUDIO — prepared for Fatima Bohassan · confidential · 2026-07-09<br>
+    Canonical text: docs/reviews/2026-07-09-security-code-check.md
+  </div>
+
+</body>
+</html>

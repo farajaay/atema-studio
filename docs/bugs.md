@@ -15,6 +15,32 @@
 
 ---
 
+## Status update — 2026-07-09 (full security & code check)
+
+Full pass per `docs/plans/security-code-check-2026-07.md`. Report:
+`docs/reviews/2026-07-09-security-code-check.md` (+ stationery-themed PDF
+edition + HTML source alongside it). Baseline green — `npm run lint` clean,
+**143/143** tests, clean type-checked build, bundle console-stripped +
+source-map-free. `npm audit` found **2** advisories published since the last
+pass (vite HIGH — Windows dev-server only; @babel/core LOW — dev-time);
+**`npm audit fix` applied → 0** (lockfile-only patch bump). **Every prior
+patch re-verified and holds** (C-1, C-3, H-2/M-8, H-6, H-9, H-10, M-9, M-10,
+M-11, L-8, Meta HMAC, bundle hardening). Verdict: 🟠 **AMBER**.
+
+| Item | What was found |
+|---|---|
+| **H-11 (new, HIGH — open)** | `bookings` anon UPDATE policy ("Anon update — payment intent only", `migrations-2026-05-rls-hardening.sql:140`) is row-level, not column-level: `WITH CHECK` constrains only 3 columns, so anon can blind-overwrite **any** column (`manage_token`, `customer_email`, `total`, `event_date`, …) on any `pending`+`unpaid` row — a booking-takeover / PII-tamper window. Fix: drop the policy, replace `BankTransferPayment.tsx`'s direct UPDATE with a single-purpose `mark_awaiting_transfer()` SECURITY DEFINER RPC (see report §4). ~30 min. |
+| **M-12 (new, MEDIUM — dormant)** | `send-whatsapp` Edge Fn accepts phone + arbitrary `manageLink` with no caller authz beyond the public anon JWT → latent branded-phishing relay. Inert while `wa_enabled` is off; **must** be patched (internal shared secret / service-role gate) before WhatsApp is ever switched on. Also speaks Twilio while the rest of the WA stack is Meta Cloud API. |
+| **L-11 (new, LOW)** | `JournalPostPage.tsx:184` serialises admin-authored title/excerpt into a JSON-LD `<script>` via `JSON.stringify` without escaping `/` → `</script>` breakout (stored XSS, trusted-admin input only). Fix: `.replace(/</g,'\\u003c')`. |
+| **DOC-1 (new, process)** | CI migration manifest (`supabase-migrations.yml`) is frozen at June 2026 — none of the **9 July migrations** (incl. the P0 `bookings-pii-lockdown`) are listed. Workflow is disabled, but the manifest is a trap on re-enable. Append July files in dependency order or banner it "frozen". |
+| **H-12 (retro-entry — the July P0, fixed-pending-live-verify)** | Anon could `SELECT *` the whole `bookings` table (name, phone, email, `manage_token`, `album_token`) — PDPL breach + takeover vector. Closed in prod by `migrations-2026-07-bookings-pii-lockdown.sql` + `migrations-2026-07-public-booked-dates-definer.sql`. Was untracked (DOC-2); now recorded. Owner: confirm both ran (anon `GET /bookings?select=customer_phone` → `[]`). |
+
+Documentation & work-process reviewed and judged **ADEQUATE** (docs match
+shipped code; conventions actually followed across the last 10 commits) with
+the two process gaps above (both: July patched faster than it documented).
+
+---
+
 ## Status update — 2026-07-03 (system hardening scan)
 
 Full pass: security hardening scan + design/content review + structure/prices
@@ -508,6 +534,11 @@ Updated as fixes land. Patch commits reference these IDs.
 | L-9 | 2026-05-21 | Open — admin policy doc | — |
 | L-10 | 2026-05-21 | ✅ Fixed — fallback-only comment added; delete with legacy INSERT policy | 2026-06-12 |
 | H-10 | 2026-06-12 | ✅ Fixed — contracts/invoices anon SELECT dropped; DDL under version control (migration must be run) | 2026-06-12 |
+| H-11 | 2026-07-09 | ⚠ Open — anon UPDATE on bookings is column-unrestricted; needs `mark_awaiting_transfer()` RPC + policy drop | — |
+| H-12 | 2026-07-03 | ✅ Fixed (retro-tracked 2026-07-09) — anon full-table `bookings` SELECT leak; closed by July P0 lockdown + definer-view (confirm applied in prod) | July P0 pair |
+| M-12 | 2026-07-09 | ⚠ Open (dormant) — `send-whatsapp` caller authz; patch before enabling WhatsApp | — |
+| L-11 | 2026-07-09 | Open — JSON-LD `</script>` breakout on admin journal content (1-line fix) | — |
+| DOC-1 | 2026-07-09 | Open (process) — CI migration manifest frozen at June 2026 | — |
 
 ---
 
