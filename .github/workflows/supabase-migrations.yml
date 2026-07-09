@@ -1,22 +1,28 @@
-name: Supabase — apply SQL migrations (DISABLED)
+name: Supabase — apply SQL migrations (single-file only)
 
 # ╔══════════════════════════════════════════════════════════════════════╗
-# ║ DISABLED 2026-07-03 at owner request.                                ║
+# ║ SEED / FULL-RUN PATH DISABLED 2026-07-03 at owner request.           ║
+# ║ SINGLE-FILE PATH RE-ENABLED 2026-07-09 for additive migrations.      ║
 # ║                                                                      ║
 # ║ The owner has edited catalogue/settings data directly in the live    ║
 # ║ Supabase admin panel. This workflow's seed step (include-seeds)      ║
 # ║ UPSERTs the repo's seed rows by id and would OVERWRITE those live    ║
-# ║ edits. Until the repo seeds are refreshed to match production, this  ║
-# ║ workflow is held inert so a redeploy or an accidental manual run     ║
-# ║ can never clobber the live database.                                 ║
+# ║ edits. So the FULL ordered run and the seed step stay held inert:    ║
+# ║ the job's `if:` guard below no-ops any dispatch that does NOT name a  ║
+# ║ single `only-file`.                                                  ║
 # ║                                                                      ║
-# ║ Nothing here fires on push — it was already manual-only — so code    ║
-# ║ redeploys (deploy.yml / supabase-functions.yml) never touched data.  ║
-# ║ The `if: ${{ false }}` guard on the job below is the belt-and-       ║
-# ║ suspenders: even a manual "Run workflow" click now no-ops.           ║
+# ║ A single-file run (`only-file: <one migration>`) is permitted        ║
+# ║ because that code path (see "Build the list of files") applies ONLY  ║
+# ║ the named file and never touches the SEEDS array — so it cannot      ║
+# ║ clobber packages / add-ons / any seeded catalogue row. Use it for    ║
+# ║ additive migrations like migrations-2026-07-workflow.sql.            ║
 # ║                                                                      ║
-# ║ TO RE-ENABLE: delete the `if: ${{ false }}` line on the `apply` job  ║
-# ║ (and drop the "(DISABLED)" suffix from the name above).              ║
+# ║ Nothing here fires on push — it is manual-only — so code redeploys   ║
+# ║ (deploy.yml / supabase-functions.yml) never touch data.             ║
+# ║                                                                      ║
+# ║ TO FULLY RE-ENABLE (once repo seeds are refreshed to match prod):    ║
+# ║ change the job `if:` back to `${{ true }}` (or delete it) and drop   ║
+# ║ the "(single-file only)" suffix from the name above.                 ║
 # ╚══════════════════════════════════════════════════════════════════════╝
 
 # Applies the studio's SQL files to the linked Supabase project via the
@@ -60,8 +66,10 @@ on:
 
 jobs:
   apply:
-    # DISABLED 2026-07-03 — see banner at top of file. Delete this line to re-enable.
-    if: ${{ false }}
+    # Single-file runs only — see banner at top of file. A blank `only-file`
+    # (full ordered run and/or include-seeds) still no-ops so the seed step
+    # can never clobber the owner's live catalogue edits.
+    if: ${{ inputs.only-file != '' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
