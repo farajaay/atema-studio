@@ -16,6 +16,7 @@ import {
 import {
   fetchWorkflowSteps, updateWorkflowStep, type WorkflowStepRow,
 } from '../services/workflow';
+import WorkflowTimeline from './WorkflowTimeline';
 import {
   CheckCircle2, Circle, CircleDashed, Clock, AlertTriangle, Loader2,
   Play, Check, SkipForward, Undo2,
@@ -110,6 +111,9 @@ export default function WorkflowTracker({ booking }: { booking: Booking }) {
 
   return (
     <div>
+      {/* Timeline graphic — at-a-glance journey overview */}
+      <WorkflowTimeline rows={rows} />
+
       {/* Summary strip */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
         background: 'var(--a-surface-alt)', borderRadius: '10px', padding: '12px 16px', marginBottom: '18px' }}>
