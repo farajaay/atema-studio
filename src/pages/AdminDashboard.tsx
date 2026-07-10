@@ -8,6 +8,7 @@ import { useBreakpoint } from '../hooks/useBreakpoint';
 import { PLTab } from '../components/PLTab';
 import MoodBoardComposer from '../components/MoodBoardComposer';
 import AlbumComposer from '../components/AlbumComposer';
+import WorkflowTracker from '../components/WorkflowTracker';
 import StudioPLDashboard from '../components/StudioPLDashboard';
 import AdminCalendar from '../components/AdminCalendar';
 import AppSettingsPanel from '../components/AppSettingsPanel';
@@ -24,7 +25,7 @@ import {
   Clock, XCircle, CircleDollarSign, Users, AlertCircle,
   Loader2, X, Phone, Mail, MapPin, StickyNote, Save, TrendingUp, Layers,
   Image as ImageIcon, BookOpen, Sparkles, BarChart3, Tag, Sliders, Clapperboard,
-  FileText, Receipt, Undo2
+  FileText, Receipt, Undo2, ListChecks
 } from 'lucide-react';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
@@ -184,7 +185,7 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled, settings }: 
   booking: Booking; onClose: () => void; onSave: (id: string, updates: Partial<Booking>) => Promise<boolean>;
   globalVatEnabled: boolean; settings: AppSettings;
 }) {
-  const [tab, setTab]         = useState<'details' | 'pl' | 'mood' | 'album'>('details');
+  const [tab, setTab]         = useState<'details' | 'workflow' | 'pl' | 'mood' | 'album'>('details');
   const [status, setStatus]   = useState<Booking['status']>(booking.status);
   const [payment, setPayment] = useState<Booking['payment_status']>(booking.payment_status);
   const [notes, setNotes]     = useState(booking.special_requests || '');
@@ -250,7 +251,8 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled, settings }: 
         {/* Tab bar */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--a-border)', padding: '0 24px' }}>
           {([
-            { key: 'details', label: 'التفاصيل',       icon: <Package size={14} /> },
+            { key: 'details',  label: 'التفاصيل',       icon: <Package size={14} /> },
+            { key: 'workflow', label: 'سير العمل',      icon: <ListChecks size={14} /> },
             { key: 'pl',      label: 'الأرباح والخسائر', icon: <TrendingUp size={14} /> },
             { key: 'mood',    label: 'لوحة المزاج',     icon: <Sparkles size={14} /> },
             { key: 'album',   label: 'غلاف الألبوم',    icon: <BookOpen size={14} /> },
@@ -267,6 +269,7 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled, settings }: 
         </div>
 
         <div style={{ padding: '24px' }}>
+          {tab === 'workflow' && <WorkflowTracker booking={booking} />}
           {tab === 'pl' && <PLTab booking={booking} />}
           {tab === 'mood' && <MoodBoardComposer booking={booking} />}
           {tab === 'album' && <AlbumComposer booking={booking} />}

@@ -1036,6 +1036,68 @@ Two launch decisions live in the product now; this is how you operate them.
 
 ---
 
+## 13k. Booking workflow tracker (July 2026)
+
+Every paid (or awaiting-transfer) booking carries a **production ladder**
+derived from the contract's own dates, so you always know which step a
+booking is in — and the system emails you when a step should have started
+or is running late.
+
+### The ladder (per booking)
+
+| # | Step | Target | Contract deadline |
+|---|------|--------|-------------------|
+| 1 | تحصيل الدفعة الثانية | event − 1 day | same (المادة الثانية) |
+| 2 | يوم المناسبة | event day | — |
+| 3 | بدء تعديل الصور | event + 7 | event + 14 (internal target) |
+| 4 | تسليم رابط المعرض | event + 120 | event + 180 (المادة الرابعة) |
+| 5 | تسليم الفيلم السينمائي | event + 120 | event + 120 |
+| 6 | جولة المراجعة | gallery + 14 | — (المادة الرابعة مكرر) |
+| 7 | اختيار صور الألبوم | gallery + 14 | — (المادة الخامسة) |
+| 8 | تسليم الألبوم المطبوع | selection + 30 | — (internal target) |
+
+Steps 6–8 re-anchor on the **actual** completion date of their parent step
+(deliver the gallery early and the review window moves up with it). If a
+booking is rescheduled, every date recomputes from the new event date
+automatically.
+
+### Where you work it
+
+Open a booking → **«سير العمل» tab**. Each step shows its state — قادمة /
+حان موعدها / جارية / متأخرة / مكتملة — with the target and contract dates.
+Your three answers to "بدأت أم متأخرة؟":
+
+- **بدأت** — the step is underway (stamps a start time).
+- **اكتملت** — done (stamps completion; dependent steps re-anchor on it).
+- **غير مشمولة** — the booking doesn't include this step (e.g. no album).
+
+"متأخرة" is never a button — it's computed from the dates. A step past its
+contract deadline shows red until you complete it. An optional note field
+appears on due/late steps for the paper trail (delay reason, etc.).
+
+### The reminder emails
+
+A daily cron (`workflow-reminders` Edge Function) checks every active
+booking and sends **one digest email** to the studio inbox (`OWNER_EMAIL`,
+falling back to atema@) listing:
+
+- steps whose **target date arrived** and you haven't confirmed started —
+  "هل بدأت هذه المرحلة؟", and
+- steps that **blew past their contract deadline** without being done —
+  "متأخرة — أكّدي حالتها".
+
+Each (booking, step, stage) alert fires **once** — confirm it from the
+tab and the nagging stops. Setup (one-time, owner-side):
+
+1. Run `database/migrations-2026-07-workflow.sql` in the Supabase SQL editor.
+2. Schedule the cron: POST to
+   `https://<project>.supabase.co/functions/v1/workflow-reminders` daily
+   (e.g. `0 5 * * *` = 08:00 KSA) with header
+   `Authorization: Bearer $CRON_SECRET` — same scheduler pattern as
+   `wa-reminders`, and the same `CRON_SECRET` secret guards both.
+
+---
+
 ## 15. Package hero photos & object positioning
 
 Each package card renders a hero photo above the card body. The

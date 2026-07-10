@@ -121,6 +121,7 @@ atema-studio/
 │   ├── wa-webhook/            Meta webhook receiver (GET handshake + POST)
 │   ├── wa-receipt/            Claude 3.5 Sonnet Vision bank-receipt OCR
 │   ├── wa-reminders/          cron-fired lifecycle reminders (every 30 min)
+│   ├── workflow-reminders/    daily cron — booking workflow tracking + owner digest
 │   └── send-whatsapp/         ad-hoc admin send
 ├── scripts/
 │   └── optimise-images.mjs    sharp → WebP + JPEG, ~91% size reduction
@@ -383,6 +384,10 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   - `database/migrations-2026-07-videos-bucket.sql` (public `videos` Storage
     bucket — then run the "Sync film streams" workflow; see AGENTS.md for
     the 4-step sequence before deleting `public/videos/`)
+  - `database/migrations-2026-07-workflow.sql` (booking_workflow_steps +
+    workflow_notifications — per-booking production ladder; then schedule
+    the `workflow-reminders` cron daily, e.g. `0 5 * * *`, with
+    `Authorization: Bearer $CRON_SECRET` — same pattern as wa-reminders)
   - `database/seed-packages-2026-05.sql` (6 packages + 11 add-ons — required
     if `packages` table is empty; the booking flow falls back to the DEMO
     catalogue without it, but the Edge Function still needs real rows to
@@ -435,6 +440,13 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - Tap Payments as a secondary gateway (only when Mada volume justifies)
 
 **Done in recent sessions (do not re-build):**
+- ✅ Booking workflow tracker (July 2026) — contract-derived production ladder
+  per booking (final payment → event → editing → gallery → film → review →
+  album), admin «سير العمل» tab in the booking modal, daily
+  `workflow-reminders` cron emailing the owner a "started or delayed?" digest.
+  Policy is pure + unit-tested in `supabase/functions/_shared/workflow.ts`
+  (shared client/Edge, same discipline as `reschedule.ts`). Requires
+  `migrations-2026-07-workflow.sql` + the cron schedule. `docs/MANUAL.md` §13k.
 - ✅ Contract/invoice regeneration + versioned document storage (June 2026) —
   `src/services/documents.ts` + المستندات card in the admin booking modal;
   `migrations-2026-06-documents.sql` brings the contracts/invoices DDL under
