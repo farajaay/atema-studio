@@ -12,6 +12,14 @@
 
 ---
 
+> **Removed 2026-07-17.** The preview route (`/#/preview-thread-bc15d231`,
+> `src/pages/AntislopPreviewPage.tsx`) has been taken down at the owner's request — the route,
+> component, and `robots.txt` entry are deleted. The URL no longer resolves. The findings and
+> analysis below against `HomePage.tsx` remain accurate and are kept for reference; they describe
+> the live home page, which this removal did not touch.
+
+---
+
 ## Result
 
 | Gate | Result |
