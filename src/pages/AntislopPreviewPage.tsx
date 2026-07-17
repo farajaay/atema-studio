@@ -60,10 +60,10 @@ const CSS = `
 .aslp .bare:hover .arw{ transform:translateX(4px); }
 
 .aslp .plate{ position:relative; overflow:hidden; background:var(--a-surface-alt); }
-.aslp .plate img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+.aslp .plate img{ display:block; width:100%; height:100%; object-fit:cover; }
 .aslp .hero-plate::after{ content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(212,175,122,0.10), transparent 55%); pointer-events:none; }
 
-.aslp header{ position:sticky; top:0; z-index:40; backdrop-filter:blur(10px); background:rgba(11,11,11,0.7); border-bottom:1px solid var(--a-border); }
+.aslp header{ position:sticky; top:0; z-index:40; -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); background:rgba(11,11,11,0.7); border-bottom:1px solid var(--a-border); }
 .aslp .nav-row{ display:flex; align-items:center; justify-content:space-between; padding:20px 0; gap:24px; }
 .aslp .nav-links{ display:flex; gap:30px; list-style:none; margin:0; padding:0; }
 .aslp .nav-links a{ text-decoration:none; color:var(--a-text-soft); font-size:0.85rem; font-weight:500; transition:color .25s; }
