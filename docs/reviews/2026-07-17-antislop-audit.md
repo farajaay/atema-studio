@@ -81,7 +81,19 @@ unilaterally. Flagged in-page (`#aslp-notes`) and here for a decision before thi
 
 ## Access
 
-`https://atemastudio.xyz/#/preview-thread-bc15d231` once this branch is deployed. The random
+`https://atemastudio.xyz/#/preview-thread-bc15d231` — live since this PR merged. The random
 suffix is the only access control — it is not linked from anywhere, and should not be pasted into
 chat tools, tickets, or anywhere else that might get indexed. Treat the URL itself as the
 share mechanism until the redesign is approved or rejected.
+
+---
+
+## Update (same day) — real photography, not abstract plates
+
+The first merged version used abstract gradient panels instead of photos, out of caution about
+pasting real client images into an externally-hosted preview. That caution doesn't apply here:
+this route lives on `atemastudio.xyz` itself, and now uses the exact same photo files
+`HomePage.tsx`'s `HOMEPAGE_THUMBS` already serves publicly on the real home page — no new asset,
+no new exposure, just no longer leaving the hero and filmstrip looking empty. `.plate` now holds
+a real `<picture>`/`<img>` (webp + JPG fallback, matching the production pattern) instead of a
+CSS gradient wash.

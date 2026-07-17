@@ -60,7 +60,8 @@ const CSS = `
 .aslp .bare:hover .arw{ transform:translateX(4px); }
 
 .aslp .plate{ position:relative; overflow:hidden; background:var(--a-surface-alt); }
-.aslp .plate::before{ content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(212,175,122,0.12), transparent 60%); }
+.aslp .plate img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+.aslp .hero-plate::after{ content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(212,175,122,0.10), transparent 55%); pointer-events:none; }
 
 .aslp header{ position:sticky; top:0; z-index:40; backdrop-filter:blur(10px); background:rgba(11,11,11,0.7); border-bottom:1px solid var(--a-border); }
 .aslp .nav-row{ display:flex; align-items:center; justify-content:space-between; padding:20px 0; gap:24px; }
@@ -198,7 +199,12 @@ const BODY_HTML = `
     </div>
     <div class="hero-plate-col reveal" style="transition-delay:.12s;">
       <div class="hero-edge">EST. 2018 · JUBAIL, KSA</div>
-      <div class="plate hero-plate"></div>
+      <div class="plate hero-plate">
+        <picture>
+          <source type="image/webp" srcset="/photos/IMG_5538.webp" />
+          <img src="/photos/IMG_5538.JPG" alt="لقطة من المعرض" loading="eager" decoding="async" />
+        </picture>
+      </div>
     </div>
     <svg class="thread hero-thread" aria-hidden="true"><use href="#aslp-thread"></use></svg>
   </div>
@@ -217,10 +223,18 @@ const BODY_HTML = `
         <h2>كل لقطة، لحظة لن تتكرر.</h2>
         <a href="#aslp-explore" class="bare">كل الأعمال <span class="arw">←</span></a>
       </div>
-      <div class="frame-cell lead"><div class="plate"></div><div class="frame-tick"><span>٠١</span><span>ATM—001</span></div></div>
-      <div class="frame-cell"><div class="plate"></div><div class="frame-tick"><span>٠٢</span><span>ATM—002</span></div></div>
-      <div class="frame-cell"><div class="plate"></div><div class="frame-tick"><span>٠٣</span><span>ATM—003</span></div></div>
-      <div class="frame-cell"><div class="plate"></div><div class="frame-tick"><span>٠٤</span><span>ATM—004</span></div></div>
+      <div class="frame-cell lead"><div class="plate">
+        <picture><source type="image/webp" srcset="/photos/F41A818D-D3EF-419E-A002-DC76C76BF59D.webp" /><img src="/photos/F41A818D-D3EF-419E-A002-DC76C76BF59D.JPG" alt="لقطة من المعرض" loading="eager" decoding="async" /></picture>
+      </div><div class="frame-tick"><span>٠١</span><span>ATM—001</span></div></div>
+      <div class="frame-cell"><div class="plate">
+        <picture><source type="image/webp" srcset="/photos/IMG_5607.webp" /><img src="/photos/IMG_5607.JPG" alt="لقطة من المعرض" loading="lazy" decoding="async" /></picture>
+      </div><div class="frame-tick"><span>٠٢</span><span>ATM—002</span></div></div>
+      <div class="frame-cell"><div class="plate">
+        <picture><source type="image/webp" srcset="/photos/IMG_5525.webp" /><img src="/photos/IMG_5525.JPG" alt="لقطة من المعرض" loading="lazy" decoding="async" /></picture>
+      </div><div class="frame-tick"><span>٠٣</span><span>ATM—003</span></div></div>
+      <div class="frame-cell"><div class="plate">
+        <picture><source type="image/webp" srcset="/photos/7CC155A1-8BFC-49B7-ADC2-CF8346A3E535.webp" /><img src="/photos/7CC155A1-8BFC-49B7-ADC2-CF8346A3E535.JPG" alt="لقطة من المعرض" loading="lazy" decoding="async" /></picture>
+      </div><div class="frame-tick"><span>٠٤</span><span>ATM—004</span></div></div>
     </div>
   </div>
 </section>
@@ -318,7 +332,7 @@ const BODY_HTML = `
       </div>
     </div>
     <div class="notes-foot">
-      <strong>ما لم يتغيّر:</strong> كل قيمة لون هنا منسوخة حرفيًا من src/theme/themes.ts. الخطوط هي خطوط الهوية نفسها (Amiri للشعار، Tajawal للعناوين والنصوص) — وهذه نقطة تستحق قرارًا منكم: قانون anti-slop يمنع Cormorant Garamond وغيره من خطوط Google الافتراضية كخط توقيع، لكنه لا يذكر Tajawal/Amiri تحديدًا، وهما هوية العلامة الفعلية، فأبقيناهما. الصور لوحات تجريدية بإضاءة اتجاهية واحدة، وليست صور عميلات حقيقية. هذا القسم توضيحي فقط ولن يظهر في أي نشر فعلي. التفاصيل الكاملة: docs/reviews/2026-07-17-antislop-audit.md
+      <strong>ما لم يتغيّر:</strong> كل قيمة لون هنا منسوخة حرفيًا من src/theme/themes.ts. الخطوط هي خطوط الهوية نفسها (Amiri للشعار، Tajawal للعناوين والنصوص) — وهذه نقطة تستحق قرارًا منكم: قانون anti-slop يمنع Cormorant Garamond وغيره من خطوط Google الافتراضية كخط توقيع، لكنه لا يذكر Tajawal/Amiri تحديدًا، وهما هوية العلامة الفعلية، فأبقيناهما. الصور هنا هي نفس صور المعرض المستخدمة في الصفحة الرئيسية الفعلية (HOMEPAGE_THUMBS في HomePage.tsx) — لا صور جديدة أُضيفت. هذا القسم توضيحي فقط ولن يظهر في أي نشر فعلي. التفاصيل الكاملة: docs/reviews/2026-07-17-antislop-audit.md
     </div>
   </div>
 </section>
