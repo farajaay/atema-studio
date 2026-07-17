@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /#/admin
+Disallow: /#/preview-thread-bc15d231
 
 Sitemap: https://atemastudio.xyz/sitemap.xml

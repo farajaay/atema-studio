@@ -34,6 +34,10 @@ const AddonsManager        = lazy(() => import('./pages/AddonsManager'));
 const AlbumDesignsManager  = lazy(() => import('./pages/AlbumDesignsManager'));
 const FilmsPage            = lazy(() => import('./pages/FilmsPage'));
 
+// Hidden internal preview — not linked from any nav, not in the sitemap,
+// disallowed in robots.txt. See docs/reviews/2026-07-17-antislop-audit.md.
+const AntislopPreviewPage  = lazy(() => import('./pages/AntislopPreviewPage'));
+
 function AdminFallback() {
   return (
     <div style={{
@@ -51,7 +55,7 @@ export default function App() {
   useTheme();
   const { pathname } = useLocation();
   const isAdmin = pathname.startsWith('/admin');
-  const showPromotion = !isAdmin && !pathname.startsWith('/films');
+  const showPromotion = !isAdmin && !pathname.startsWith('/films') && !pathname.startsWith('/preview-thread-bc15d231');
 
   // Detect Moyasar payment redirect (arrives as query params on any route)
   const callback = parseMoyasarCallback();
@@ -84,6 +88,11 @@ export default function App() {
       <Route path="/board/:token"    element={<MoodBoardPage />} />
       <Route path="/manage/:token"   element={<ManageBookingPage />} />
       <Route path="/album/:token"    element={<AlbumSelectionPage />} />
+
+      {/* Hidden internal preview — no nav link, not in sitemap.xml, disallowed
+          in robots.txt. Random slug is the only access control; do not link it. */}
+      <Route path="/preview-thread-bc15d231" element={
+        <Suspense fallback={<AdminFallback />}><AntislopPreviewPage /></Suspense>} />
 
       {/* Admin — lazy */}
       <Route path="/admin"           element={
