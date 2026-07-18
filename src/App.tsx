@@ -1,8 +1,12 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { parseMoyasarCallback } from './services/moyasar';
 import { useTheme } from './hooks/useTheme';
-import PromotionModal from './components/PromotionModal';
+// Promotion modal disabled till further notice (2026-07-18) — the advertised
+// 15% launch offer has lapsed. To re-enable: restore this import, the
+// useLocation-based showPromotion gate in App(), and the render below
+// (plus the HomePage.tsx render). See CLAUDE.md §6.
+// import PromotionModal from './components/PromotionModal';
 
 // ─── Public routes (loaded eagerly — first-paint critical) ───────────────────
 import HomePage         from './pages/HomePage';
@@ -48,10 +52,6 @@ function AdminFallback() {
 
 export default function App() {
   useTheme();
-  const { pathname } = useLocation();
-  const isAdmin = pathname.startsWith('/admin');
-  const showPromotion = !isAdmin && !pathname.startsWith('/films');
-
   // Detect Moyasar payment redirect (arrives as query params on any route)
   const callback = parseMoyasarCallback();
   if (callback) {
@@ -68,7 +68,8 @@ export default function App() {
 
   return (
     <>
-    {showPromotion && <PromotionModal />}
+    {/* Promo disabled till further notice — see the import comment above.
+        Was: {showPromotion && <PromotionModal />} gated on !/admin && !/films. */}
     <Routes>
       {/* Public — eager */}
       <Route path="/"                element={<HomePage />} />
