@@ -8,6 +8,7 @@ import SiteFooter from '../components/SiteFooter';
 import FadeUp from '../components/FadeUp';
 import { useLang } from '../hooks/useLang';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { publishedTestimonials } from '../content/testimonials';
 
 const tx = (l: 'ar' | 'en', ar: string, en: string) => l === 'ar' ? ar : en;
 
@@ -460,7 +461,9 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── 6. Voices — anonymous client whispers ──────────────────────── */}
+      {/* ── 6. Voices — real client words (gap B4 closed). ───────────────
+           Quotes are hand-transcribed, consented, first-name-only — the
+           source registry is src/content/testimonials.ts, never bookings. */}
       <section style={{
         padding: isMobile ? '90px 24px' : '140px 60px',
         background: 'var(--a-bg)',
@@ -476,8 +479,8 @@ export default function AboutPage() {
               maxWidth: 820, margin: '0 auto 70px', lineHeight: 1.3, fontWeight: 300,
             }}>
               {tx(lang,
-                'ما يُقال عن جلسةٍ مع فاطمة.',
-                'On what it is like to sit before her camera.'
+                'ما قالته العميلات، بكلماتهنّ.',
+                'In our clients’ own words.'
               )}
             </h2>
           </FadeUp>
@@ -487,48 +490,31 @@ export default function AboutPage() {
             gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
             gap: isMobile ? 28 : 48,
           }}>
-            {[
-              {
-                ar: '«صورها لا تُلتَقط — هي تُحفَظ. كأنها تعرف اللحظةَ قبل أن تحدث.»',
-                en: '"Her photographs are not taken — they are kept. As though she knows the moment before it has even arrived."',
-                attrAr: '— عروسٌ من الرياض',
-                attrEn: '— A bride from Riyadh',
-              },
-              {
-                ar: '«خرجتُ من جلستي مع فاطمة وأنا أعرف نفسي أكثر. لم أكن أتوقّع أن تكون الكاميرا قادرةً على ذلك.»',
-                en: '"I left my session with Fatima knowing myself better. I had not believed a camera could do that."',
-                attrAr: '— عميلةٌ من الخبر',
-                attrEn: '— A client from Al Khobar',
-              },
-              {
-                ar: '«ثلاث ساعات شعرتُ فيها أنني أُرى. لا أكثر، ولا أقل. وهذا، في زمنٍ مزدحم، نادر.»',
-                en: '"Three hours in which I felt, simply, that I was seen. No more, no less. In a crowded world, that is rare."',
-                attrAr: '— أمٌّ شابّة، الدمام',
-                attrEn: '— A young mother, Dammam',
-              },
-              {
-                ar: '«فتحتُ الألبومَ بعد سنة، فبكيتُ — لا حُزناً، بل لأنّ ما كنتُ أحاول تذكّره كان كلّه، هناك، محفوظاً.»',
-                en: '"I opened the album a year later and wept — not from sadness, but because everything I had been trying to remember was there, kept."',
-                attrAr: '— عروسٌ من القطيف',
-                attrEn: '— A bride from Qatif',
-              },
-            ].map((q, i) => (
-              <FadeUp key={i} delay={(i % 2) * 120}>
+            {publishedTestimonials().map((q, i) => (
+              // The opening quote spans the grid — a centred editorial lead;
+              // the rest settle into the two-column whisper layout.
+              <FadeUp
+                key={q.id}
+                delay={(i % 2) * 120}
+                style={i === 0 && !isMobile
+                  ? { gridColumn: '1 / -1', maxWidth: 820, margin: '0 auto 12px', textAlign: 'center' }
+                  : undefined}
+              >
                 <figure style={{ margin: 0 }}>
                   <div style={{
                     fontFamily: lang === 'ar' ? "'Amiri', serif" : "'Cormorant Garamond', serif",
-                    fontSize: isMobile ? '1.1rem' : '1.25rem',
+                    fontSize: isMobile ? '1.1rem' : i === 0 ? '1.4rem' : '1.25rem',
                     lineHeight: 1.85, color: 'var(--a-text)',
                     fontStyle: 'italic', fontWeight: 300, marginBottom: 18,
                   }}>
-                    {tx(lang, q.ar, q.en)}
+                    {tx(lang, q.quote_ar, q.quote_en)}
                   </div>
                   <figcaption style={{
                     fontSize: '0.78rem', letterSpacing: '0.16em',
                     color: 'var(--a-gold)', fontFamily: "'Cinzel', serif",
                     textTransform: 'uppercase',
                   }}>
-                    {tx(lang, q.attrAr, q.attrEn)}
+                    {tx(lang, q.attr_ar, q.attr_en)}
                   </figcaption>
                 </figure>
               </FadeUp>

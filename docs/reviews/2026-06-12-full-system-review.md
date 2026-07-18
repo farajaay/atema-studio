@@ -148,7 +148,7 @@ edges:
 | B1 | **`.xyz` TLD undercuts the luxury signal.** For a brand whose stationery is this considered, `atema.studio` or a `.sa`/`.com` reads materially more trustworthy in WhatsApp link previews — exactly where most brides first meet the URL. (Migration is cheap now; expensive after print collateral exists.) |
 | B2 | **Single social channel** (Instagram in footer). Snapchat + TikTok dominate KSA wedding discovery; a WhatsApp Channel suits the clientele's privacy expectations. schema.org `sameAs` needs the real profile list. |
 | B3 | **No Google Business Profile / Maps presence** referenced anywhere — the highest-intent local search surface ("مصورة عرايس الجبيل"). |
-| B4 | **Testimonials are seeded copy**, not sourced client words. A consent-based, first-name-only (or anonymous "bride of …") testimonial pipeline keeps the PII discipline while adding real social proof. |
+| B4 | ~~**Testimonials are seeded copy**, not sourced client words.~~ ✅ **Closed 2026-07** — five real WhatsApp testimonials transcribed (consented, first-name-only) into `src/content/testimonials.ts` and rendered in the About-page Voices section. |
 | B5 | **Email deliverability trust**: confirm SPF/DKIM/DMARC are fully aligned for `atemastudio.xyz` on Zoho — a luxury brand's confirmation email landing in spam is a brand event, not an IT event. |
 
 ### 3.4 Social-engineering & trust gaps (the human attack surface)
@@ -192,7 +192,7 @@ The cryptography is strong; the remaining risk is people, not math:
 ### Phase 3 — Brand & distribution (parallel, mostly non-code)
 17. **Domain decision** — evaluate `atema.studio`/`.com`/`.sa` before print collateral locks `.xyz` in. *(B1)*
 18. **Channel build-out**: Snapchat + TikTok profiles, WhatsApp Channel, Google Business Profile; update footer + schema.org `sameAs`. *(B2, B3)*
-19. **Consent-based testimonial pipeline** (post-delivery WA ask → first-name-only quote) replacing seeded copy. *(B4)*
+19. ~~**Consent-based testimonial pipeline** (post-delivery WA ask → first-name-only quote) replacing seeded copy.~~ ✅ Done 2026-07 — owner collected five WA quotes; registry at `src/content/testimonials.ts`. *(B4)*
 20. SPF/DKIM/DMARC verification pass on Zoho. *(B5)*
 21. Verified WhatsApp Business badge once Meta Business verification completes. *(S2)*
 

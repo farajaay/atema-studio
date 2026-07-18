@@ -448,6 +448,11 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - Tap Payments as a secondary gateway (only when Mada volume justifies)
 
 **Done in recent sessions (do not re-build):**
+- ✅ Real client testimonials (July 2026) — the About-page «همساتٌ من العميلات»
+  section now renders five real, consented, first-name-only quotes transcribed
+  from owner-collected WhatsApp messages. Registry: `src/content/testimonials.ts`
+  (films.ts idiom; `published` flag per quote). Closes review gap B4. The source
+  screenshots are never committed or published.
 - ✅ Booking workflow tracker (July 2026) — contract-derived production ladder
   per booking (final payment → event → editing → gallery → film → review →
   album), admin «سير العمل» tab in the booking modal, daily
