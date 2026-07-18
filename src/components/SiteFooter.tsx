@@ -25,7 +25,7 @@ export default function SiteFooter({ lang }: Props) {
         {([
           ['/',           'الرئيسية',  'Home'],
           ['/portfolio',  'الأعمال',   'Portfolio'],
-          ['/films',      'الأفلام',   'Films'],
+          // Films footer entry disabled till further notice — see CLAUDE.md §6.
           ['/journal',    'اليوميات',  'Journal'],
           ['/book',       'الباقات',   'Packages'],
           ['/about',      'الاستوديو', 'Atelier'],

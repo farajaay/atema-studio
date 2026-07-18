@@ -32,7 +32,6 @@ const FilmsManager         = lazy(() => import('./pages/FilmsManager'));
 const DiscountCodesManager = lazy(() => import('./pages/DiscountCodesManager'));
 const AddonsManager        = lazy(() => import('./pages/AddonsManager'));
 const AlbumDesignsManager  = lazy(() => import('./pages/AlbumDesignsManager'));
-const FilmsPage            = lazy(() => import('./pages/FilmsPage'));
 
 function AdminFallback() {
   return (
@@ -75,8 +74,9 @@ export default function App() {
       <Route path="/"                element={<HomePage />} />
       <Route path="/book"            element={<BookingPage />} />
       <Route path="/portfolio"       element={<PortfolioPage />} />
-      <Route path="/films"           element={
-        <Suspense fallback={<AdminFallback />}><FilmsPage /></Suspense>} />
+      {/* Films public route disabled till further notice — see CLAUDE.md §6.
+          /admin/films (FilmsManager) stays live so curation can continue. */}
+      <Route path="/films"           element={<Navigate to="/" replace />} />
       <Route path="/journal"         element={<JournalPage />} />
       <Route path="/journal/:slug"   element={<JournalPostPage />} />
       <Route path="/about"           element={<AboutPage />} />

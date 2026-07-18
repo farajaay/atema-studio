@@ -424,6 +424,14 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - **LAUNCH15 has likely expired** — it was valid 20 days from when
   `migrations-2026-05-launch-code.sql` was applied (May 2026). Verify in the
   admin discount panel and retire or replace it before any campaign.
+- **Films section is DISABLED till further notice (2026-07-18 decision)** —
+  `/films` nav/footer links removed and the public route now redirects to
+  `/` (`src/App.tsx`); dropped from `public/sitemap.xml`. `/admin/films`
+  (FilmsManager) stays live so the owner can keep curating. To re-enable:
+  restore the nav entries in `SiteHeader.tsx`/`SiteFooter.tsx`, restore the
+  `<Route path="/films" element={<Suspense …><FilmsPage /></Suspense>} />`
+  route (re-add the `FilmsPage` lazy import in `App.tsx`), and re-add the
+  sitemap entry.
 
 ### Code-side (low-priority bug-tracker items)
 - L-5: `useBreakpoint` SSR-safety guard

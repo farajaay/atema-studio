@@ -20,7 +20,7 @@ interface Props {
 const NAV: Array<{ to: string; ar: string; en: string }> = [
   { to: '/',          ar: 'الرئيسية',  en: 'Home'      },
   { to: '/portfolio', ar: 'الأعمال',   en: 'Portfolio' },
-  { to: '/films',     ar: 'الأفلام',   en: 'Films'     },
+  // Films nav entry disabled till further notice — see CLAUDE.md §6.
   { to: '/journal',   ar: 'اليوميات',  en: 'Journal'   },
   { to: '/book',      ar: 'الباقات',   en: 'Packages'  },
   { to: '/about',     ar: 'الاستوديو', en: 'Atelier'   },
