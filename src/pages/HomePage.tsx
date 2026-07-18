@@ -7,7 +7,8 @@ import { Link } from 'react-router-dom';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
 import FadeUp from '../components/FadeUp';
-import PromotionModal from '../components/PromotionModal';
+// Promotion modal disabled till further notice (2026-07-18) — see App.tsx.
+// import PromotionModal from '../components/PromotionModal';
 import { useLang } from '../hooks/useLang';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { fetchPortfolio } from '../services/portfolio';
@@ -42,7 +43,7 @@ export default function HomePage() {
 
   return (
     <div style={{ background: 'var(--a-bg)', color: 'var(--a-text)', minHeight: '100vh' }}>
-      <PromotionModal />
+      {/* <PromotionModal /> — disabled till further notice, see App.tsx */}
       <SiteHeader lang={lang} setLang={setLang} />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}

@@ -424,6 +424,11 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - **LAUNCH15 has likely expired** — it was valid 20 days from when
   `migrations-2026-05-launch-code.sql` was applied (May 2026). Verify in the
   admin discount panel and retire or replace it before any campaign.
+- **Promotion modal is DISABLED till further notice (2026-07-18 decision)** —
+  the artwork advertises the lapsed 15% launch offer. Renders commented out in
+  `src/App.tsx` (import + gate + render) and `src/pages/HomePage.tsx`, and the
+  `promo-card.webp` preload is commented out in `index.html`. To re-enable:
+  restore those four spots (and refresh the artwork/offer first).
 - **Films section is DISABLED till further notice (2026-07-18 decision)** —
   `/films` nav/footer links removed and the public route now redirects to
   `/` (`src/App.tsx`); dropped from `public/sitemap.xml`. `/admin/films`
