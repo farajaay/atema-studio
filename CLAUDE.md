@@ -384,6 +384,9 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   - `database/migrations-2026-07-videos-bucket.sql` (public `videos` Storage
     bucket — then run the "Sync film streams" workflow; see AGENTS.md for
     the 4-step sequence before deleting `public/videos/`)
+  - `database/migrations-2026-07-analytics.sql` (site_visits — first-party
+    visitor analytics behind the admin «الزيارات» tab; until applied the tab
+    shows a setup banner and the tracker's inserts are silently rejected)
   - `database/migrations-2026-07-workflow.sql` (booking_workflow_steps +
     workflow_notifications — per-booking production ladder; then schedule
     the `workflow-reminders` cron daily, e.g. `0 5 * * *`, with
@@ -453,6 +456,13 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - Tap Payments as a secondary gateway (only when Mada volume justifies)
 
 **Done in recent sessions (do not re-build):**
+- ✅ First-party visitor analytics (July 2026) — «الزيارات» section-tab in the
+  admin dashboard: daily-visits chart, sessions, booking-page reach + conversion,
+  top/departure pages, referrers. Privacy-first tracker (`RouteTracker` +
+  `src/services/analytics.ts`): no IP/fingerprint/cookies, token routes stored
+  as templates, admin browsing excluded. Table `site_visits`
+  (`migrations-2026-07-analytics.sql`, constrained anon INSERT / admin SELECT).
+  Aggregation is pure + unit-tested (`analytics.test.ts`). `docs/MANUAL.md` §13l.
 - ✅ Real client testimonials (July 2026) — the About-page «همساتٌ من العميلات»
   section now renders five real, consented, first-name-only quotes transcribed
   from owner-collected WhatsApp messages. Registry: `src/content/testimonials.ts`

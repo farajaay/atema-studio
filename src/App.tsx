@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { parseMoyasarCallback } from './services/moyasar';
 import { useTheme } from './hooks/useTheme';
+import RouteTracker from './components/RouteTracker';
 // Promotion modal disabled till further notice (2026-07-18) — the advertised
 // 15% launch offer has lapsed. To re-enable: restore this import, the
 // useLocation-based showPromotion gate in App(), and the render below
@@ -70,6 +71,7 @@ export default function App() {
     <>
     {/* Promo disabled till further notice — see the import comment above.
         Was: {showPromotion && <PromotionModal />} gated on !/admin && !/films. */}
+    <RouteTracker />
     <Routes>
       {/* Public — eager */}
       <Route path="/"                element={<HomePage />} />

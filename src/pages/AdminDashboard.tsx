@@ -10,6 +10,7 @@ import MoodBoardComposer from '../components/MoodBoardComposer';
 import AlbumComposer from '../components/AlbumComposer';
 import WorkflowTracker from '../components/WorkflowTracker';
 import StudioPLDashboard from '../components/StudioPLDashboard';
+import VisitorAnalytics from '../components/VisitorAnalytics';
 import AdminCalendar from '../components/AdminCalendar';
 import AppSettingsPanel from '../components/AppSettingsPanel';
 import { useAppSettings } from '../hooks/useAppSettings';
@@ -523,7 +524,7 @@ export default function AdminDashboard() {
   const [paymentF,   setPaymentF]   = useState<string>('all');
   const [selected,   setSelected]   = useState<Booking | null>(null);
   const [deleteConf, setDeleteConf] = useState<string | null>(null);
-  const [view,       setView]       = useState<'bookings' | 'calendar' | 'pnl'>('bookings');
+  const [view,       setView]       = useState<'bookings' | 'calendar' | 'pnl' | 'traffic'>('bookings');
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/admin', { replace: true });
@@ -673,6 +674,7 @@ export default function AdminDashboard() {
             { key: 'bookings', label: 'الحجوزات',           icon: <CalendarDays size={14} /> },
             { key: 'calendar', label: 'التقويم',            icon: <CalendarDays size={14} /> },
             { key: 'pnl',      label: 'الأرباح والخسائر',    icon: <BarChart3 size={14} /> },
+            { key: 'traffic',  label: 'الزيارات',           icon: <TrendingUp size={14} /> },
           ] as const).map(t => {
             const active = view === t.key;
             return (
@@ -698,6 +700,9 @@ export default function AdminDashboard() {
 
         {/* Studio-wide P&L dashboard */}
         {view === 'pnl' && <StudioPLDashboard bookings={bookings} loading={loading} />}
+
+        {/* First-party visitor analytics */}
+        {view === 'traffic' && <VisitorAnalytics bookings={bookings} />}
 
         {/* Filters + table — only when viewing bookings */}
         {view === 'bookings' && <>

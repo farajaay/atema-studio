@@ -1126,6 +1126,41 @@ const PKG_PHOTO: Record<string, PkgPhoto> = {
 
 ---
 
+## 13l. Visitor analytics — «الزيارات» (July 2026)
+
+The dashboard has a fourth section-tab, **«الزيارات»**, showing site
+traffic without any third-party tracker (no Google Analytics, no Meta
+pixel — everything stays in your own Supabase).
+
+**What you see** (period pills: ٧ أيام / ٣٠ يوماً / ٩٠ يوماً):
+- **المشاهدات / الجلسات** — pageviews and distinct visits.
+- **وصلن لصفحة الحجز** — how many sessions reached `/book`, as a count and
+  a % of all sessions. Next to it, **حجوزات الفترة** shows actual bookings
+  created in the period, i.e. the conversion of those who reached booking.
+- **المشاهدات اليومية** — a bar per day (quiet days show as empty slots).
+- **أكثر الصفحات زيارة / صفحات المغادرة / مصادر الزيارات** — top pages,
+  the last page each visitor saw before leaving (departure page), and
+  where visitors came from (referrer domains, e.g. Instagram).
+
+**Privacy, by construction** (this is the whole point of self-hosting it):
+- No IP addresses, no device fingerprints, no cookies, no names. Nothing
+  in `site_visits` can be joined to a booking.
+- A visit is identified by a random id that lives only inside the
+  visitor's browser tab and dies when the tab closes.
+- Private capability links are stored as their *type only* —
+  `/board/:token`, `/manage/:token`, `/album/:token` — the secret part of
+  the link never leaves the visitor's browser.
+- Referrers are kept as a bare domain name, never the full URL.
+- **Your own browsing doesn't count**: any tab where you're signed in as
+  admin is excluded, and `/admin` pages are never tracked.
+
+**Setup (once):** run `database/migrations-2026-07-analytics.sql` in the
+Supabase SQL editor (or the «supabase-migrations» workflow with
+`only-file`). Until then the tab shows a setup banner and the public site
+behaves exactly as before.
+
+---
+
 ## 14. Future enhancements (parked)
 
 **Already shipped (do not re-build):**
