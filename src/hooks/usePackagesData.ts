@@ -54,11 +54,12 @@ export function getLocalizedFeatures(
 // PRICES HERE MUST TRACK THE LIVE `packages` TABLE. The owner edits prices in
 // the admin panel, which writes to Supabase only — this array does not follow
 // automatically. When they drift, an outage silently serves the OLD price to a
-// bride mid-booking. Verified against production 2026-08-04 (Signature 13,000
-// and Couture 20,000 were stale here at 12,500 / 19,500). Re-check whenever
-// prices move; database/seed-packages-2026-05.sql carries the same numbers.
+// bride mid-booking. Last verified against production 2026-08-04, after the
+// owner's repricing round: Engagement 2,700 · Foundation 1,800 · Classic 5,500 ·
+// Royal 11,200 · Signature 13,000 · Couture 20,000. Re-check whenever prices
+// move; database/seed-packages-2026-05.sql carries the same numbers.
 const DEMO: Package[] = [
-  { id: 1, name_ar: 'باقة الخطوبة',     name_en: 'Engagement Session', price: 2500,  duration_hours: 2, edited_photos: 30,  editorial_photos: 0, album: null,
+  { id: 1, name_ar: 'باقة الخطوبة',     name_en: 'Engagement Session', price: 2700,  duration_hours: 2, edited_photos: 30,  editorial_photos: 0, album: null,
     video: false, description: 'جلسة خطوبة رومانسية بأسلوب راقٍ — مثالية لإعلان البداية.',
     features: ['ساعتان من التصوير الاحترافي', '٣٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)', 'اختيار أجمل اللقطات', 'وحدة تخزين باسم العروسين', 'تصميم Save the Date رقمي هدية'],
     badge: 'الأساسي', is_popular: false, active: true, included_addon_ids: ['save-date'], is_custom_base: false },
@@ -71,12 +72,12 @@ const DEMO: Package[] = [
     features: ['ساعة واحدة من التصوير الاحترافي', '٢٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)', 'وحدة تخزين رقمية', 'أضيفي ساعات، فيديو، ألبوم، أو ليلة الحناء حسب احتياجك'],
     badge: null, is_popular: false, active: true, included_addon_ids: [], is_custom_base: true },
 
-  { id: 3, name_ar: 'الباقة الكلاسيكية', name_en: 'Classic',            price: 5200,  duration_hours: 4, edited_photos: 300, editorial_photos: 0, album: 'ألبوم A4 ١٥ صفحة',
+  { id: 3, name_ar: 'الباقة الكلاسيكية', name_en: 'Classic',            price: 5500,  duration_hours: 4, edited_photos: 300, editorial_photos: 0, album: 'ألبوم A4 ١٥ صفحة',
     video: false, description: 'الباقة المثالية للمناسبات الخاصة — ألبوم فاخر وذكريات تبقى، بفريق نسائي كامل.',
     features: ['٤ ساعات تغطية شاملة للحفل', 'مصوّرة رئيسية + مساعدة (فريق نسائي)', '٣٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)', 'ألبوم A4 بـ ١٥ صفحة — طباعة فاخرة', '٥ صور عائلية معدّلة', 'وحدة تخزين بجميع الصور المعدّلة'],
     badge: null, is_popular: false, active: true, included_addon_ids: ['second-photog'], is_custom_base: false },
 
-  { id: 4, name_ar: 'الباقة الملكية',   name_en: 'Royal',              price: 10500, duration_hours: 5, edited_photos: 400, editorial_photos: 4, album: 'ألبوم A4 + ميني ألبوم',
+  { id: 4, name_ar: 'الباقة الملكية',   name_en: 'Royal',              price: 11200, duration_hours: 5, edited_photos: 400, editorial_photos: 4, album: 'ألبوم A4 + ميني ألبوم',
     video: true,  description: 'تجربة تصوير ملكية مع فيديو سينمائي قصير وألبومين فاخرين — الأكثر طلباً.',
     features: ['٥ ساعات تغطية شاملة للحفل', 'مصوّرة رئيسية + مساعدة (فريق نسائي)', '٤٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)', '٤ صور بتعديل تحريري احترافي (رتوش متقدم وتدرّج سينمائي)', 'فيديو سينمائي قصير (٣–٥ دقائق)', 'ألبوم A4 بـ ١٥ صفحة — طباعة فاخرة', 'ميني ألبوم عائلي', 'وحدة تخزين باسم العروسين', 'معاينة في نفس اليوم (٥ صور مختارة)'],
     badge: 'الأكثر طلباً', is_popular: true, active: true, included_addon_ids: ['second-photog', 'video-short'], is_custom_base: false },

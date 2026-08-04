@@ -49,10 +49,10 @@ insert into public.packages
    description, features, badge, is_popular, active, sort_order, included_addon_ids)
 values
 
--- ── 1. Engagement Session — 2,500 SAR ────────────────────────────────────────
+-- ── 1. Engagement Session — 2,700 SAR ────────────────────────────────────────
 -- Pricing updated May-2026 (see migrations-2026-05-pricing-overhaul.sql).
 -- Editing-tier copy aligned with migrations-2026-05-editing-tiers.sql.
-(1, 'باقة الخطوبة', 'Engagement Session', 2500, 2, 30,
+(1, 'باقة الخطوبة', 'Engagement Session', 2700, 2, 30,
  NULL, false,
  'جلسة خطوبة رومانسية بأسلوب راقٍ — مثالية لإعلان البداية.',
  array[
@@ -79,9 +79,9 @@ values
  ],
  NULL, false, true, 0, array[]::text[]),
 
--- ── 3. Classic — 5,200 SAR ───────────────────────────────────────────────────
+-- ── 3. Classic — 5,500 SAR ───────────────────────────────────────────────────
 -- Adds assistant (>2h rule) + printing 25% margin.
-(3, 'الباقة الكلاسيكية', 'Classic', 5200, 4, 300,
+(3, 'الباقة الكلاسيكية', 'Classic', 5500, 4, 300,
  'ألبوم A4 ١٥ صفحة', false,
  'الباقة المثالية للمناسبات الخاصة — ألبوم فاخر وذكريات تبقى، بفريق نسائي كامل.',
  array[
@@ -94,9 +94,9 @@ values
  ],
  NULL, false, true, 30, array['second-photog']::text[]),
 
--- ── 4. Royal — 10,500 SAR — الأكثر طلباً ─────────────────────────────────────
+-- ── 4. Royal — 11,200 SAR — الأكثر طلباً ─────────────────────────────────────
 -- Video service now priced at hours × 450 × 1.5 (50% margin per owner rule).
-(4, 'الباقة الملكية', 'Royal', 10500, 5, 400,
+(4, 'الباقة الملكية', 'Royal', 11200, 5, 400,
  'ألبوم A4 + ميني ألبوم', true,
  'تجربة تصوير ملكية مع فيديو سينمائي قصير وألبومين فاخرين — الأكثر طلباً.',
  array[
