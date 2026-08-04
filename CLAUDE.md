@@ -435,7 +435,9 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   `src/hooks/usePackagesData.ts`) and `database/seed-packages-2026-05.sql`
   carry copies that do **not** follow automatically — when they drift, a
   Supabase outage serves a stale price to a bride mid-booking. Both were
-  re-synced to production on 2026-08-04 (Signature 13,000 · Couture 20,000).
+  re-synced to production on 2026-08-04 after the owner's repricing round
+  (Engagement 2,700 · Foundation 1,800 · Classic 5,500 · Royal 11,200 ·
+  Signature 13,000 · Couture 20,000).
   Re-verify after any price change. The seed step in
   `.github/workflows/supabase-migrations.yml` stays inert for the same reason.
 - **LAUNCH15 has likely expired** — it was valid 20 days from when
