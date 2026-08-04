@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
+import { interpretWrite } from '../utils/writeResult';
 
 export interface Package {
   id: number;
@@ -118,9 +119,15 @@ export function usePackagesData() {
 
   const updatePackage = async (pkg: Package): Promise<boolean> => {
     if (!supabase) { setPackages(p => p.map(x => x.id === pkg.id ? pkg : x)); return true; }
-    const { error: err } = await supabase.from('packages').update(pkg).eq('id', pkg.id);
-    if (err) { setError(err.message); return false; }
-    setPackages(p => p.map(x => x.id === pkg.id ? pkg : x));
+    // `.select()` is load-bearing: without the returned rows an RLS-blocked
+    // write is indistinguishable from a successful one, and the optimistic
+    // state update below would show a price the database never accepted.
+    // See src/utils/writeResult.ts.
+    const res = await supabase.from('packages').update(pkg).eq('id', pkg.id).select();
+    const outcome = interpretWrite<Package>(res);
+    if (!outcome.ok) { setError(outcome.message!); return false; }
+    // Trust the row the database echoed back, not the draft we sent.
+    setPackages(p => p.map(x => x.id === pkg.id ? outcome.rows[0] : x));
     return true;
   };
 
@@ -137,8 +144,9 @@ export function usePackagesData() {
 
   const deletePackage = async (id: number): Promise<boolean> => {
     if (!supabase) { setPackages(p => p.filter(x => x.id !== id)); return true; }
-    const { error: err } = await supabase.from('packages').delete().eq('id', id);
-    if (err) { setError(err.message); return false; }
+    const res = await supabase.from('packages').delete().eq('id', id).select();
+    const outcome = interpretWrite<Package>(res);
+    if (!outcome.ok) { setError(outcome.message!); return false; }
     setPackages(p => p.filter(x => x.id !== id)); return true;
   };
 

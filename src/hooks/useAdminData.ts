@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
+import { interpretWrite } from '../utils/writeResult';
 
 export interface Booking {
   id: string;
@@ -70,10 +71,14 @@ export function useAdminData() {
 
   useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
+  // `.select()` on both writes: RLS answers a blocked write with 200 and zero
+  // rows rather than an error, so without the echoed row a lapsed admin session
+  // would silently drop a status change or a deletion. See utils/writeResult.ts.
   async function updateBooking(id: string, updates: Partial<Booking>): Promise<boolean> {
     if (supabase) {
-      const { error } = await supabase.from('bookings').update(updates).eq('id', id);
-      if (error) { setError(error.message); return false; }
+      const res = await supabase.from('bookings').update(updates).eq('id', id).select();
+      const outcome = interpretWrite<Booking>(res);
+      if (!outcome.ok) { setError(outcome.message!); return false; }
     }
     setBookings(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
     return true;
@@ -81,8 +86,9 @@ export function useAdminData() {
 
   async function deleteBooking(id: string): Promise<boolean> {
     if (supabase) {
-      const { error } = await supabase.from('bookings').delete().eq('id', id);
-      if (error) { setError(error.message); return false; }
+      const res = await supabase.from('bookings').delete().eq('id', id).select();
+      const outcome = interpretWrite<Booking>(res);
+      if (!outcome.ok) { setError(outcome.message!); return false; }
     }
     setBookings(prev => prev.filter(b => b.id !== id));
     return true;
