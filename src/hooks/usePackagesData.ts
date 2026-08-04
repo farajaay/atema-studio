@@ -49,6 +49,13 @@ export function getLocalizedFeatures(
 // Fallback catalogue — mirrors database/seed-packages-2026-05.sql + the
 // pricing-overhaul + custom-base migrations so the site renders the same
 // offering even when Supabase is unreachable.
+//
+// PRICES HERE MUST TRACK THE LIVE `packages` TABLE. The owner edits prices in
+// the admin panel, which writes to Supabase only — this array does not follow
+// automatically. When they drift, an outage silently serves the OLD price to a
+// bride mid-booking. Verified against production 2026-08-04 (Signature 13,000
+// and Couture 20,000 were stale here at 12,500 / 19,500). Re-check whenever
+// prices move; database/seed-packages-2026-05.sql carries the same numbers.
 const DEMO: Package[] = [
   { id: 1, name_ar: 'باقة الخطوبة',     name_en: 'Engagement Session', price: 2500,  duration_hours: 2, edited_photos: 30,  editorial_photos: 0, album: null,
     video: false, description: 'جلسة خطوبة رومانسية بأسلوب راقٍ — مثالية لإعلان البداية.',
@@ -73,12 +80,12 @@ const DEMO: Package[] = [
     features: ['٥ ساعات تغطية شاملة للحفل', 'مصوّرة رئيسية + مساعدة (فريق نسائي)', '٤٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)', '٤ صور بتعديل تحريري احترافي (رتوش متقدم وتدرّج سينمائي)', 'فيديو سينمائي قصير (٣–٥ دقائق)', 'ألبوم A4 بـ ١٥ صفحة — طباعة فاخرة', 'ميني ألبوم عائلي', 'وحدة تخزين باسم العروسين', 'معاينة في نفس اليوم (٥ صور مختارة)'],
     badge: 'الأكثر طلباً', is_popular: true, active: true, included_addon_ids: ['second-photog', 'video-short'], is_custom_base: false },
 
-  { id: 5, name_ar: 'باقة التوقيع',     name_en: 'Signature',          price: 12500, duration_hours: 6, edited_photos: 500, editorial_photos: 8, album: 'ألبوم فاخر A3 ١٢ صفحة + ميني',
+  { id: 5, name_ar: 'باقة التوقيع',     name_en: 'Signature',          price: 13000, duration_hours: 6, edited_photos: 500, editorial_photos: 8, album: 'ألبوم فاخر A3 ١٢ صفحة + ميني',
     video: true,  description: 'الباقة الاحترافية الشاملة — فيديو سينمائي كامل، ألبوم A3 فاخر، وجلسة تحضيرات العروس.',
     features: ['٦ ساعات تغطية شاملة للحفل', 'مصوّرة رئيسية + مساعدة (فريق نسائي)', '٥٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)', '٨ صور بتعديل تحريري احترافي (رتوش متقدم وتدرّج سينمائي)', 'فيديو سينمائي كامل', 'جلسة تصوير تحضيرات العروس', 'ألبوم فاخر A3 بـ ١٢ صفحة', 'ميني ألبوم عائلي', 'وحدة تخزين منقوشة بالاسم', 'معاينة في نفس اليوم (٥ صور مختارة)'],
     badge: 'فاخر', is_popular: false, active: true, included_addon_ids: ['second-photog', 'video-full', 'bridal-prep', 'album-upgrade'], is_custom_base: false },
 
-  { id: 6, name_ar: 'ATEMA Couture',    name_en: 'ATEMA Couture',      price: 19500, duration_hours: 8, edited_photos: 700, editorial_photos: 12, album: 'ألبوم فاخر A3 ٢٠ صفحة + ميني + لوحة جدارية',
+  { id: 6, name_ar: 'ATEMA Couture',    name_en: 'ATEMA Couture',      price: 20000, duration_hours: 8, edited_photos: 700, editorial_photos: 12, album: 'ألبوم فاخر A3 ٢٠ صفحة + ميني + لوحة جدارية',
     video: true,  description: 'تجربة الفخامة الكاملة — كل تفاصيل اليوم بتوقيع كوتور حصري، من الحناء إلى الحفل.',
     features: ['تغطية شاملة كاملة للحفل (٨ ساعات)', 'مصوّرة رئيسية + مساعدة (فريق نسائي)', '٧٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)', '١٢ صورة بتعديل تحريري احترافي (رتوش متقدم وتدرّج سينمائي)', 'فيديو سينمائي فاخر — تغطية كاملة + ليلة الحناء', 'جلسة تحضيرات العروس', 'تغطية ليلة الحناء', 'ألبوم فاخر A3 بـ ٢٠ صفحة', 'ميني ألبوم فاخر', 'لوحة جدارية فنية مؤطرة', 'وحدة تخزين فاخرة بالاسم', 'معاينة في نفس اليوم (١٠ صور مختارة)', 'خدمة عملاء ومتابعة خاصة'],
     badge: 'الأفخم', is_popular: true, active: true, included_addon_ids: ['second-photog', 'video-full', 'bridal-prep', 'album-upgrade', 'henna', 'kosha'], is_custom_base: false },
