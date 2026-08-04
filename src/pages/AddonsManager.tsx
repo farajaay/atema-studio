@@ -4,6 +4,7 @@ import { useAdminAuth } from '../hooks/useAdminAuth';
 import { usePackagesData } from '../hooks/usePackagesData';
 import type { Addon } from '../hooks/useAddonsData';
 import { supabase } from '../services/supabase';
+import { interpretWrite } from '../utils/writeResult';
 import { ATEMA_COLORS } from '../config/constants';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import {
@@ -178,8 +179,9 @@ export default function AddonsManager() {
     if (isNew) {
       const finalId = customId.trim() || slugify(draft.name_ar) + '-' + Date.now();
       const row: Addon = { ...draft, id: finalId };
-      const { error: err } = await supabase.from('addons').insert(row);
-      if (err) { setError(err.message); }
+      const res = await supabase.from('addons').insert(row).select();
+      const outcome = interpretWrite<Addon>(res);
+      if (!outcome.ok) { setError(outcome.message!); }
       else {
         await fetchAddons();
         setSaved(true);
@@ -188,7 +190,9 @@ export default function AddonsManager() {
       }
     } else {
       // Update all mutable fields (id is PK — never changed for existing rows)
-      const { error: err } = await supabase
+      // `.select()` + interpretWrite: an RLS-blocked write returns 200 with no
+      // rows and no error, which would otherwise flash "saved" over a no-op.
+      const res = await supabase
         .from('addons')
         .update({
           name_ar:    draft.name_ar,
@@ -197,8 +201,10 @@ export default function AddonsManager() {
           active:     draft.active,
           sort_order: draft.sort_order,
         })
-        .eq('id', draft.id);
-      if (err) { setError(err.message); }
+        .eq('id', draft.id)
+        .select();
+      const outcome = interpretWrite<Addon>(res);
+      if (!outcome.ok) { setError(outcome.message!); }
       else {
         setSelected({ ...draft });
         await fetchAddons();
@@ -213,9 +219,10 @@ export default function AddonsManager() {
   async function handleDelete() {
     if (!selected || !supabase) return;
     setSaving(true);
-    const { error: err } = await supabase.from('addons').delete().eq('id', selected.id);
+    const res = await supabase.from('addons').delete().eq('id', selected.id).select();
     setSaving(false);
-    if (err) { setError(err.message); return; }
+    const outcome = interpretWrite<Addon>(res);
+    if (!outcome.ok) { setError(outcome.message!); return; }
     setSelected(null); setDraft(null); setDeleteConf(false); setShowForm(false);
     await fetchAddons();
   }
