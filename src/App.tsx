@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { parseMoyasarCallback } from './services/moyasar';
 import { useTheme } from './hooks/useTheme';
 import RouteTracker from './components/RouteTracker';
+import TrialBadge from './components/TrialBadge';
 // Promotion modal disabled till further notice (2026-07-18) — the advertised
 // 15% launch offer has lapsed. To re-enable: restore this import, the
 // useLocation-based showPromotion gate in App(), and the render below
@@ -53,17 +54,24 @@ function AdminFallback() {
 
 export default function App() {
   useTheme();
+  // «نسخة تجريبية» marker — every visitor-facing surface, never the admin
+  // panel. Drop this line (and the two renders) once the site leaves preview.
+  const showTrialBadge = !useLocation().pathname.startsWith('/admin');
+
   // Detect Moyasar payment redirect (arrives as query params on any route)
   const callback = parseMoyasarCallback();
   if (callback) {
     return (
-      <PaymentResultPage
-        paymentId={callback.id}
-        paymentStatus={callback.status}
-        bookingId={callback.bookingId}
-        bookingRef={callback.bookingRef}
-        purpose={callback.purpose}
-      />
+      <>
+        <PaymentResultPage
+          paymentId={callback.id}
+          paymentStatus={callback.status}
+          bookingId={callback.bookingId}
+          bookingRef={callback.bookingRef}
+          purpose={callback.purpose}
+        />
+        {showTrialBadge && <TrialBadge />}
+      </>
     );
   }
 
@@ -72,6 +80,7 @@ export default function App() {
     {/* Promo disabled till further notice — see the import comment above.
         Was: {showPromotion && <PromotionModal />} gated on !/admin && !/films. */}
     <RouteTracker />
+    {showTrialBadge && <TrialBadge />}
     <Routes>
       {/* Public — eager */}
       <Route path="/"                element={<HomePage />} />

@@ -424,6 +424,20 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   constrained anon-INSERT fallback behind the Edge Function.
 
 ### Owner attention (time-sensitive)
+- **«نسخة تجريبية» trial badge is LIVE on every public surface (2026-08-04
+  decision)** — a discreet bottom-left chip (`src/components/TrialBadge.tsx`,
+  gated in `src/App.tsx` via `showTrialBadge`, hidden on `/admin/*`) telling
+  visitors the site is still a preview build. **Remove it the day the studio
+  calls the site final** — delete the component, the import, the
+  `showTrialBadge` line and its two renders.
+- **Catalogue prices live in Supabase, NOT in the repo.** The owner edits them
+  in the admin panel. The offline fallback (`DEMO` in
+  `src/hooks/usePackagesData.ts`) and `database/seed-packages-2026-05.sql`
+  carry copies that do **not** follow automatically — when they drift, a
+  Supabase outage serves a stale price to a bride mid-booking. Both were
+  re-synced to production on 2026-08-04 (Signature 13,000 · Couture 20,000).
+  Re-verify after any price change. The seed step in
+  `.github/workflows/supabase-migrations.yml` stays inert for the same reason.
 - **LAUNCH15 has likely expired** — it was valid 20 days from when
   `migrations-2026-05-launch-code.sql` was applied (May 2026). Verify in the
   admin discount panel and retire or replace it before any campaign.
