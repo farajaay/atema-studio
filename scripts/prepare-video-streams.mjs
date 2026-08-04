@@ -34,6 +34,8 @@ const RAW_PLAYLIST = [
   { id: 'clip-17', file: 'video-output-6853DF27-8338-4B51-887A-5C63230A1284-1.MOV' },
   { id: 'clip-18', file: 'video-output-7DC0D162-E3D2-4C12-BE4B-830B3E5CFDE0-1.MOV' },
   { id: 'clip-19', file: 'video-output-BB3F55B8-A1CD-470D-8A64-694CF3E54B59-1.MOV' },
+  { id: 'clip-20', file: 'IMG_6319.mov' },
+  { id: 'clip-21', file: 'IMG_6320.mov' },
 ];
 
 const LADDER = [

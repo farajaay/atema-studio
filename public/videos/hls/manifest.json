@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-03T20:30:39.183Z",
+  "generatedAt": "2026-08-04T14:40:07.009Z",
   "player": "hls",
   "items": [
     {
@@ -665,6 +665,78 @@
       "duration": 15,
       "width": 1080,
       "height": 1920,
+      "renditions": [
+        {
+          "label": "360p",
+          "width": 360,
+          "height": 640,
+          "bandwidth": 940000
+        },
+        {
+          "label": "540p",
+          "width": 540,
+          "height": 960,
+          "bandwidth": 1510000
+        },
+        {
+          "label": "720p",
+          "width": 720,
+          "height": 1280,
+          "bandwidth": 2410000
+        }
+      ]
+    },
+    {
+      "id": "clip-20",
+      "order": 20,
+      "title": "IMG 6319",
+      "sourceFile": "IMG_6319.mov",
+      "originalExt": "mov",
+      "duplicateOf": null,
+      "manualRotation": 0,
+      "originalSize": 11042656,
+      "outputId": "clip-20",
+      "hls": "videos/hls/clip-20/master.m3u8",
+      "poster": "videos/hls/clip-20/poster.jpg",
+      "duration": 15.467,
+      "width": 720,
+      "height": 1280,
+      "renditions": [
+        {
+          "label": "360p",
+          "width": 360,
+          "height": 640,
+          "bandwidth": 940000
+        },
+        {
+          "label": "540p",
+          "width": 540,
+          "height": 960,
+          "bandwidth": 1510000
+        },
+        {
+          "label": "720p",
+          "width": 720,
+          "height": 1280,
+          "bandwidth": 2410000
+        }
+      ]
+    },
+    {
+      "id": "clip-21",
+      "order": 21,
+      "title": "IMG 6320",
+      "sourceFile": "IMG_6320.mov",
+      "originalExt": "mov",
+      "duplicateOf": null,
+      "manualRotation": 0,
+      "originalSize": 17097931,
+      "outputId": "clip-21",
+      "hls": "videos/hls/clip-21/master.m3u8",
+      "poster": "videos/hls/clip-21/poster.jpg",
+      "duration": 18.8,
+      "width": 720,
+      "height": 1280,
       "renditions": [
         {
           "label": "360p",
