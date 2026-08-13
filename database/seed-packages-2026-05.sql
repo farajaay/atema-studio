@@ -25,16 +25,16 @@ values
   -- Video add-ons follow the videography 50% margin rule:
   --   short = ~5h × 450 × 1.5 ≈ 3,400 SAR
   --   full  = ~7h × 450 × 1.5 ≈ 4,800 SAR
-  ('video-short',    'فيديو سينمائي قصير (إضافة للكلاسيكية)',    'Short cinematic video (Classic add-on)',  3400,  true, 20),
+  ('video-short',    'فيديو سينمائي قصير (إضافة للكلاسيكية)',    'Short cinematic video (Classic add-on)',  3400,  true, 10),
   ('video-full',     'فيديو سينمائي كامل (إضافة للكلاسيكية)',    'Full cinematic video (Classic add-on)',   4800,  true, 30),
   ('henna',          'تغطية ليلة الحناء',                        'Henna night coverage',                    2400,  true, 40),
   ('bridal-prep',    'تصوير تحضيرات العروس',                     'Bridal prep session',                     1200,  true, 50),
-  ('album-upgrade',  'ترقية الألبوم إلى A3',                     'Album upgrade to A3',                      800,  true, 60),
-  ('extra-pages',    'صفحات ألبوم إضافية (سعر الصفحة)',          'Extra album page (per page)',              120,  true, 70),
-  ('raw-files',      'تسليم الملفات الخام',                      'Raw files delivery',                       900,  true, 80),
-  ('second-photog',  'مصور ثانٍ',                                'Second photographer',                     1200,  true, 90),
-  ('kosha',          'تصوير الكوشة قبل الحفل',                    'Pre-event kosha shoot',                    800,  true, 100),
-  ('save-date',      'Save the Date',                            'Save the Date',                            700,  true, 110)
+  ('album-upgrade',  'ترقية الألبوم إلى A3',                     'Album upgrade to A3',                      800,  true, 100),
+  ('extra-pages',    'صفحات ألبوم إضافية (سعر الصفحة)',          'Extra album page (per page)',              120,  true, 90),
+  ('raw-files',      'تسليم الملفات الخام',                      'Raw files delivery',                       900,  true, 90),
+  ('second-photog',  'مصور ثانٍ',                                'Second photographer',                     1200,  false, 90),
+  ('kosha',          'تصوير الكوشة قبل الحفل',                    'Pre-event kosha shoot',                    800,  true, 50),
+  ('save-date',      'Save the Date',                            'Save the Date',                            700,  false, 110)
 on conflict (id) do update set
   name_ar    = excluded.name_ar,
   name_en    = excluded.name_en,
