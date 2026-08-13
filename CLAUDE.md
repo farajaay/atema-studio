@@ -309,6 +309,26 @@ src/
 
 ---
 
+### 4.10 Installment plans (خطة التقسيط)
+- Admin-assigned per **booking** (never per package): split the total over
+  3/4/5 دفعات from the booking modal's «خطة التقسيط» card. The 50% deposit
+  IS installment seq 1 — `payment_status` semantics are unchanged ('paid'
+  still means deposit received; plan completion is derived).
+- **All math lives in `supabase/functions/_shared/installments.ts`** (pure,
+  unit-tested, shared client/Edge — same discipline as `reschedule.ts` /
+  `workflow.ts`): plan building, rounding (last row absorbs the remainder,
+  Σ === total always), rebalancing after a total change (paid rows are
+  never touched), progress, and reminder prompts. Don't fork any of it.
+- Bride reads her schedule via the `get_installments_by_token` SECURITY
+  DEFINER RPC (capability-link model); anon never touches
+  `booking_installments`. `installment_notifications` is the send-dedupe
+  guard (unique `(booking_id, seq, kind)`, rows inserted only on confirmed
+  send) — reminders ride the daily `workflow-reminders` cron, email-only.
+- Contracts regenerated for a plan booking render the real schedule — the
+  logic exists in BOTH `src/services/contract.ts` and
+  `supabase/functions/_shared/contract.ts` (change-both rule).
+  See `docs/MANUAL.md` §13m + `docs/plans/installments-2026-08.md`.
+
 ## 5. The booking flow (one-breath summary)
 
 ```
@@ -396,6 +416,10 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
     workflow_notifications — per-booking production ladder; then schedule
     the `workflow-reminders` cron daily, e.g. `0 5 * * *`, with
     `Authorization: Bearer $CRON_SECRET` — same pattern as wa-reminders)
+  - `database/migrations-2026-08-installments.sql` (booking_installments +
+    installment_notifications + `bookings.installment_plan` +
+    get_installments_by_token RPC — admin-assigned 3/4/5 split-payment
+    plans; reminders ride the existing daily `workflow-reminders` cron)
   - `database/seed-packages-2026-05.sql` (6 packages + 11 add-ons — required
     if `packages` table is empty; the booking flow falls back to the DEMO
     catalogue without it, but the Edge Function still needs real rows to

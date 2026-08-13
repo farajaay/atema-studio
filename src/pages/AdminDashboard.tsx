@@ -18,6 +18,15 @@ import { useFailedSends } from '../hooks/useFailedSends';
 import {
   regenerateDocuments, fetchLatestDocuments, type LatestDocuments,
 } from '../services/documents';
+import {
+  fetchInstallments, createInstallmentPlan, recordInstallmentPayment,
+  undoInstallmentPayment, rebalanceInstallments, removeInstallmentPlan,
+  type StoredInstallment,
+} from '../services/installments';
+import {
+  INSTALLMENT_COUNTS, buildInstallmentPlan, installmentProgress,
+  installmentLabelAr, todayUtc, daysBetween,
+} from '../../supabase/functions/_shared/installments';
 import { openDocumentInNewTab, downloadDocument } from '../services/invoice';
 import type { AppSettings } from '../services/settings';
 import {
@@ -181,9 +190,294 @@ function DocumentsSection({ booking, settings }: { booking: Booking; settings: A
   );
 }
 
+// ── Installment plan (خطة التقسيط) — admin-assigned 3/4/5 split ──────────────
+// The deposit stays installment #1 (the booking flow is untouched); the
+// balance spreads over the remaining دفعات, last due = event − 1 day. All the
+// math is the pure policy module _shared/installments.ts; this card is IO +
+// pixels. Received transfers are recorded (amount + date + note) — the studio
+// is transfer-only, so Fatima verifies the receipt then records it here.
+function InstallmentsCard({ booking, recomputedTotal, onPatch }: {
+  booking: Booking; recomputedTotal: number;
+  onPatch: (id: string, updates: Partial<Booking>) => Promise<boolean>;
+}) {
+  const [rows, setRows]         = useState<StoredInstallment[] | null>(null);
+  const [preview, setPreview]   = useState<{ count: number } | null>(null);
+  const [busy, setBusy]         = useState(false);
+  const [err, setErr]           = useState<string | null>(null);
+  const [recordingId, setRecordingId] = useState<string | null>(null);
+  const [payAmount, setPayAmount] = useState('');
+  const [payDate, setPayDate]     = useState(todayUtc());
+  const [payNote, setPayNote]     = useState('');
+  const [removeArmed, setRemoveArmed] = useState(false);
+  const [undoArmedId, setUndoArmedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let on = true;
+    fetchInstallments(booking.id).then(r => { if (on) setRows(r); });
+    return () => { on = false; };
+  }, [booking.id]);
+
+  const label = (s: React.CSSProperties = {}): React.CSSProperties => ({
+    fontSize: '11px', color: 'var(--a-text-muted)', ...s });
+  const btn = (accent = false): React.CSSProperties => ({
+    padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+    fontFamily: 'inherit', cursor: busy ? 'wait' : 'pointer',
+    border: accent ? 'none' : '1px solid var(--a-border)',
+    background: accent ? 'var(--a-gold)' : 'var(--a-surface)',
+    color: accent ? '#0B0B0B' : 'var(--a-text)',
+  });
+
+  const previewPlan = preview
+    ? buildInstallmentPlan({ total: recomputedTotal, count: preview.count,
+        startDate: todayUtc(), eventDate: booking.event_date })
+    : null;
+
+  async function confirmCreate() {
+    if (!preview) return;
+    setBusy(true); setErr(null);
+    const created = await createInstallmentPlan({
+      id: booking.id, total: recomputedTotal,
+      event_date: booking.event_date, payment_status: booking.payment_status,
+    }, preview.count);
+    if (created) {
+      await onPatch(booking.id, { installment_plan: preview.count });
+      setRows(created); setPreview(null);
+    } else {
+      setErr('تعذّر إنشاء الخطة — تحقّقي من الاتصال ومن أن المناسبة ليست غداً.');
+    }
+    setBusy(false);
+  }
+
+  async function submitPayment(row: StoredInstallment) {
+    const amount = Math.round(Number(payAmount));
+    if (!Number.isFinite(amount) || amount <= 0 || !payDate) return;
+    setBusy(true); setErr(null);
+    const updated = await recordInstallmentPayment(row.id, {
+      paidAmount: amount, paidDate: payDate, note: payNote,
+    });
+    if (updated) {
+      setRows(rs => (rs ?? []).map(r => r.id === row.id ? updated : r));
+      setRecordingId(null); setPayAmount(''); setPayNote('');
+    } else setErr('تعذّر تسجيل الدفعة.');
+    setBusy(false);
+  }
+
+  async function undoPayment(row: StoredInstallment) {
+    setBusy(true); setErr(null);
+    const updated = await undoInstallmentPayment(row.id);
+    if (updated) setRows(rs => (rs ?? []).map(r => r.id === row.id ? updated : r));
+    else setErr('تعذّر التراجع.');
+    setUndoArmedId(null); setBusy(false);
+  }
+
+  async function doRebalance() {
+    if (!rows) return;
+    setBusy(true); setErr(null);
+    const fresh = await rebalanceInstallments(booking.id, rows, recomputedTotal);
+    if (fresh) setRows(fresh);
+    else setErr('تعذّرت إعادة التوزيع.');
+    setBusy(false);
+  }
+
+  async function doRemove() {
+    setBusy(true); setErr(null);
+    const ok = await removeInstallmentPlan(booking.id);
+    if (ok) {
+      await onPatch(booking.id, { installment_plan: null });
+      setRows([]);
+    } else setErr('تعذّر حذف الخطة.');
+    setRemoveArmed(false); setBusy(false);
+  }
+
+  const card = (children: React.ReactNode) => (
+    <div style={{ background: 'var(--a-surface-alt)', borderRadius: '10px',
+      padding: '16px 18px', marginBottom: '20px' }}>
+      <div style={{ fontSize: '12px', fontWeight: 700, color: ATEMA_COLORS.champagne,
+        marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+        خطة التقسيط
+      </div>
+      {children}
+      {err && <div style={{ marginTop: 10, padding: '6px 10px', borderRadius: 6,
+        background: '#fee2e2', color: '#991b1b', fontSize: 11 }}>{err}</div>}
+    </div>
+  );
+
+  if (rows === null) return card(
+    <div style={{ fontSize: '12px', color: 'var(--a-text-muted)' }}>جاري التحميل…</div>);
+
+  // ── No plan yet: offer 3/4/5, preview, confirm ─────────────────────────
+  if (rows.length === 0) {
+    return card(<>
+      <div style={{ fontSize: '12px', color: 'var(--a-text-soft)', lineHeight: 1.8, marginBottom: '10px' }}>
+        تقسيم إجمالي الحجز على دفعات: العربون (٥٠٪) يبقى الدفعة الأولى كما هو،
+        والمتبقي يتوزّع على الدفعات التالية — آخرها قبل المناسبة بيوم (المادة الثانية).
+      </div>
+      {!preview ? (
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {INSTALLMENT_COUNTS.map(c => (
+            <button key={c} onClick={() => { setErr(null); setPreview({ count: c }); }} style={btn()}>
+              تقسيط على {c === 3 ? '٣' : c === 4 ? '٤' : '٥'} دفعات
+            </button>
+          ))}
+        </div>
+      ) : !previewPlan ? (
+        <div style={{ padding: '8px 12px', borderRadius: 6, background: '#fef3c7',
+          color: '#92400e', fontSize: 12 }}>
+          المناسبة أقرب من أن تُقسَّط — الدفعة الأخيرة تستحق قبلها بيوم.
+          <button onClick={() => setPreview(null)} style={{ ...btn(), marginInlineStart: 10 }}>تراجع</button>
+        </div>
+      ) : (<>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '10px' }}>
+          <tbody>
+            {previewPlan.map(p => (
+              <tr key={p.seq} style={{ borderBottom: '1px solid var(--a-border)' }}>
+                <td style={{ padding: '7px 4px', fontWeight: 600, color: 'var(--a-text)' }}>
+                  {installmentLabelAr(p.seq, preview.count)}
+                </td>
+                <td style={{ padding: '7px 4px', fontWeight: 700, color: ATEMA_COLORS.champagne, whiteSpace: 'nowrap' }}>
+                  {p.amount.toLocaleString('ar-SA')} ر.س
+                </td>
+                <td style={{ padding: '7px 4px', color: 'var(--a-text-soft)', whiteSpace: 'nowrap' }}>
+                  <span dir="ltr">{p.dueDate}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button disabled={busy} onClick={confirmCreate} style={btn(true)}>
+            {busy ? 'جاري…' : 'اعتماد الخطة'}
+          </button>
+          <button onClick={() => setPreview(null)} style={btn()}>تراجع</button>
+          <span style={label()}>يمكن تعديل المبالغ لاحقاً بإعادة التوزيع عند تغيّر الإجمالي.</span>
+        </div>
+      </>)}
+    </>);
+  }
+
+  // ── Active plan: rows + record/undo + progress + drift + remove ────────
+  const progress = installmentProgress(rows);
+  const count = rows.length;
+  const drift = progress.plannedTotal !== recomputedTotal;
+  const today = todayUtc();
+
+  return card(<>
+    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '10px' }}>
+      <tbody>
+        {rows.map(r => {
+          const overdue = !r.paid_at && (daysBetween(r.due_date, today) ?? 0) > 0;
+          return (
+          <tr key={r.id} style={{ borderBottom: '1px solid var(--a-border)' }}>
+            <td style={{ padding: '8px 4px', fontWeight: 600, color: 'var(--a-text)', verticalAlign: 'top' }}>
+              {installmentLabelAr(r.seq, count)}
+              <div style={label({ marginTop: 2 })}>
+                تستحق <span dir="ltr">{r.due_date}</span>
+                {overdue && <span style={{ color: '#dc2626', fontWeight: 700 }}> — متأخرة</span>}
+              </div>
+            </td>
+            <td style={{ padding: '8px 4px', fontWeight: 700, color: ATEMA_COLORS.champagne,
+              whiteSpace: 'nowrap', verticalAlign: 'top' }}>
+              {r.amount.toLocaleString('ar-SA')} ر.س
+            </td>
+            <td style={{ padding: '8px 4px', verticalAlign: 'top', width: '46%' }}>
+              {r.paid_at ? (
+                <div style={{ fontSize: '11.5px', color: '#059669', fontWeight: 600, lineHeight: 1.7 }}>
+                  ✓ استُلمت {(r.paid_amount ?? r.amount).toLocaleString('ar-SA')} ر.س
+                  في <span dir="ltr">{r.paid_at.slice(0, 10)}</span>
+                  {r.note && <div style={label()}>{r.note}</div>}
+                  {undoArmedId === r.id ? (
+                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                      <button disabled={busy} onClick={() => undoPayment(r)}
+                        style={{ ...btn(), color: '#dc2626', borderColor: '#fecaca' }}>تأكيد التراجع</button>
+                      <button onClick={() => setUndoArmedId(null)} style={btn()}>إلغاء</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setUndoArmedId(r.id)}
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                        fontSize: '11px', color: 'var(--a-text-muted)', fontFamily: 'inherit',
+                        textDecoration: 'underline' }}>
+                      تصحيح (تراجع عن التسجيل)
+                    </button>
+                  )}
+                </div>
+              ) : recordingId === r.id ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)}
+                    placeholder="المبلغ المستلم (ر.س)" dir="ltr"
+                    style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--a-border)',
+                      fontSize: 12, fontFamily: 'inherit', background: 'var(--a-surface)' }} />
+                  <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} dir="ltr"
+                    style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--a-border)',
+                      fontSize: 12, fontFamily: 'inherit', background: 'var(--a-surface)' }} />
+                  <input value={payNote} onChange={e => setPayNote(e.target.value)}
+                    placeholder="ملاحظة (مرجع الحوالة…) — اختياري"
+                    style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--a-border)',
+                      fontSize: 12, fontFamily: 'inherit', background: 'var(--a-surface)' }} />
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button disabled={busy} onClick={() => submitPayment(r)} style={btn(true)}>
+                      {busy ? 'جاري…' : 'تسجيل'}
+                    </button>
+                    <button onClick={() => setRecordingId(null)} style={btn()}>إلغاء</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => { setRecordingId(r.id);
+                    setPayAmount(String(r.amount)); setPayDate(todayUtc()); setPayNote(''); }}
+                  style={btn()}>
+                  تم الاستلام — تسجيل
+                </button>
+              )}
+            </td>
+          </tr>
+        ); })}
+      </tbody>
+    </table>
+
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <span style={{ fontSize: '12px', fontWeight: 700,
+        color: progress.settled ? '#059669' : 'var(--a-text)' }}>
+        {progress.settled
+          ? '✓ الخطة مكتملة السداد'
+          : `المحصَّل ${progress.paidTotal.toLocaleString('ar-SA')} من ${progress.plannedTotal.toLocaleString('ar-SA')} ر.س`}
+      </span>
+      {!removeArmed ? (
+        <button onClick={() => setRemoveArmed(true)}
+          style={{ ...btn(), marginInlineStart: 'auto', color: '#dc2626', borderColor: '#fecaca' }}>
+          حذف الخطة
+        </button>
+      ) : (
+        <span style={{ display: 'flex', gap: 6, marginInlineStart: 'auto' }}>
+          <button disabled={busy} onClick={doRemove}
+            style={{ ...btn(), background: '#dc2626', color: 'white', border: 'none' }}>
+            {busy ? 'جاري…' : 'نعم — حذف الخطة'}
+          </button>
+          <button onClick={() => setRemoveArmed(false)} style={btn()}>تراجع</button>
+        </span>
+      )}
+    </div>
+
+    {drift && (
+      <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 6,
+        background: '#fef3c7', color: '#92400e', fontSize: 11.5, lineHeight: 1.8 }}>
+        ⚠ مجموع الخطة ({progress.plannedTotal.toLocaleString('ar-SA')} ر.س) لا يطابق
+        إجمالي الحجز الحالي ({recomputedTotal.toLocaleString('ar-SA')} ر.س) — غالباً بعد
+        تعديل باقة أو ضريبة. الدفعات المسدَّدة لا تُمَس؛ يمكن إعادة توزيع المتبقي على
+        الدفعات غير المسدَّدة.
+        <div style={{ marginTop: 6 }}>
+          <button disabled={busy} onClick={doRebalance} style={btn()}>
+            {busy ? 'جاري…' : 'إعادة توزيع المتبقي'}
+          </button>
+        </div>
+      </div>
+    )}
+  </>);
+}
+
 // ── Booking Detail Modal ──────────────────────────────────────────────────────
-function BookingModal({ booking, onClose, onSave, globalVatEnabled, settings }: {
+function BookingModal({ booking, onClose, onSave, onPatch, globalVatEnabled, settings }: {
   booking: Booking; onClose: () => void; onSave: (id: string, updates: Partial<Booking>) => Promise<boolean>;
+  /** Persist + sync dashboard state WITHOUT closing the modal (onSave closes). */
+  onPatch: (id: string, updates: Partial<Booking>) => Promise<boolean>;
   globalVatEnabled: boolean; settings: AppSettings;
 }) {
   const [tab, setTab]         = useState<'details' | 'workflow' | 'pl' | 'mood' | 'album'>('details');
@@ -433,6 +727,9 @@ function BookingModal({ booking, onClose, onSave, globalVatEnabled, settings }: 
               )}
             </div>
           )}
+
+          {/* Installment plan (خطة التقسيط) — admin-assigned 3/4/5 split */}
+          <InstallmentsCard booking={booking} recomputedTotal={recomputedTotal} onPatch={onPatch} />
 
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--a-text)', marginBottom: '7px' }}>
@@ -802,6 +1099,15 @@ export default function AdminDashboard() {
                               +{Number(b.topup_amount_due).toLocaleString('ar-SA')} ر.س
                             </span>
                           )}
+                          {(b.installment_plan ?? 0) > 0 && (
+                            <span title="خطة تقسيط نشطة — التفاصيل في بطاقة الحجز"
+                              style={{ display: 'inline-flex', alignItems: 'center',
+                                fontSize: '11px', fontWeight: 700, color: 'var(--a-gold)',
+                                border: '1px dashed var(--a-border-strong)', borderRadius: '20px',
+                                padding: '2px 9px', background: 'var(--a-surface-alt)' }}>
+                              تقسيط ×{b.installment_plan}
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td style={{ padding: '12px 14px' }}>
@@ -842,6 +1148,13 @@ export default function AdminDashboard() {
           onSave={async (id, updates) => {
             const ok = await updateBooking(id, updates);
             if (ok) setSelected(null);
+            return ok;
+          }}
+          onPatch={async (id, updates) => {
+            // Same persistence, but keeps the modal open (installment card
+            // needs to stay put while the admin keeps working in it).
+            const ok = await updateBooking(id, updates);
+            if (ok) setSelected(s => s && s.id === id ? { ...s, ...updates } : s);
             return ok;
           }} />
       )}

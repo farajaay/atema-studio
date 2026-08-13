@@ -35,6 +35,11 @@ import {
   WORKFLOW_STEPS, computeTargets, duePrompts, promptDedupeKey, todayUtc, addDaysIso,
   type WorkflowStepKey, type WorkflowStatus,
 } from '../_shared/workflow.ts';
+import {
+  installmentPrompts, installmentPromptKey, installmentLabelAr,
+  BRIDE_LEAD_DAYS, type InstallmentRow,
+} from '../_shared/installments.ts';
+import { renderInstallmentReminderEmail } from '../_shared/email-installment.ts';
 
 const CRON_SECRET = Deno.env.get('CRON_SECRET');
 const SITE_ORIGIN = Deno.env.get('SITE_ORIGIN') ?? 'https://atemastudio.xyz';
@@ -172,6 +177,108 @@ serve(async (req) => {
     }
   }
 
+  // ── Installment plans (خطة التقسيط) ──────────────────────────────────────
+  // Scanned independently of the workflow candidate window above — an
+  // installment can be due months before the event. Owner due/overdue lines
+  // ride the same digest email; the bride gets an individual reminder in the
+  // lead window. installment_notifications guards each (booking, seq, kind).
+  const pendingInstallmentGuards: { booking_id: string; seq: number; kind: string }[] = [];
+  let brideReminders = 0;
+
+  const { data: unpaidInst } = await supa.from('booking_installments')
+    .select('booking_id, seq, amount, due_date, paid_amount, paid_at')
+    .is('paid_at', null)
+    .lte('due_date', addDaysIso(today, BRIDE_LEAD_DAYS));
+
+  const instByBooking = new Map<string, InstallmentRow[]>();
+  for (const r of (unpaidInst ?? []) as (InstallmentRow & { booking_id: string })[]) {
+    const list = instByBooking.get(r.booking_id) ?? [];
+    list.push(r);
+    instByBooking.set(r.booking_id, list);
+  }
+
+  if (instByBooking.size > 0) {
+    const instIds = [...instByBooking.keys()];
+    const [{ data: instBookings }, { data: instSent }] = await Promise.all([
+      supa.from('bookings')
+        .select('id, booking_ref, customer_name, customer_email, event_date, status, manage_token, installment_plan')
+        .in('id', instIds),
+      supa.from('installment_notifications')
+        .select('booking_id, seq, kind')
+        .in('booking_id', instIds),
+    ]);
+
+    const instSentByBooking = new Map<string, Set<string>>();
+    for (const r of (instSent ?? []) as { booking_id: string; seq: number; kind: string }[]) {
+      const set = instSentByBooking.get(r.booking_id) ?? new Set<string>();
+      set.add(installmentPromptKey(r.seq, r.kind));
+      instSentByBooking.set(r.booking_id, set);
+    }
+
+    type InstBooking = {
+      id: string; booking_ref: string; customer_name: string;
+      customer_email: string | null; event_date: string; status: string;
+      manage_token: string | null; installment_plan: number | null;
+    };
+    for (const b of (instBookings ?? []) as InstBooking[]) {
+      if (b.status === 'cancelled') continue;
+      const rows = instByBooking.get(b.id) ?? [];
+      const count = b.installment_plan ?? Math.max(...rows.map(r => r.seq));
+
+      const prompts = installmentPrompts({
+        rows, now: today,
+        sent: instSentByBooking.get(b.id) ?? new Set<string>(),
+      });
+
+      for (const p of prompts) {
+        if (p.kind === 'bride_upcoming') {
+          // Individual bride email — guard row inserted immediately on a
+          // confirmed send (the wa-reminders pattern for per-recipient sends).
+          if (!b.customer_email) continue;
+          const rendered = renderInstallmentReminderEmail({
+            bookingRef:   b.booking_ref,
+            customerName: b.customer_name,
+            seq: p.seq, count, amount: p.amount, dueDate: p.dueDate,
+            manageUrl:  b.manage_token ? `${SITE_ORIGIN}/#/manage/${b.manage_token}` : null,
+            siteOrigin: SITE_ORIGIN,
+          });
+          try {
+            const res = await sendEmail({
+              to:       b.customer_email,
+              subject:  rendered.subject,
+              html:     rendered.html,
+              text:     rendered.text,
+              template: 'installment_reminder',
+              bookingId: b.id,
+            });
+            if (res.status === 'sent') {
+              brideReminders++;
+              const { error: guardErr } = await supa.from('installment_notifications')
+                .insert({ booking_id: b.id, seq: p.seq, kind: p.kind });
+              if (guardErr) console.error('installment guard insert failed:', guardErr.message);
+            }
+          } catch (e) {
+            console.error('bride installment reminder failed', b.booking_ref, p.seq, e);
+          }
+        } else {
+          // Owner line — rides the workflow digest; guard rows recorded with
+          // the digest's own send-confirmation below.
+          digest.push({
+            bookingRef:   b.booking_ref,
+            customerName: b.customer_name,
+            eventDate:    b.event_date,
+            stepTitleAr:  `تحصيل ${installmentLabelAr(p.seq, count)} — خطة التقسيط (${p.amount.toLocaleString('ar-SA')} ر.س)`,
+            kind:         p.kind,
+            target:       p.dueDate,
+            deadline:     p.dueDate,
+            daysLate:     p.days,
+          });
+          pendingInstallmentGuards.push({ booking_id: b.id, seq: p.seq, kind: p.kind });
+        }
+      }
+    }
+  }
+
   // ── One digest email per run; record the guard rows only on real send so
   // a flaky SMTP session retries tomorrow instead of going silent. ─────────
   let emailStatus = 'skipped_empty';
@@ -193,9 +300,16 @@ serve(async (req) => {
     });
     emailStatus = res.status;
     if (res.status === 'sent') {
-      const { error: guardErr } = await supa.from('workflow_notifications')
-        .insert(pendingNotifications);
-      if (guardErr) console.error('notification guard insert failed:', guardErr.message);
+      if (pendingNotifications.length > 0) {
+        const { error: guardErr } = await supa.from('workflow_notifications')
+          .insert(pendingNotifications);
+        if (guardErr) console.error('notification guard insert failed:', guardErr.message);
+      }
+      if (pendingInstallmentGuards.length > 0) {
+        const { error: instGuardErr } = await supa.from('installment_notifications')
+          .insert(pendingInstallmentGuards);
+        if (instGuardErr) console.error('installment guard insert failed:', instGuardErr.message);
+      }
     }
   }
 
@@ -204,6 +318,7 @@ serve(async (req) => {
     scanned: active.length,
     seeded, retargeted,
     prompts: digest.length,
+    bride_installment_reminders: brideReminders,
     email: emailStatus,
   });
 });

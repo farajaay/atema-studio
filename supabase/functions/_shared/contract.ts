@@ -6,6 +6,7 @@
 // booking-confirmation email.
 
 import { STATIONERY, STATIONERY_FONTS_IMPORT } from './stationery.ts';
+import { installmentLabelAr } from './installments.ts';
 
 export interface ContractData {
   customerName:    string;
@@ -34,6 +35,11 @@ export interface ContractData {
     value:  number;
   } | null;
   grossSubtotal?: number;
+  /** Installment schedule (خطة التقسيط) — when present, the payment article
+   *  and financial boxes render the actual plan instead of the default 50/50
+   *  wording. seq 1 is the deposit. Never set at booking time (plans are
+   *  admin-assigned later); carried for mirror parity with the client. */
+  installments?: { seq: number; amount: number; dueDate: string; paid: boolean }[] | null;
 }
 
 const HTML_ESCAPES: Record<string, string> = {
@@ -63,6 +69,21 @@ export function generateContractHTML(d: ContractData): string {
   const addonsStr = d.addons.length > 0
     ? `<tr><td style="padding:6px 12px;border:1px solid ${STATIONERY.borderDash};font-size:13px">الإضافات</td><td style="padding:6px 12px;border:1px solid ${STATIONERY.borderDash};font-size:13px">${d.addons.map(esc).join(' · ')}</td></tr>`
     : '';
+
+  // Installment plan (خطة التقسيط) — replaces the 50/50 wording when present.
+  const inst = d.installments && d.installments.length >= 3 ? d.installments : null;
+  const instCountAr = inst
+    ? ({ 3: '٣', 4: '٤', 5: '٥' } as Record<number, string>)[inst.length] ?? String(inst.length)
+    : '';
+  const instRestLabel = inst
+    ? (inst.length === 3 ? 'دفعتين' : inst.length === 4 ? '٣ دفعات' : '٤ دفعات')
+    : '';
+  const instScheduleStr = inst ? `
+    <table class="data-table" style="margin-top:12px">
+      ${inst.map(i =>
+        `<tr><td>${esc(installmentLabelAr(i.seq, inst.length))}</td><td>${fmt(i.amount)} ر.س — تستحق ${esc(formatDateAr(i.dueDate))}${i.paid ? ' — مسددة ✓' : ''}</td></tr>`
+      ).join('')}
+    </table>` : '';
 
   return `<!DOCTYPE html>
 <html dir="rtl" lang="ar">
@@ -160,7 +181,9 @@ export function generateContractHTML(d: ContractData): string {
       <tr><td>الباقة المختارة</td><td>${esc(d.packageNameAr)} (${esc(d.packageNameEn)})</td></tr>
       <tr><td>موقع المناسبة</td><td>${esc(d.location) || '—'}</td></tr>
       ${addonsStr}
-      <tr><td>موعد استحقاق الدفعة الثانية</td><td>قبل يوم من تاريخ المناسبة</td></tr>
+      ${inst
+        ? `<tr><td>خطة السداد</td><td>بالتقسيط على ${instCountAr} دفعات — آخرها قبل المناسبة بيوم</td></tr>`
+        : `<tr><td>موعد استحقاق الدفعة الثانية</td><td>قبل يوم من تاريخ المناسبة</td></tr>`}
     </table>
 
     <h2>الملخص المالي</h2>
@@ -182,16 +205,23 @@ export function generateContractHTML(d: ContractData): string {
         <div class="fin-cur">ر.س</div>
       </div>
       <div class="fin-box highlight">
-        <div class="fin-label">الدفعة الأولى المسددة (٥٠٪)</div>
+        <div class="fin-label">${inst ? 'الدفعة الأولى — العربون (٥٠٪)' : 'الدفعة الأولى المسددة (٥٠٪)'}</div>
         <div class="fin-val">${fmt(d.deposit)}</div>
         <div class="fin-cur">ر.س — مسددة ✓</div>
       </div>
+      ${inst ? `
+      <div class="fin-box">
+        <div class="fin-label">المتبقي — على ${instRestLabel}</div>
+        <div class="fin-val">${fmt(d.remaining)}</div>
+        <div class="fin-cur">ر.س — آخرها قبل المناسبة بيوم</div>
+      </div>` : `
       <div class="fin-box">
         <div class="fin-label">الدفعة الثانية المستحقة (٥٠٪)</div>
         <div class="fin-val">${fmt(d.remaining)}</div>
         <div class="fin-cur">ر.س — قبل المناسبة بيوم</div>
-      </div>
+      </div>`}
     </div>
+    ${instScheduleStr}
 
     <h2>بنود العقد</h2>
 
@@ -203,8 +233,12 @@ export function generateContractHTML(d: ContractData): string {
     <div class="article">
       <h3>المادة الثانية — شروط الدفع</h3>
       <ul>
+        ${inst ? `
+        <li>اتفق الطرفان على سداد قيمة العقد بالتقسيط على ${instCountAr} دفعات وفق الجدول المبيّن في الملخص المالي أعلاه.</li>
+        <li>الدفعة الأولى — العربون (٥٠٪) — واجبة الأداء لتأكيد الحجز وإلزامه؛ لا يُعدّ الحجز نافذاً قبل استلامها.</li>
+        <li>تُسدَّد كل دفعة في موعدها المبيّن، وتُستكمل جميع الدفعات قبل المناسبة بيوم واحد على الأقل؛ وللطرف الأول رفض تنفيذ الخدمة في حال عدم اكتمال السداد.</li>` : `
         <li>الدفعة الأولى (٥٠٪) واجبة الأداء لتأكيد الحجز وإلزامه؛ لا يُعدّ الحجز نافذاً قبل استلامها.</li>
-        <li>الدفعة الثانية تُسدَّد قبل المناسبة بيوم واحد على الأقل، وللطرف الأول رفض تنفيذ الخدمة في حالة عدم السداد.</li>
+        <li>الدفعة الثانية تُسدَّد قبل المناسبة بيوم واحد على الأقل، وللطرف الأول رفض تنفيذ الخدمة في حالة عدم السداد.</li>`}
         <li>التحويل إلى: بنك الراجحي — فاطمة بوحسن — رقم الحساب: 329608010885626 أو عبر سداد.</li>
         <li>تُرسَل صورة الحوالة فور التحويل عبر واتساب على: 0548323496.</li>
         ${d.vat > 0 ? '<li>الأسعار شاملة ضريبة القيمة المضافة ١٥٪ وفق متطلبات هيئة الزكاة والضريبة والجمارك.</li>' : ''}
@@ -215,7 +249,9 @@ export function generateContractHTML(d: ContractData): string {
       <h3>المادة الثالثة — الإلغاء والتأجيل</h3>
       <div class="important">الدفعة الأولى (٥٠٪) غير قابلة للاسترداد في جميع الأحوال دون استثناء.</div>
       <ul>
-        <li>إلغاء قبل ١٤ يوماً أو أكثر: تُستردّ الدفعة الثانية إن كانت مسددة.</li>
+        <li>${inst
+          ? 'إلغاء قبل ١٤ يوماً أو أكثر: تُستردّ الدفعات التالية للعربون إن كانت مسددة.'
+          : 'إلغاء قبل ١٤ يوماً أو أكثر: تُستردّ الدفعة الثانية إن كانت مسددة.'}</li>
         <li>إلغاء خلال أقل من ١٤ يوماً من المناسبة: لا يُستردّ أي مبلغ.</li>
         <li>الغياب دون إشعار يُعدّ إلغاءً ولا يُستردّ أي مبلغ.</li>
         <li>يُسمح بتأجيل مرة واحدة فقط خلال ٣٠ يوماً وبإشعار لا يقل عن ٧ أيام، ويخضع لتوفر الطرف الأول.</li>
