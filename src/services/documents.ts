@@ -37,6 +37,9 @@ export interface RegenBooking {
   discount_code?:   string | null;
   discount_amount?: number | null;
   discount_kind?:   'percent' | 'flat' | null;
+  /** Active installment plan (3/4/5) — when set, regeneration fetches the
+      booking_installments rows so the contract renders the real schedule. */
+  installment_plan?: number | null;
 }
 
 export interface RegenPackage {
@@ -73,10 +76,12 @@ function rebuildDiscount(b: RegenBooking): ContractData['discount'] {
 
 export function buildContractData(
   b: RegenBooking, pkg: RegenPackage, addons: RegenAddon[], now: Date = new Date(),
+  installments: ContractData['installments'] = null,
 ): ContractData {
   const deposit = Math.round(b.total * 0.5);
   const discount = rebuildDiscount(b);
   return {
+    installments,
     customerName:    b.customer_name,
     customerPhone:   b.customer_phone,
     bookingRef:      b.booking_ref,
@@ -153,19 +158,30 @@ export async function regenerateDocuments(
 ): Promise<RegeneratedDocuments | null> {
   if (!supabase) return null;
 
-  const [pkgRes, addonRes] = await Promise.all([
+  const [pkgRes, addonRes, instRes] = await Promise.all([
     supabase.from('packages')
       .select('name_ar, name_en, duration_hours, edited_photos, editorial_photos')
       .eq('id', b.package_id).maybeSingle(),
     (b.addon_ids?.length
       ? supabase.from('addons').select('id, name_ar, name_en, price').in('id', b.addon_ids)
       : Promise.resolve({ data: [] as RegenAddon[], error: null })),
+    // Installment plan (خطة التقسيط): the contract renders the real schedule
+    // when the booking is on one.
+    ((b.installment_plan ?? 0) > 0
+      ? supabase.from('booking_installments')
+          .select('seq, amount, due_date, paid_at').eq('booking_id', b.id).order('seq')
+      : Promise.resolve({ data: null, error: null })),
   ]);
   const pkg = pkgRes.data as RegenPackage | null;
   if (!pkg) return null;
   const addons = (addonRes.data ?? []) as RegenAddon[];
+  const instRows = (instRes.data ?? null) as
+    { seq: number; amount: number; due_date: string; paid_at: string | null }[] | null;
+  const installments = instRows && instRows.length > 0
+    ? instRows.map(r => ({ seq: r.seq, amount: r.amount, dueDate: r.due_date, paid: !!r.paid_at }))
+    : null;
 
-  const contractHTML  = generateContractHTML(buildContractData(b, pkg, addons));
+  const contractHTML  = generateContractHTML(buildContractData(b, pkg, addons, new Date(), installments));
   const invoiceNumber = generateInvoiceNumber();
   const invoiceHTML   = generateInvoiceHTML(
     buildInvoiceData(b, pkg, addons, invoiceNumber, settings));

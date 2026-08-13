@@ -30,6 +30,10 @@ export interface Booking {
       verify-payment; transfer payments are cleared manually from the
       admin booking modal once the receipt is verified). */
   topup_amount_due?: number;
+  /** Active split-payment plan: null/absent = the default 50/50 story,
+      3/4/5 = installment rows exist in booking_installments (admin-assigned
+      from the «خطة التقسيط» card in the booking modal). */
+  installment_plan?: number | null;
   created_at: string;
   /** Discount fields (added 2026-05-21) — present when a code was applied. */
   discount_code?:   string | null;

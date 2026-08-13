@@ -17,6 +17,7 @@ import { BANK, WHATSAPP_NUMBER } from '../content/payment';
 import { useLang } from '../hooks/useLang';
 import {
   getBookingByToken,
+  getInstallmentsByToken,
   rescheduleBooking,
   listChangeOptions,
   requestChangeOtp,
@@ -24,12 +25,16 @@ import {
   type ManagedBooking,
   type ChangeOption,
   type ChangeResult,
+  type TokenInstallment,
 } from '../services/manage';
 import {
   canReschedule,
   validateNewDate,
   rescheduleReasonText,
 } from '../../supabase/functions/_shared/reschedule';
+import {
+  installmentProgress, installmentLabelAr, installmentLabelEn,
+} from '../../supabase/functions/_shared/installments';
 
 // Card payments are deferred until the studio activates Moyasar; while the
 // key is absent the top-up settles by bank transfer, like the deposit.
@@ -126,6 +131,8 @@ export default function ManageBookingPage() {
   const [booking,  setBooking]  = useState<ManagedBooking | null>(null);
   const [loading,  setLoading]  = useState(true);
   const [notFound, setNotFound] = useState(false);
+  // Installment schedule (خطة التقسيط) — empty for the default 50/50 story.
+  const [installments, setInstallments] = useState<TokenInstallment[]>([]);
 
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('18:00');
@@ -159,10 +166,14 @@ export default function ManageBookingPage() {
       setSelPkg(b.package_id);
       setSelAddons(b.addon_ids ?? []);
       setLoading(false);
-      const opts = await listChangeOptions();
+      const [opts, plan] = await Promise.all([
+        listChangeOptions(),
+        getInstallmentsByToken(token),
+      ]);
       if (cancelled) return;
       setPackages(opts.packages);
       setAddons(opts.addons);
+      setInstallments(plan);
     })();
     return () => { cancelled = true; };
   }, [token]);
@@ -285,6 +296,57 @@ export default function ManageBookingPage() {
           <div><div style={label}>{ar ? 'الموعد الحالي' : 'Current date'}</div><div style={val}>{booking.event_date}</div></div>
           <div><div style={label}>{ar ? 'الوقت' : 'Time'}</div><div style={val}>{booking.event_time}</div></div>
         </div>
+
+        {/* Installment plan (خطة التقسيط) — rendered only when the studio put
+            this booking on one. The schedule + progress come from the token
+            RPC; the next unpaid دفعة settles by transfer like everything else. */}
+        {installments.length > 0 && (() => {
+          const progress = installmentProgress(installments);
+          const count = installments.length;
+          return (
+            <div style={{ ...card, marginBottom: 24 }}>
+              <h2 style={{ fontFamily: "'Amiri', serif", fontSize: '1.15rem', color: 'var(--a-gold)', marginBottom: 6 }}>
+                {ar ? 'خطة الدفعات' : 'Payment plan'}
+              </h2>
+              <p style={{ color: 'var(--a-text-soft)', fontSize: '0.85rem', lineHeight: 1.9, marginBottom: 14 }}>
+                {ar
+                  ? `اتُّفق على سداد قيمة حجزك على ${count} دفعات. هذا جدولها، ويُحدَّث فور تأكيدنا كل استلام.`
+                  : `Your booking settles over ${count} installments. This is the schedule — it updates as each payment is confirmed.`}
+              </p>
+              {installments.map(i => (
+                <div key={i.seq} style={{ ...optRow, justifyContent: 'space-between' }}>
+                  <span>
+                    {ar ? installmentLabelAr(i.seq, count) : installmentLabelEn(i.seq, count)}
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--a-text-muted)', marginTop: 2 }}>
+                      {ar ? 'تستحق ' : 'Due '}<span dir="ltr">{i.due_date}</span>
+                    </span>
+                  </span>
+                  <span style={{ textAlign: ar ? 'left' : 'right' }}>
+                    <span style={{ fontFamily: "'Amiri', serif", fontSize: '1rem' }}>
+                      {i.amount.toLocaleString(ar ? 'ar-SA' : 'en-US')} {ar ? 'ر.س' : 'SAR'}
+                    </span>
+                    <span style={{ display: 'block', fontSize: '0.75rem', marginTop: 2,
+                      color: i.paid_at ? '#34d399' : 'var(--a-text-muted)' }}>
+                      {i.paid_at
+                        ? (ar ? '✓ مستلمة' : '✓ Received')
+                        : (ar ? 'قادمة' : 'Upcoming')}
+                    </span>
+                  </span>
+                </div>
+              ))}
+              <p style={{ color: 'var(--a-text)', fontSize: '0.85rem', margin: '14px 0' }}>
+                {progress.settled
+                  ? (ar ? 'اكتمل السداد — شكراً لكِ.' : 'Fully settled — thank you.')
+                  : (ar
+                    ? `المتبقي ${progress.remainingTotal.toLocaleString('ar-SA')} ر.س.`
+                    : `Remaining: ${progress.remainingTotal.toLocaleString('en-US')} SAR.`)}
+              </p>
+              {!progress.settled && progress.next && (
+                <TopUpTransfer amount={progress.next.amount} bookingRef={booking.booking_ref} ar={ar} />
+              )}
+            </div>
+          );
+        })()}
 
         {/* Reschedule */}
         <div style={card}>

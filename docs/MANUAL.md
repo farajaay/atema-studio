@@ -1161,6 +1161,58 @@ behaves exactly as before.
 
 ---
 
+## 13m. Installment plans — «خطة التقسيط» (August 2026)
+
+For high-value bookings you can split the total over **3, 4 or 5 دفعات**
+from the booking modal (details tab → «خطة التقسيط» card). The plan attaches
+to **the booking**, not the package — any booking can carry one; whether to
+offer it is your call.
+
+**How the split works:**
+- The 50% deposit the bride already paid (or is paying) **is installment
+  #1** — nothing about the public booking flow changes.
+- The remaining balance divides evenly across the other دفعات; the last
+  one absorbs any rounding riyal so the plan always sums to the exact total.
+- Due dates space evenly from today to **one day before the event** — the
+  contract's hard stop (المادة الثانية). You see a full preview before
+  اعتماد الخطة.
+
+**Recording money:** the studio is transfer-only, so when a دفعة arrives
+you verify the receipt as usual, then press «تم الاستلام — تسجيل» on that
+row: amount received, date, and an optional note (e.g. مرجع الحوالة).
+Uneven amounts are fine — progress counts what actually arrived. A wrong
+entry can be undone («تصحيح»). `payment_status` keeps its usual meaning
+(deposit received); plan completion shows as «✓ الخطة مكتملة السداد».
+
+**If the total changes** (package change, VAT toggle), the card warns that
+the plan no longer sums to the booking total and offers «إعادة توزيع
+المتبقي» — paid rows are never touched; only unpaid amounts re-spread.
+
+**What the bride sees:** her `/#/manage/<token>` page gains a «خطة
+الدفعات» card — schedule, what's received, what's next, and the official
+IBAN + WhatsApp receipt hand-off for the next دفعة. Reads go through a
+token-scoped RPC (`get_installments_by_token`) — same capability-link
+model as everything else on that page.
+
+**Reminders (email — the always-channel):**
+- Your daily workflow digest gains lines when a دفعة hits its due date
+  («حان موعد الدفعة») and escalates after 3 days («متأخرة»).
+- The bride gets one gentle email ~3 days before each due date (never for
+  the deposit), with the amount, the official IBAN, the anti-fraud notice,
+  and her manage link. Each reminder fires exactly once —
+  `installment_notifications` is the dedupe guard.
+
+**Documents:** after putting a booking on a plan, regenerate from the
+المستندات card — the contract's payment article and financial boxes render
+the actual schedule (with paid marks) instead of the 50/50 wording.
+
+**Setup (once):** run `database/migrations-2026-08-installments.sql` in the
+Supabase SQL editor (or the «supabase-migrations» workflow with
+`only-file`). The reminders ride the existing daily `workflow-reminders`
+cron — no new schedule needed.
+
+---
+
 ## 14. Future enhancements (parked)
 
 **Already shipped (do not re-build):**

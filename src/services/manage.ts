@@ -31,6 +31,24 @@ export async function getBookingByToken(token: string): Promise<ManagedBooking |
   return (row as ManagedBooking | null) ?? null;
 }
 
+/** One row of the bride's installment schedule (خطة التقسيط), when the
+    studio put her booking on one. Read through the token-scoped
+    get_installments_by_token RPC — anon never touches the table. */
+export interface TokenInstallment {
+  seq:         number;
+  amount:      number;
+  due_date:    string;
+  paid_amount: number | null;
+  paid_at:     string | null;
+}
+
+export async function getInstallmentsByToken(token: string): Promise<TokenInstallment[]> {
+  if (!supabase || !token) return [];
+  const { data, error } = await supabase.rpc('get_installments_by_token', { p_token: token });
+  if (error || !data) return [];
+  return (Array.isArray(data) ? data : [data]) as TokenInstallment[];
+}
+
 /** Which confirmation channels the server actually used — the page words
     its success message from this instead of assuming WhatsApp. */
 export interface NotifiedChannels { wa: boolean; email: boolean }
