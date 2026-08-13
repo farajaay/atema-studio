@@ -113,7 +113,10 @@ atema-studio/
 │   ├── seed-packages-2026-05.sql           6 packages + 11 addons (UPSERT)
 │   ├── seed-journal-2026-05.sql            6 bilingual journal posts
 │   ├── seed-portfolio-2026-05.sql          (superseded) 7 portfolio items
-│   └── seed-portfolio-2026-05-expanded.sql 23 portfolio items, bride/couture/editorial
+│   ├── seed-portfolio-2026-05-expanded.sql 23 portfolio items, bride/couture/editorial
+│   └── backups/                            machine-generated catalogue snapshots
+│                                            (scripts/export-catalogue.mjs; NOT applied
+│                                            by any migration workflow)
 ├── supabase/functions/
 │   ├── _shared/               wa.ts · pricing.ts · validation.ts · signature.ts · receipt.ts
 │   ├── create-booking/        server-side total recompute (Patch C-3)
@@ -124,7 +127,9 @@ atema-studio/
 │   ├── workflow-reminders/    daily cron — booking workflow tracking + owner digest
 │   └── send-whatsapp/         ad-hoc admin send
 ├── scripts/
-│   └── optimise-images.mjs    sharp → WebP + JPEG, ~91% size reduction
+│   ├── optimise-images.mjs    sharp → WebP + JPEG, ~91% size reduction
+│   └── export-catalogue.mjs   pulls live packages+addons, backs them up,
+│                               syncs the DEMO/seed offline copies (§6)
 ├── public/
 │   ├── CNAME                  atemastudio.xyz
 │   └── photos/                optimised JPEG + WebP pairs
@@ -440,6 +445,16 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   Signature 13,000 · Couture 20,000).
   Re-verify after any price change. The seed step in
   `.github/workflows/supabase-migrations.yml` stays inert for the same reason.
+  **This re-sync is now automatable** — run the "Supabase — export & preserve
+  catalogue" GitHub Action (`.github/workflows/supabase-export-catalogue.yml`,
+  manual dispatch) or `npm run catalogue:export` locally with
+  `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` set. It writes a timestamped
+  backup to `database/backups/` and patches the scalar fields (price, hours,
+  photo counts, toggles, sort order) in both files in place; text/copy drift
+  (names, descriptions, badges, included add-ons) is flagged in the run
+  output instead of auto-patched, since that needs a human's bilingual
+  judgement. `npm run catalogue:selftest` round-trips the parser against the
+  current files with no network — run it after hand-editing either file.
 - **LAUNCH15 has likely expired** — it was valid 20 days from when
   `migrations-2026-05-launch-code.sql` was applied (May 2026). Verify in the
   admin discount panel and retire or replace it before any campaign.

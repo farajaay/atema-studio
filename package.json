@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "videos:prepare": "node scripts/prepare-video-streams.mjs",
+    "catalogue:export": "node scripts/export-catalogue.mjs",
+    "catalogue:selftest": "node scripts/export-catalogue.mjs --self-test",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
