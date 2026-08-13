@@ -1,0 +1,83 @@
+name: Supabase — export & preserve catalogue
+
+# Preserves the live `packages` + `addons` tables against repo drift.
+#
+# The owner edits prices/toggles in the admin panel, which writes to
+# Supabase only (see CLAUDE.md §6). Two repo files stand in for that data
+# during an outage — database/seed-packages-2026-05.sql and the DEMO array
+# in src/hooks/usePackagesData.ts — and both go stale the moment a price
+# changes, which was previously a manual re-sync after every repricing
+# round (see commit 6b6ed8d). scripts/export-catalogue.mjs automates that:
+# it writes a timestamped backup snapshot to database/backups/ and patches
+# the scalar fields (price, hours, photo counts, active/popular toggles,
+# sort order) in place in both files, flagging any text/copy drift for a
+# human to fold in by hand instead of risking mangled bilingual prose.
+#
+# Manual trigger only — same "deliberate click" posture as
+# supabase-migrations.yml. Opens a PR instead of pushing straight to
+# master so the diff gets a look before it can trigger the auto-deploy.
+#
+# Required GitHub Actions repository secrets (already used by deploy.yml):
+#   VITE_SUPABASE_URL
+#   VITE_SUPABASE_ANON_KEY
+# (packages/addons are public-read tables — no service-role key needed.)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Pre-flight — verify the patch logic still round-trips the repo files
+        run: |
+          if ! node scripts/export-catalogue.mjs --self-test; then
+            echo "::error::Self-test failed — the seed/DEMO files no longer match the shape scripts/export-catalogue.mjs expects (probably a hand edit since the script was written). Fix the parser before trusting a live patch."
+            exit 1
+          fi
+
+      - name: Export live catalogue
+        env:
+          SUPABASE_URL:      ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "::error::VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY repo secrets are not set."
+            exit 1
+          fi
+          node scripts/export-catalogue.mjs | tee /tmp/export-summary.txt
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open pull request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "Preserve catalogue: sync repo copies with live Supabase data"
+          title: "Catalogue export — ${{ github.run_id }}"
+          body-path: /tmp/export-summary.txt
+          branch: catalogue-export/${{ github.run_id }}
+          delete-branch: true
+          add-paths: |
+            database/backups/*.sql
+            database/seed-packages-2026-05.sql
+            src/hooks/usePackagesData.ts
