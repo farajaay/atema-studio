@@ -667,6 +667,16 @@ function LegalPopup({ title, htmlContent, onClose }: {
   );
 }
 
+// Above this booking value (SAR, pre-VAT, pre-discount) an email address stops
+// being optional. The high tiers carry a contract, a tax invoice, a manage link
+// and — for split plans — payment reminders, and all of those ride email; a
+// booking of this size with no address on file leaves the studio with nothing
+// but WhatsApp to reach the bride. Measured on package + add-ons (NOT the city
+// travel fee, which says nothing about the booking's value), so a plain Classic
+// at 5,500 crosses it while Engagement at 2,700 does not, and a custom package
+// built past the line with add-ons is covered too.
+const EMAIL_REQUIRED_ABOVE_SAR = 5000;
+
 // ── Booking Form Modal ────────────────────────────────────────────────────────
 function BookingFormModal({
   lang, pkg, total, activeAddons, addonLines, addTotal, vatEnabled, settings,
@@ -701,6 +711,12 @@ function BookingFormModal({
   // Patch H-1: in-flight guard so rapid double-click can't fire two
   // createBooking() requests before the first one updates `state`.
   const submittingRef = useRef(false);
+
+  // Email is optional on the small tiers, required above the threshold —
+  // see EMAIL_REQUIRED_ABOVE_SAR. Derived here so the label, the hint and
+  // the submit check all read the same rule.
+  const bookingValue  = (pkg?.price ?? 0) + addTotal;
+  const emailRequired = bookingValue > EMAIL_REQUIRED_ABOVE_SAR;
 
   // Whether Moyasar SDK key is present
   const moyasarKey = (import.meta.env.VITE_MOYASAR_PUBLISHABLE_KEY as string | undefined) ?? '';
@@ -754,6 +770,14 @@ function BookingFormModal({
       setErrMsg(tx(lang,
         'رقم الجوال غير صحيح — استخدمي صيغة سعودية (+9665XXXXXXXX أو 05XXXXXXXX)',
         'Invalid mobile — use Saudi format (+9665XXXXXXXX or 05XXXXXXXX)'));
+      return;
+    }
+    // Above EMAIL_REQUIRED_ABOVE_SAR the address is mandatory: the contract,
+    // the tax invoice and the manage link are all delivered by email.
+    if (emailRequired && !form.email.trim()) {
+      setErrMsg(tx(lang,
+        'البريد الإلكتروني مطلوب لهذه الباقة — يصلكِ عليه العقد والفاتورة ورابط إدارة الحجز',
+        'Email is required for this package — your contract, invoice and booking-management link are sent to it'));
       return;
     }
     if (form.email && !validEmail(form.email)) {
@@ -1085,10 +1109,20 @@ function BookingFormModal({
                     onChange={e => set('phone', e.target.value)} placeholder="+966 5X XXX XXXX" />
                 </div>
                 <div style={grp}>
-                  <label style={lbl} htmlFor="bf-email">{tx(lang,'البريد الإلكتروني','Email')}</label>
+                  <label style={lbl} htmlFor="bf-email">
+                    {emailRequired ? tx(lang,'البريد الإلكتروني *','Email *') : tx(lang,'البريد الإلكتروني','Email')}
+                  </label>
                   <input id="bf-email" className="atema-input atema-input-ltr" type="email" value={form.email}
-                    maxLength={254} autoComplete="email"
+                    maxLength={254} autoComplete="email" required={emailRequired}
+                    aria-required={emailRequired}
                     onChange={e => set('email', e.target.value)} placeholder="you@email.com" />
+                  {emailRequired && (
+                    <div style={{ fontSize:'0.7rem', color:'var(--a-text-muted)', marginTop:'5px', lineHeight:1.7 }}>
+                      {tx(lang,
+                        'يصلكِ عليه العقد والفاتورة ورابط إدارة الحجز.',
+                        'Your contract, invoice and booking-management link are sent here.')}
+                    </div>
+                  )}
                 </div>
                 <div style={grp}>
                   <label style={lbl}>{tx(lang,'تاريخ المناسبة *','Event Date *')}</label>
