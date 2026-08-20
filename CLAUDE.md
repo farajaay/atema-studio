@@ -197,6 +197,15 @@ src/
 ### 4.3 Database changes
 - **Never edit `schema.sql` retroactively.** Add a new
   `migrations-YYYY-MM-<topic>.sql` file in `database/`.
+- **Every new table gets `ENABLE ROW LEVEL SECURITY` plus at least one
+  policy, in the same migration that creates it.** RLS-on with zero
+  policies is the fail-closed default (see `booking_otps`) and is fine;
+  RLS-off is a `rls_disabled_in_public` CRITICAL from Supabase's advisor
+  within days. Never write `DISABLE ROW LEVEL SECURITY` to make something
+  work — that is what caused the 2026-08-17 advisor (`docs/bugs.md`
+  RLS-1). Remember policies grant **rows, not columns**: `using (true)`
+  for anon exposes every column in the table, whatever a narrow view over
+  it suggests.
 - All seeds use **UPSERT by stable id** (not DELETE) so foreign keys (e.g.
   `bookings.package_id`) survive.
 - Portfolio + journal seeds match on `image_url like '/photos/%'` so they
@@ -416,6 +425,12 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
     workflow_notifications — per-booking production ladder; then schedule
     the `workflow-reminders` cron daily, e.g. `0 5 * * *`, with
     `Authorization: Bearer $CRON_SECRET` — same pattern as wa-reminders)
+  - `database/migrations-2026-08-rls-legacy.sql` (**apply first — closes the
+    2026-08-17 `rls_disabled_in_public` CRITICAL advisor**: enables RLS +
+    an admin-only policy on the three legacy orphan tables `booking_addons`,
+    `profit_reports`, `system_logs`, which `migrations-2026-05-repair-audit.sql`
+    disabled and `migrations-2026-06-rls-remaining.sql` missed. Its verify
+    query must return zero rows)
   - `database/migrations-2026-08-installments.sql` (booking_installments +
     installment_notifications + `bookings.installment_plan` +
     get_installments_by_token RPC — admin-assigned 3/4/5 split-payment

@@ -21,7 +21,36 @@
 
 ## 2. Live state (update this section on every handoff)
 
-*Last updated: 2026-07-04, end of day (Claude → Codex handoff note).*
+*Last updated: 2026-08-20 (RLS advisor fix). Prior entry: 2026-07-04
+(Claude → Codex handoff note), kept below.*
+
+### 2026-08-20 — Supabase `rls_disabled_in_public` CRITICAL, fixed in repo
+
+Supabase's advisor fired on 2026-08-17. Cause: `migrations-2026-05-repair-audit.sql`
+disabled RLS on three legacy orphan tables (`booking_addons`, `profit_reports`,
+`system_logs`) and `migrations-2026-06-rls-remaining.sql` — written to undo
+exactly that — missed them. The July note below saying "RLS spot-checked via
+anon REST: bookings/otps/contracts/invoices/discounts leak nothing" was true of
+the tables it checked; these three were never in the list, because nothing in
+the repo creates or reads them.
+
+Fixed: `database/migrations-2026-08-rls-legacy.sql` (RLS + admin-only policy,
+`to_regclass`-guarded, self-verifying). Also neutralised three re-run footguns
+that would have re-opened the July P0 anon-SELECT leak on `bookings` and
+reverted `public_booked_dates` to invoker semantics — see `docs/bugs.md`
+RLS-1/2/3.
+
+**⚠ OWNER ACTION OUTSTANDING:** the migration is committed but **not applied**.
+Run it via Actions → *"Supabase — apply SQL migrations (single-file only)"* with
+`only-file: migrations-2026-08-rls-legacy.sql`, check its verify query returns
+zero rows, then confirm the advisor clears in Supabase → Advisors → Security.
+Until then the three tables stay world-writable.
+
+Still open, deliberately not in that change (they touch the live money path):
+anon UPDATE on `bookings` is not scoped to `manage_token`; anon INSERT on
+`contracts`/`invoices` has no ownership predicate. Tracked as RLS-4 / RLS-5.
+
+### 2026-07-04 handoff note (previous)
 
 **Codex — picking up from here, read this instead of scrolling history.**
 Everything below is live-verified against production unless marked otherwise.

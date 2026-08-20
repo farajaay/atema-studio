@@ -14,6 +14,14 @@
 --     as "pending_verification")
 --   - Packages / Addons not loading for admin
 --
+-- ⚠ PARTIALLY RETRACTED 2026-08-20 — Section 4's three DISABLE ROW
+-- LEVEL SECURITY statements are commented out. They caused the
+-- `rls_disabled_in_public` CRITICAL advisor of 2026-08-17; the lock-down
+-- now lives in migrations-2026-08-rls-legacy.sql. Section 3 still
+-- disables RLS on packages/addons — that is undone later in the run
+-- order by migrations-2026-06-rls-remaining.sql, so do NOT run this file
+-- on its own without following it with that one.
+--
 -- Safe to re-run.
 -- Run AS service_role (Supabase SQL Editor uses service_role).
 -- ============================================================
@@ -214,14 +222,28 @@ ALTER TABLE public.addons   DISABLE ROW LEVEL SECURITY;
 -- authenticated session. Enabling RLS without an "authenticated"
 -- policy breaks the admin UI.
 
+-- ⛔ RETRACTED 2026-08-20 — the three DISABLE statements below are the
+-- root cause of the Supabase `rls_disabled_in_public` CRITICAL advisor
+-- that fired on 2026-08-17. They left booking_addons, profit_reports and
+-- system_logs world-readable and world-writable to anyone holding the
+-- anon key from the client bundle, for three months.
+--
+-- The premise ("the live admin code reads these directly with the
+-- authenticated session") no longer holds: nothing in src/ or
+-- supabase/ references any of these tables. RLS + an authenticated
+-- policy is now applied by migrations-2026-08-rls-legacy.sql — which
+-- re-running this section would undo. Left commented as history.
+--
+-- The policy DROPs are kept: those policy names are dead either way, and
+-- migrations-2026-08-rls-legacy.sql installs its own.
 DROP POLICY IF EXISTS "booking_addons_select_own"      ON public.booking_addons;
 DROP POLICY IF EXISTS "service_role_all_booking_addons" ON public.booking_addons;
 DROP POLICY IF EXISTS "service_role_all_profit_reports" ON public.profit_reports;
 DROP POLICY IF EXISTS "service_role_all_system_logs"    ON public.system_logs;
 
-ALTER TABLE public.booking_addons  DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.profit_reports  DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.system_logs     DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.booking_addons  DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.profit_reports  DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.system_logs     DISABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- SECTION 5 — REMOVE CONFLICTING customers POLICIES

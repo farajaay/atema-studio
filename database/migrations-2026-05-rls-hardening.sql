@@ -1,5 +1,22 @@
 -- ATEMA STUDIO — Row-Level Security hardening pass (May 2026)
 --
+-- ⛔ DO NOT RE-RUN AS ORIGINALLY WRITTEN — section 1 has been commented
+-- out (2026-08-20). As written it did two things that are now wrong:
+--
+--   • It re-created the anon SELECT policy on bookings that
+--     migrations-2026-07-bookings-pii-lockdown.sql exists to kill. RLS
+--     policies are ROW-level, so `using (true)` exposed every column —
+--     customer_phone, customer_email, and the manage_token / album_token
+--     capability secrets — to anyone holding the anon key from the client
+--     bundle. That was the July 2026 P0.
+--   • It re-created public_booked_dates with security_invoker = true,
+--     reverting migrations-2026-07-public-booked-dates-definer.sql. With
+--     the anon SELECT policy correctly gone, an invoker view returns
+--     nothing and the customer DatePicker goes blank.
+--
+-- The rest of the file (constrained INSERT, the anon UPDATE policy, the
+-- authenticated policies, the CHECK constraints) is still current.
+--
 -- Why this exists
 -- ---------------
 -- Two issues surfaced in Supabase's security advisor + an internal audit:
@@ -64,39 +81,39 @@ alter table public.bookings
 -- ║ 1. Public view: event_date + status only (no PII)                 ║
 -- ╚═══════════════════════════════════════════════════════════════════════════╝
 
-drop view if exists public.public_booked_dates;
-create view public.public_booked_dates
-  with (security_invoker = true)        -- run with the *caller's* RLS, not owner
-  as
-select
-  event_date,
-  status
-from public.bookings
-where status <> 'cancelled';
-
--- Grant SELECT to anon + authenticated. RLS on the underlying table will
--- still apply because of security_invoker. We add a permissive SELECT
--- policy on the view's source rows below.
-grant select on public.public_booked_dates to anon, authenticated;
-
--- The view's invoker-style means anon needs a SELECT policy on the
--- underlying bookings table — BUT only for the (event_date, status)
--- columns. We can't column-mask via a policy, so instead we rely on the
--- application contract: the public view is the only path used by anon.
--- For safety we still keep a tight SELECT policy that drops PII via the
--- view as the sole access channel.
-
-drop policy if exists "Public select event_date status only" on public.bookings;
-create policy "Public select event_date status only"
-  on public.bookings
-  for select
-  to anon
-  using (true);                          -- guarded at the application layer
-                                         -- via the view; admins keep full
-                                         -- access through their auth session.
-
--- (Once the customer flow has migrated to the view, this open SELECT can
--- be dropped — anon should not need bookings at all. See Final cleanup.)
+-- ⛔ RETRACTED 2026-08-20 — this whole section is superseded. The canonical
+-- definition of public_booked_dates now lives in
+-- migrations-2026-07-public-booked-dates-definer.sql (security_invoker =
+-- false, owner postgres, grant re-issued there), and the anon SELECT policy
+-- on bookings is deliberately absent — see
+-- migrations-2026-07-bookings-pii-lockdown.sql.
+--
+-- The reasoning below was the bug: it treats the VIEW's narrow projection as
+-- if it constrained the POLICY, but a policy grants rows, not columns. The
+-- "application contract" it leans on is not enforceable — anon can call
+-- PostgREST against the base table directly, which is exactly what happened.
+--
+-- Left commented as history. Do not restore any of it; re-running the two
+-- July migrations is the correct way to reassert this area.
+--
+-- drop view if exists public.public_booked_dates;
+-- create view public.public_booked_dates
+--   with (security_invoker = true)        -- run with the *caller's* RLS, not owner
+--   as
+-- select
+--   event_date,
+--   status
+-- from public.bookings
+-- where status <> 'cancelled';
+--
+-- grant select on public.public_booked_dates to anon, authenticated;
+--
+-- drop policy if exists "Public select event_date status only" on public.bookings;
+-- create policy "Public select event_date status only"
+--   on public.bookings
+--   for select
+--   to anon
+--   using (true);
 
 -- ╔═══════════════════════════════════════════════════════════════════════════╗
 -- ║ 2. Replace the permissive anon INSERT with a constrained one      ║

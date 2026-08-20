@@ -15,6 +15,35 @@
 
 ---
 
+## Status update — 2026-08-20 (Supabase advisor: `rls_disabled_in_public`)
+
+Supabase's security advisor fired a **CRITICAL** on 2026-08-17 (emailed
+2026-08-18): *"Table publicly accessible — anyone with your project URL can
+read, edit, and delete all data in this table because Row-Level Security is not
+enabled."*
+
+**It was not the August work.** `migrations-2026-08-installments.sql` enables
+RLS on both tables it creates, with admin-only policies. Every one of the 26
+tables the repo creates has an `ENABLE ROW LEVEL SECURITY` statement.
+
+| Item | What changed |
+|---|---|
+| **RLS-1 (new, CRITICAL — fixed)** | `migrations-2026-05-repair-audit.sql:222-224` ran `DISABLE ROW LEVEL SECURITY` on `booking_addons`, `profit_reports` and `system_logs`, and nothing since turned it back on — so all three were world-readable *and world-writable* to any holder of the anon key from the client bundle, for roughly three months. `migrations-2026-06-rls-remaining.sql` was written to undo exactly this (its header names the same advisor) but covered only `packages`/`addons`/`payments`/`whatsapp_logs`. New file `database/migrations-2026-08-rls-legacy.sql` enables RLS + one `TO authenticated` ALL policy on each, guarded by `to_regclass()`, and ends with a `pg_tables … rowsecurity = false` verify query that must return zero rows. The three `DISABLE` statements are commented out at source so re-running repair-audit cannot undo the fix. |
+| **RLS-2 (new, HIGH re-run footgun — fixed)** | Three files still re-created `"Public select event_date status only" ON public.bookings FOR SELECT TO anon USING (true)` — the exact policy the July P0 (`migrations-2026-07-bookings-pii-lockdown.sql`) exists to kill. Because policies are ROW-level, that `using(true)` exposes every column, including `manage_token`/`album_token`. Re-running any of them silently re-opened the P0. Commented out with retraction banners in `migrations-2026-05-bookings-rls-fix.sql`, `migrations-2026-05-rls-hardening.sql`, and both copies inside `bundle-existing-db.sql`. The `DROP POLICY IF EXISTS` lines are kept — that is now the desired end state. |
+| **RLS-3 (new, MEDIUM — fixed)** | `migrations-2026-05-rls-hardening.sql` also re-created `public_booked_dates` with `security_invoker = true`, reverting `migrations-2026-07-public-booked-dates-definer.sql`. With the anon SELECT policy correctly gone, an invoker view returns nothing and the customer DatePicker goes blank. That block is now commented out too; the July file is the canonical definition. |
+| **Orphan status** | None of `booking_addons`, `profit_reports`, `system_logs` has a `CREATE TABLE` anywhere in `database/`, and nothing in `src/` or `supabase/` references them — the only `.from('…')` targets are the 21 documented tables. The May comment claiming "the live admin code reads these directly" describes a codebase that no longer exists. They are candidates for a `DROP` once the owner confirms in the dashboard that they hold nothing worth keeping; locked down rather than dropped here because row counts are not visible from the repo. |
+| **Live anon probe** | Read-only sweep of the production REST API using the anon key from the deployed bundle: `bookings`, `booking_otps`, `contracts`, `invoices`, `discount_codes`, `booking_installments`, `mood_boards` and the rest return nothing to anon; only the six intentionally-public catalogue tables (`packages`, `addons`, `portfolio_items`, `journal_posts`, `film_entries`, `album_designs`) return rows. The July P0 lockdown holds. The three legacy tables could not be probed from the session sandbox — the dashboard advisor is the confirmation step. |
+
+**Still open after this pass** (deliberately out of scope — they touch the live
+money path and want their own change): the anon UPDATE policy on `bookings`
+(`migrations-2026-05-bookings-rls-fix.sql`) is not scoped to the caller's
+`manage_token`, so any anon-key holder can flip `payment_method`/`payment_status`
+on *every* pending unpaid booking; and the anon INSERT on `contracts`/`invoices`
+(`migrations-2026-06-documents.sql:62-69`) is bounded only by a 600 KB length
+check, with no booking-ownership predicate.
+
+---
+
 ## Status update — 2026-07-03 (system hardening scan)
 
 Full pass: security hardening scan + design/content review + structure/prices
@@ -508,6 +537,11 @@ Updated as fixes land. Patch commits reference these IDs.
 | L-9 | 2026-05-21 | Open — admin policy doc | — |
 | L-10 | 2026-05-21 | ✅ Fixed — fallback-only comment added; delete with legacy INSERT policy | 2026-06-12 |
 | H-10 | 2026-06-12 | ✅ Fixed — contracts/invoices anon SELECT dropped; DDL under version control (migration must be run) | 2026-06-12 |
+| RLS-1 | 2026-08-17 | ✅ Fixed — RLS enabled on the 3 legacy orphan tables (**migration must be run**) | 2026-08-20 |
+| RLS-2 | 2026-08-20 | ✅ Fixed — anon SELECT re-creation commented out in 3 files | 2026-08-20 |
+| RLS-3 | 2026-08-20 | ✅ Fixed — invoker-view re-creation commented out | 2026-08-20 |
+| RLS-4 | 2026-08-20 | Open — anon UPDATE on bookings not scoped to `manage_token` | — |
+| RLS-5 | 2026-08-20 | Open — anon INSERT on contracts/invoices has no ownership predicate | — |
 
 ---
 

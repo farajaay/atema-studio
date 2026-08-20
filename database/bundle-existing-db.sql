@@ -1,4 +1,23 @@
 -- ATEMA STUDIO — existing-DB migration bundle (generated, do not hand-edit)
+--
+-- ⛔ DO NOT RUN THIS FILE (2026-08-20). It is a snapshot of the manifest as
+-- it stood on 2026-06-16 and it is now dangerous in two ways:
+--
+--   1. It re-creates the anon SELECT policy on bookings (`using (true)`,
+--      i.e. every column — phone, email, manage_token, album_token) and
+--      reverts public_booked_dates to security_invoker. Both were closed by
+--      the July 2026 P0 fixes: migrations-2026-07-bookings-pii-lockdown.sql
+--      and migrations-2026-07-public-booked-dates-definer.sql.
+--   2. It disables RLS on booking_addons / profit_reports / system_logs —
+--      the cause of the 2026-08-17 `rls_disabled_in_public` advisor, now
+--      fixed by migrations-2026-08-rls-legacy.sql.
+--
+-- Both blocks are commented out below so the file on disk cannot do harm,
+-- but it is still eight migrations out of date (everything from July and
+-- August is missing). Apply individual migration files instead — that is
+-- what the single-file path of .github/workflows/supabase-migrations.yml
+-- is for. The "regenerate via scripts" line below is aspirational: no
+-- generator exists in scripts/, so this file is hand-maintained in practice.
 -- Single-file concatenation of database/supabase-migrations.yml's manifest,
 -- in the same dependency-aware order, for one-shot paste into the Supabase
 -- SQL editor on an EXISTING database. Every file is idempotent.
@@ -147,36 +166,29 @@ alter table public.bookings
 -- ║ 1. Public view: event_date + status only (no PII)                 ║
 -- ╚═══════════════════════════════════════════════════════════════════════════╝
 
-drop view if exists public.public_booked_dates;
-create view public.public_booked_dates
-  with (security_invoker = true)        -- run with the *caller's* RLS, not owner
-  as
-select
-  event_date,
-  status
-from public.bookings
-where status <> 'cancelled';
-
--- Grant SELECT to anon + authenticated. RLS on the underlying table will
--- still apply because of security_invoker. We add a permissive SELECT
--- policy on the view's source rows below.
-grant select on public.public_booked_dates to anon, authenticated;
-
--- The view's invoker-style means anon needs a SELECT policy on the
--- underlying bookings table — BUT only for the (event_date, status)
--- columns. We can't column-mask via a policy, so instead we rely on the
--- application contract: the public view is the only path used by anon.
--- For safety we still keep a tight SELECT policy that drops PII via the
--- view as the sole access channel.
-
-drop policy if exists "Public select event_date status only" on public.bookings;
-create policy "Public select event_date status only"
-  on public.bookings
-  for select
-  to anon
-  using (true);                          -- guarded at the application layer
-                                         -- via the view; admins keep full
-                                         -- access through their auth session.
+-- ⛔ RETRACTED 2026-08-20 — see the banner at the top of this file. The
+-- canonical definitions are migrations-2026-07-public-booked-dates-definer.sql
+-- (the view) and migrations-2026-07-bookings-pii-lockdown.sql (no anon SELECT
+-- policy on bookings). Left commented as history.
+--
+-- drop view if exists public.public_booked_dates;
+-- create view public.public_booked_dates
+--   with (security_invoker = true)        -- run with the *caller's* RLS, not owner
+--   as
+-- select
+--   event_date,
+--   status
+-- from public.bookings
+-- where status <> 'cancelled';
+--
+-- grant select on public.public_booked_dates to anon, authenticated;
+--
+-- drop policy if exists "Public select event_date status only" on public.bookings;
+-- create policy "Public select event_date status only"
+--   on public.bookings
+--   for select
+--   to anon
+--   using (true);
 
 -- (Once the customer flow has migrated to the view, this open SELECT can
 -- be dropped — anon should not need bookings at all. See Final cleanup.)
@@ -320,17 +332,19 @@ BEGIN;
 -- ── 0. Ensure RLS is on (no-op if already enabled) ──────────────────
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 
--- ── 1. Public booked-dates SELECT (for the DatePicker view) ─────────
--- The customer DatePicker queries public_booked_dates (a view), which
--- needs SELECT permission on the underlying bookings table for the
--- anon role. Open-but-PII-free — the view exposes only event_date and
--- status. Application contract: anon never hits bookings directly.
+-- ── 1. Public booked-dates SELECT — ⛔ RETRACTED 2026-08-20 ──────────
+-- Second copy of the same anon SELECT policy (this bundle concatenates
+-- both rls-hardening and bookings-rls-fix). "Open-but-PII-free" was the
+-- bug: an RLS policy grants ROWS, not columns, so `using (true)` exposed
+-- the whole bookings table. Closed by
+-- migrations-2026-07-bookings-pii-lockdown.sql. The DROP stays — it is
+-- now the desired end state. Do not restore the CREATE.
 DROP POLICY IF EXISTS "Public select event_date status only" ON public.bookings;
-CREATE POLICY "Public select event_date status only"
-  ON public.bookings
-  FOR SELECT
-  TO anon
-  USING (true);
+-- CREATE POLICY "Public select event_date status only"
+--   ON public.bookings
+--   FOR SELECT
+--   TO anon
+--   USING (true);
 
 -- ── 2. Constrained anonymous booking INSERT ─────────────────────────
 -- The customer-facing booking form (and the direct-insert fallback in
@@ -2340,9 +2354,12 @@ DROP POLICY IF EXISTS "service_role_all_booking_addons" ON public.booking_addons
 DROP POLICY IF EXISTS "service_role_all_profit_reports" ON public.profit_reports;
 DROP POLICY IF EXISTS "service_role_all_system_logs"    ON public.system_logs;
 
-ALTER TABLE public.booking_addons  DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.profit_reports  DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.system_logs     DISABLE ROW LEVEL SECURITY;
+-- ⛔ RETRACTED 2026-08-20 — root cause of the `rls_disabled_in_public`
+-- CRITICAL advisor of 2026-08-17. Lock-down now lives in
+-- migrations-2026-08-rls-legacy.sql; re-running these would undo it.
+-- ALTER TABLE public.booking_addons  DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.profit_reports  DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.system_logs     DISABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- SECTION 5 — REMOVE CONFLICTING customers POLICIES

@@ -1,6 +1,17 @@
 -- ============================================================
 -- ATEMA STUDIO — Restore bookings INSERT / UPDATE / SELECT RLS
 -- ============================================================
+-- ⛔ DO NOT RE-RUN AS ORIGINALLY WRITTEN — section 1 has been
+-- commented out (2026-08-20). It re-created the anon SELECT
+-- policy on bookings that migrations-2026-07-bookings-pii-lockdown.sql
+-- exists to kill: RLS policies are ROW-level, so `using (true)`
+-- exposed every column — customer_phone, customer_email and the
+-- manage_token / album_token capability secrets — to anyone
+-- holding the anon key baked into the client bundle. Re-running
+-- this file with section 1 live silently re-opens that P0.
+-- The rest of the file (INSERT / UPDATE / authenticated policies)
+-- is still current and safe to re-apply.
+--
 -- Symptom this fixes:
 --   حدث خطأ: new row violates row-level security policy for table "bookings"
 --
@@ -24,17 +35,27 @@ BEGIN;
 -- ── 0. Ensure RLS is on (no-op if already enabled) ──────────────────
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 
--- ── 1. Public booked-dates SELECT (for the DatePicker view) ─────────
--- The customer DatePicker queries public_booked_dates (a view), which
--- needs SELECT permission on the underlying bookings table for the
--- anon role. Open-but-PII-free — the view exposes only event_date and
--- status. Application contract: anon never hits bookings directly.
+-- ── 1. Public booked-dates SELECT — ⛔ RETRACTED 2026-08-20 ──────────
+-- The premise below was wrong. The claim "open-but-PII-free — the view
+-- exposes only event_date and status" confuses the VIEW's projection
+-- with the POLICY's scope: an RLS policy grants rows, not columns, so
+-- this `using (true)` handed anon the whole bookings table through a
+-- direct PostgREST call. That was the July 2026 P0, closed by
+-- migrations-2026-07-bookings-pii-lockdown.sql.
+--
+-- The policy is also no longer needed: migrations-2026-07-public-booked-
+-- dates-definer.sql flipped public_booked_dates to security_invoker =
+-- false, owned by postgres, so the DatePicker reads the view without any
+-- anon grant on the base table.
+--
+-- The DROP stays — it is now the desired end state. The CREATE is left
+-- commented as history; do not restore it.
 DROP POLICY IF EXISTS "Public select event_date status only" ON public.bookings;
-CREATE POLICY "Public select event_date status only"
-  ON public.bookings
-  FOR SELECT
-  TO anon
-  USING (true);
+-- CREATE POLICY "Public select event_date status only"
+--   ON public.bookings
+--   FOR SELECT
+--   TO anon
+--   USING (true);
 
 -- ── 2. Constrained anonymous booking INSERT ─────────────────────────
 -- The customer-facing booking form (and the direct-insert fallback in
