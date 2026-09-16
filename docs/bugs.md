@@ -265,6 +265,34 @@ and have not regressed.
 
 ---
 
+### H-11 · Supabase advisor: a table sits in `public` without RLS
+
+- **Reported:** 2026-09-16, Supabase security advisor (`rls_disabled_in_public`)
+  — *"anyone with your project URL can read, edit, and delete all data in this
+  table because Row-Level Security is not enabled."*
+- **Why the repo looked clean:** every table `database/` creates already ships
+  its own `enable row level security` line. A bare table in production means
+  either a hand-made table that never round-tripped into the repo (the same
+  route `contracts` / `invoices` took in H-10) or a migration that was never
+  applied.
+- **Fix:** `database/migrations-2026-09-rls-sweep.sql` — asserts the invariant
+  rather than naming a table. It prints the bare tables *before* touching
+  anything (that line in the run output names the flagged table), re-asserts
+  anon SELECT on the eight public-read surfaces so hardening can never dark the
+  catalogue, enables RLS on every remaining base table in `public`, then reports
+  the after-state plus every table left RLS-on-with-no-policies (service-role
+  only — correct for `booking_otps`, a red flag for anything customer-facing).
+- **Verified:** dry-run against a scratch Postgres 16 with a fixture that mixed
+  a bare catalogue table, a correctly-hardened one, a narrow `is_active` policy
+  and a hand-made PII table. After the run: catalogue still anon-readable, the
+  narrow policy untouched, the PII table returns zero rows to anon, second run a
+  no-op.
+- **Owner action:** run the migration (Supabase SQL editor, or the
+  "Supabase — apply SQL migrations" Action with
+  `only-file: migrations-2026-09-rls-sweep.sql`), then re-read the advisor.
+
+---
+
 ## 🟡 MEDIUM (fix before production load)
 
 ### ~~M-8 · `generateInvoiceNumber` uses `Math.random`~~ ✅ PATCHED
@@ -508,6 +536,7 @@ Updated as fixes land. Patch commits reference these IDs.
 | L-9 | 2026-05-21 | Open — admin policy doc | — |
 | L-10 | 2026-05-21 | ✅ Fixed — fallback-only comment added; delete with legacy INSERT policy | 2026-06-12 |
 | H-10 | 2026-06-12 | ✅ Fixed — contracts/invoices anon SELECT dropped; DDL under version control (migration must be run) | 2026-06-12 |
+| H-11 | 2026-09-16 | ✅ Fixed — RLS sweep migration (must be run in Supabase) | this commit |
 
 ---
 

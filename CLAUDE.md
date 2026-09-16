@@ -420,6 +420,11 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
     installment_notifications + `bookings.installment_plan` +
     get_installments_by_token RPC — admin-assigned 3/4/5 split-payment
     plans; reminders ride the existing daily `workflow-reminders` cron)
+  - `database/migrations-2026-09-rls-sweep.sql` (RLS sweep — enables Row-Level
+    Security on every base table in `public` that lacks it, after re-asserting
+    anon SELECT on the eight public-read surfaces; silences the
+    `rls_disabled_in_public` advisor finding. Run it after any hand-made table;
+    its first result set names whatever was bare.)
   - `database/seed-packages-2026-05.sql` (6 packages + 11 add-ons — required
     if `packages` table is empty; the booking flow falls back to the DEMO
     catalogue without it, but the Edge Function still needs real rows to
