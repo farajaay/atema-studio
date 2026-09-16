@@ -138,7 +138,12 @@ jobs:
             "database/migrations-2026-06-documents.sql"         # contracts + invoices DDL under version control + admin-only SELECT
             "database/migrations-2026-06-fix-booking-insert.sql" # supersedes audit-patches M-9 clause that broke the anon booking insert
 
-            # ── 9. RLS invariant LAST ───────────────────────────────
+            # ── 9. September 2026 — RLS invariant ───────────────────
+            # Policies first, then the sweep: the sweep only enables RLS,
+            # so anything it would otherwise seal shut needs its policy
+            # already in place.
+            "database/migrations-2026-09-legacy-admin-policies.sql" # admin access for booking_addons / profit_reports / system_logs / notifications
+            # The sweep stays last of all.
             # Sweeps every table the run just created/touched, so it has
             # to sit at the tail of the manifest. Idempotent; safe to
             # dispatch on its own via only-file after a hand-made table.

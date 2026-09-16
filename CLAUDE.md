@@ -420,6 +420,12 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
     installment_notifications + `bookings.installment_plan` +
     get_installments_by_token RPC — admin-assigned 3/4/5 split-payment
     plans; reminders ride the existing daily `workflow-reminders` cron)
+  - `database/migrations-2026-09-legacy-admin-policies.sql` (authenticated
+    policies for `booking_addons` / `profit_reports` / `system_logs` /
+    `notifications` — the four tables `migrations-2026-05-repair-audit.sql`
+    §4/§6 deliberately left RLS-off, which is what the advisor was reporting.
+    Run it BEFORE the sweep; the sweep only enables RLS, it writes no policies
+    for tables outside the public-read set.)
   - `database/migrations-2026-09-rls-sweep.sql` (RLS sweep — enables Row-Level
     Security on every base table in `public` that lacks it, after re-asserting
     anon SELECT on the eight public-read surfaces; silences the

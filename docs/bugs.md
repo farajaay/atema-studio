@@ -287,9 +287,30 @@ and have not regressed.
   and a hand-made PII table. After the run: catalogue still anon-readable, the
   narrow policy untouched, the PII table returns zero rows to anon, second run a
   no-op.
-- **Owner action:** run the migration (Supabase SQL editor, or the
-  "Supabase — apply SQL migrations" Action with
-  `only-file: migrations-2026-09-rls-sweep.sql`), then re-read the advisor.
+- **Applied to production 2026-09-16** (Action run #24). The sweep's report
+  came back with check A — *a table still without RLS* — empty: the invariant
+  holds project-wide. Check C read all six catalogue prices back unchanged
+  (Engagement 2,700 · Foundation 1,800 · Classic 5,500 · Royal 11,200 ·
+  Signature 13,000 · Couture 20,000).
+- **Root cause, found via the sweep's check B:** five tables came out RLS-on
+  with no policies. `booking_otps` is correct by design; the other four —
+  `booking_addons`, `profit_reports`, `system_logs`, `notifications` — trace
+  back to `migrations-2026-05-repair-audit.sql` §4/§6, which *deliberately*
+  disabled RLS on them in May with the note "the live admin code reads these
+  directly with the authenticated session." That is precisely the advisor's
+  finding, sitting in the repo for four months.
+- **Follow-up:** `database/migrations-2026-09-legacy-admin-policies.sql` gives
+  those four the shape §4's own comment prescribed and
+  `migrations-2026-06-rls-remaining.sql` used for `payments`/`whatsapp_logs`:
+  authenticated full access, anon nothing. Nothing in `src/` or
+  `supabase/functions/` reads them today, but a sealed table fails *silently*
+  — zero rows to a future admin screen instead of an error. The May sections
+  now carry a SUPERSEDED banner.
+- **Runner gap fixed alongside:** `supabase-migrations.yml` printed the
+  Management API response only on failure, so every verification SELECT we
+  have ever run through it was discarded. It prints on success now — and
+  because the endpoint returns only the *last* statement's rows, the sweep's
+  four checks are unioned into one final query.
 
 ---
 
@@ -536,7 +557,8 @@ Updated as fixes land. Patch commits reference these IDs.
 | L-9 | 2026-05-21 | Open — admin policy doc | — |
 | L-10 | 2026-05-21 | ✅ Fixed — fallback-only comment added; delete with legacy INSERT policy | 2026-06-12 |
 | H-10 | 2026-06-12 | ✅ Fixed — contracts/invoices anon SELECT dropped; DDL under version control (migration must be run) | 2026-06-12 |
-| H-11 | 2026-09-16 | ✅ Fixed — RLS sweep migration (must be run in Supabase) | this commit |
+| H-11 | 2026-09-16 | ✅ Fixed — RLS sweep applied to production; invariant holds | this commit |
+| H-12 | 2026-09-16 | ✅ Fixed — four legacy admin tables given authenticated policies (repair-audit §4 superseded) | this commit |
 
 ---
 

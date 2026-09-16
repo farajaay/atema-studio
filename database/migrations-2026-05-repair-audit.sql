@@ -210,6 +210,14 @@ ALTER TABLE public.addons   DISABLE ROW LEVEL SECURITY;
 -- ============================================================
 -- SECTION 4 — UNDO RLS ON booking_addons / profit_reports / system_logs
 -- ============================================================
+-- ⚠ SUPERSEDED 2026-09-16 by migrations-2026-09-legacy-admin-policies.sql.
+--   Leaving RLS off here is what the Supabase advisor was reporting as
+--   `rls_disabled_in_public`. The replacement takes the exit this section's
+--   own comment prescribes: RLS on + one authenticated full-access policy,
+--   so the admin session keeps its reads and anon gets nothing. Section 6's
+--   `notifications` policy drop is superseded the same way.
+--   Do NOT re-run this file on its own — the ordered manifest re-applies the
+--   September files afterwards, but a single-file dispatch would not.
 -- Same story. The live admin code reads these directly with the
 -- authenticated session. Enabling RLS without an "authenticated"
 -- policy breaks the admin UI.
