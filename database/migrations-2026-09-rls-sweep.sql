@@ -161,3 +161,56 @@ select tablename, policyname, cmd, roles
   from pg_policies
  where schemaname = 'public'
  order by tablename, cmd, policyname;
+
+-- ─── 5. The one result set the Management API hands back ─────────────────────
+-- The individual SELECTs above are for a human pasting this file into the
+-- Supabase SQL editor, which shows every statement's rows. The
+-- `/database/query` endpoint the GitHub Action posts to returns ONLY the last
+-- statement, so the four checks are unioned here — otherwise a CI run reports
+-- "applied" and shows nothing but the policy map.
+select ord, check_name, detail
+  from (
+    -- 1 · the invariant itself
+    select 1 as ord,
+           'A · table WITHOUT RLS (expect none)' as check_name,
+           c.relname::text as detail
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity
+
+    union all
+    -- 2 · locked to service-role: right for the internal tables, a red flag
+    --     for anything a visitor or the admin panel reads
+    select 2,
+           'B · RLS on, no policies (service-role only)',
+           c.relname::text
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
+       and not exists (
+         select 1 from pg_policies p
+          where p.schemaname = 'public' and p.tablename = c.relname
+       )
+
+    union all
+    -- 3 · prices, read back — this file contains no INSERT/UPDATE/DELETE, and
+    --     the single-file workflow path never touches the seeds, so nothing
+    --     here can move a price. This makes that checkable.
+    select 3,
+           'C · catalogue price (must match the admin panel)',
+           pk.id::text || ' · ' || coalesce(pk.name_en, '?') || ' · '
+             || to_char(pk.price, 'FM999G999D00') || ' SAR · active='
+             || coalesce(pk.active::text, 'null')
+      from public.packages pk
+
+    union all
+    -- 4 · the public site can still read what it must
+    select 4,
+           'D · anon-readable surface',
+           p.tablename::text || ' :: ' || p.policyname::text
+      from pg_policies p
+     where p.schemaname = 'public'
+       and p.cmd in ('SELECT', 'ALL')
+       and (p.roles::text[] && array['anon', 'public'])
+  ) checks
+ order by ord, detail;
