@@ -145,6 +145,17 @@ select c.relname as table_name
    )
  order by c.relname;
 
+-- The catalogue, read back. This file writes no data — there is not one
+-- INSERT / UPDATE / DELETE in it, and the single-file workflow path never
+-- touches the SEEDS array — so a price cannot move here. Printing the
+-- fingerprint makes that checkable instead of merely asserted, and doubles as
+-- proof the hardening left `packages` readable. The sweep sits last in the
+-- manifest, so the catalogue exists by the time this runs.
+select '— catalogue fingerprint (read-only — prices must be unchanged) —' as section;
+select id, name_en, price, active, sort_order
+  from public.packages
+ order by id;
+
 select '— full policy map —' as section;
 select tablename, policyname, cmd, roles
   from pg_policies

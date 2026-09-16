@@ -224,6 +224,20 @@ jobs:
 
             if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
               echo "✓ $f (HTTP $http_code)"
+              # Print the result sets too. Our migrations end in verification
+              # SELECTs (policy maps, "which table was left bare", catalogue
+              # fingerprints) and until 2026-09 that output was discarded on
+              # success — the run said "applied" and told you nothing. Capped
+              # so a chatty file cannot bury the log.
+              if [ -s "$response_file" ]; then
+                echo "──────── Result sets ────────"
+                if jq -e . "$response_file" >/dev/null 2>&1; then
+                  jq . "$response_file" | head -c 20000
+                else
+                  head -c 20000 "$response_file"
+                fi
+                echo ""
+              fi
             else
               echo "::error file=$f::HTTP $http_code"
               echo "──────── Request ────────"
