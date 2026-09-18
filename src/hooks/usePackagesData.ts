@@ -84,22 +84,22 @@ const DEMO: Package[] = [
   { id: 3, name_ar: 'الباقة الكلاسيكية', name_en: 'Classic',            price: 5500,  duration_hours: 4, edited_photos: 300, editorial_photos: 0, album: 'ألبوم A4 ١٥ صفحة',
     video: false, description: 'الباقة المثالية للمناسبات الخاصة — ألبوم فاخر وذكريات تبقى، بفريق نسائي كامل.',
     features: ['٤ ساعات تغطية شاملة للحفل', 'مصوّرة رئيسية + مساعدة (فريق نسائي)', '٣٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)', 'ألبوم A4 بـ ١٥ صفحة — طباعة فاخرة', '٥ صور عائلية معدّلة', 'وحدة تخزين بجميع الصور المعدّلة'],
-    badge: null, is_popular: false, active: true, included_addon_ids: ['second-photog'], is_custom_base: false, no_print_enabled: true, no_print_discount: 700 },
+    badge: null, is_popular: false, active: true, included_addon_ids: [], is_custom_base: false, no_print_enabled: true, no_print_discount: 700 },
 
   { id: 4, name_ar: 'الباقة الملكية',   name_en: 'Royal',              price: 11200, duration_hours: 5, edited_photos: 400, editorial_photos: 4, album: 'ألبوم A4 + ميني ألبوم',
     video: true,  description: 'تجربة تصوير ملكية مع فيديو سينمائي قصير وألبومين فاخرين — الأكثر طلباً.',
     features: ['٥ ساعات تغطية شاملة للحفل', 'مصوّرة رئيسية + مساعدة (فريق نسائي)', '٤٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)', '٤ صور بتعديل تحريري احترافي (رتوش متقدم وتدرّج سينمائي)', 'فيديو سينمائي قصير (٣–٥ دقائق)', 'ألبوم A4 بـ ١٥ صفحة — طباعة فاخرة', 'ميني ألبوم عائلي', 'وحدة تخزين باسم العروسين', 'معاينة في نفس اليوم (٥ صور مختارة)'],
-    badge: 'الأكثر طلباً', is_popular: true, active: true, included_addon_ids: ['second-photog', 'video-short'], is_custom_base: false, no_print_enabled: true, no_print_discount: 1200 },
+    badge: 'الأكثر طلباً', is_popular: true, active: true, included_addon_ids: ['video-short'], is_custom_base: false, no_print_enabled: true, no_print_discount: 1200 },
 
   { id: 5, name_ar: 'باقة التوقيع',     name_en: 'Signature',          price: 13000, duration_hours: 6, edited_photos: 500, editorial_photos: 8, album: 'ألبوم فاخر A3 ١٢ صفحة + ميني',
     video: true,  description: 'الباقة الاحترافية الشاملة — فيديو سينمائي كامل، ألبوم A3 فاخر، وجلسة تحضيرات العروس.',
     features: ['٦ ساعات تغطية شاملة للحفل', 'مصوّرة رئيسية + مساعدة (فريق نسائي)', '٥٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)', '٨ صور بتعديل تحريري احترافي (رتوش متقدم وتدرّج سينمائي)', 'فيديو سينمائي كامل', 'جلسة تصوير تحضيرات العروس', 'ألبوم فاخر A3 بـ ١٢ صفحة', 'ميني ألبوم عائلي', 'وحدة تخزين منقوشة بالاسم', 'معاينة في نفس اليوم (٥ صور مختارة)'],
-    badge: 'فاخر', is_popular: false, active: true, included_addon_ids: ['second-photog', 'video-full', 'bridal-prep', 'album-upgrade'], is_custom_base: false },
+    badge: 'فاخر', is_popular: false, active: true, included_addon_ids: ['video-full', 'bridal-prep', 'album-upgrade'], is_custom_base: false },
 
   { id: 6, name_ar: 'ATEMA Couture',    name_en: 'ATEMA Couture',      price: 20000, duration_hours: 8, edited_photos: 700, editorial_photos: 12, album: 'ألبوم فاخر A3 ٢٠ صفحة + ميني + لوحة جدارية',
     video: true,  description: 'تجربة الفخامة الكاملة — كل تفاصيل اليوم بتوقيع كوتور حصري، من الحناء إلى الحفل.',
     features: ['تغطية شاملة كاملة للحفل (٨ ساعات)', 'مصوّرة رئيسية + مساعدة (فريق نسائي)', '٧٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)', '١٢ صورة بتعديل تحريري احترافي (رتوش متقدم وتدرّج سينمائي)', 'فيديو سينمائي فاخر — تغطية كاملة + ليلة الحناء', 'جلسة تحضيرات العروس', 'تغطية ليلة الحناء', 'ألبوم فاخر A3 بـ ٢٠ صفحة', 'ميني ألبوم فاخر', 'لوحة جدارية فنية مؤطرة', 'وحدة تخزين فاخرة بالاسم', 'معاينة في نفس اليوم (١٠ صور مختارة)', 'خدمة عملاء ومتابعة خاصة'],
-    badge: 'الأفخم', is_popular: true, active: true, included_addon_ids: ['second-photog', 'video-full', 'bridal-prep', 'album-upgrade', 'henna', 'kosha'], is_custom_base: false },
+    badge: 'الأفخم', is_popular: true, active: true, included_addon_ids: ['video-full', 'bridal-prep', 'album-upgrade', 'henna', 'kosha'], is_custom_base: false },
 ];
 
 export function usePackagesData() {

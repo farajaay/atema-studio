@@ -18,6 +18,13 @@ alter table public.addons
 
 -- ─── 1. ADD-ONS (11 line items) ──────────────────────────────────────────────
 -- Insert/update by id so re-running keeps prices in sync.
+--
+-- `second-photog` was deleted from the live catalogue by
+-- migrations-2026-09-addons-cleanup.sql (renamed, then superseded by the
+-- active `second-photographer` row). It is gone from here too so a re-seed
+-- can never resurrect it. «مصورة ثانية» is a PAID add-on and is deliberately
+-- absent from every package's included_addon_ids — a package promising an
+-- «مساعدة» is not promising a second photographer.
 insert into public.addons (id, name_ar, name_en, price, active, sort_order)
 values
   -- Extra hour now includes assistant cost (110/hr) + 25% margin on full loaded labour.
@@ -32,7 +39,6 @@ values
   ('album-upgrade',  'ترقية الألبوم إلى A3',                     'Album upgrade to A3',                      800,  true, 100),
   ('extra-pages',    'صفحات ألبوم إضافية (سعر الصفحة)',          'Extra album page (per page)',              120,  true, 90),
   ('raw-files',      'تسليم الملفات الخام',                      'Raw files delivery',                       900,  true, 90),
-  ('second-photog',  'مصور ثانٍ',                                'Second photographer',                     1200,  false, 90),
   ('kosha',          'تصوير الكوشة قبل الحفل',                    'Pre-event kosha shoot',                    800,  true, 50),
   ('save-date',      'Save the Date',                            'Save the Date',                            700,  false, 110)
 on conflict (id) do update set
@@ -92,7 +98,7 @@ values
    '٥ صور عائلية معدّلة',
    'وحدة تخزين بجميع الصور المعدّلة'
  ],
- NULL, false, true, 30, array['second-photog']::text[]),
+ NULL, false, true, 30, array[]::text[]),
 
 -- ── 4. Royal — 11,200 SAR — الأكثر طلباً ─────────────────────────────────────
 -- Video service now priced at hours × 450 × 1.5 (50% margin per owner rule).
@@ -110,7 +116,7 @@ values
    'وحدة تخزين باسم العروسين',
    'معاينة في نفس اليوم (٥ صور مختارة)'
  ],
- 'الأكثر طلباً', true, true, 40, array['second-photog','video-short']::text[]),
+ 'الأكثر طلباً', true, true, 40, array['video-short']::text[]),
 
 -- ── 5. Signature — 13,000 SAR ────────────────────────────────────────────────
 (5, 'باقة التوقيع', 'Signature', 13000, 6, 500,
@@ -128,7 +134,7 @@ values
    'وحدة تخزين منقوشة بالاسم',
    'معاينة في نفس اليوم (٥ صور مختارة)'
  ],
- 'فاخر', false, true, 50, array['second-photog','video-full','bridal-prep','album-upgrade']::text[]),
+ 'فاخر', false, true, 50, array['video-full','bridal-prep','album-upgrade']::text[]),
 
 -- ── 6. ATEMA Couture — 20,000 SAR — الأفخم ───────────────────────────────────
 (6, 'ATEMA Couture', 'ATEMA Couture', 20000, 8, 700,
@@ -149,7 +155,7 @@ values
    'معاينة في نفس اليوم (١٠ صور مختارة)',
    'خدمة عملاء ومتابعة خاصة'
  ],
- 'الأفخم', true, true, 60, array['second-photog','video-full','bridal-prep','album-upgrade','henna','kosha']::text[])
+ 'الأفخم', true, true, 60, array['video-full','bridal-prep','album-upgrade','henna','kosha']::text[])
 
 on conflict (id) do update set
   name_ar            = excluded.name_ar,
