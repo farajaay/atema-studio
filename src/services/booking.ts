@@ -173,6 +173,7 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
     vat:             payload.vat,
     total:           payload.total,
     discountCode:    payload.discountCode ?? null,
+    noPrint:         !!payload.noPrint,
     eventType:       payload.eventType ?? null,
     guestCount:      payload.guestCount ?? null,
     tcAccepted:      payload.tcAccepted,
@@ -198,6 +199,7 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
           location:        payload.location ?? null,
           specialRequests: payload.specialRequests ?? null,
           discountCode:    payload.discountCode ?? null,
+          noPrint:         !!payload.noPrint,
           // Audit append (2026-05) — see CreateBookingRequest for rationale.
           eventType:       payload.eventType ?? null,
           guestCount:      typeof payload.guestCount === 'number' ? payload.guestCount : null,
@@ -298,6 +300,7 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Book
       booking_ref:      bookingRef,
       package_id:       pkgId,
       addon_ids:        payload.addOnIds ?? [],
+      no_print:         !!payload.noPrint,
       event_date:       payload.eventDate,
       event_time:       payload.eventTime,
       customer_name:    payload.customerName,

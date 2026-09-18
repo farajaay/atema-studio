@@ -38,3 +38,42 @@ export function computeBookingTotals(opts: {
   const vat = vatEnabled ? Math.round(subtotal * VAT_RATE) : 0;
   return { subtotal, vat, total: subtotal + vat };
 }
+
+/** The «بدون طباعة» option: a fixed riyal amount off the package price when
+ *  the bride keeps the coverage and the full digital delivery but skips the
+ *  printed album (Sept 2026 — enabled on الكلاسيكية + الملكية only).
+ *
+ *  Three guards, and every one of them is load-bearing on a public surface:
+ *    · `enabled` is the package's own `no_print_enabled` flag — a client that
+ *      POSTs `noPrint: true` against a tier that doesn't offer the choice
+ *      gets the full price, not a discount;
+ *    · the discount is read from the package row, never from the request —
+ *      same posture as the package price itself (Patch C-3);
+ *    · it is clamped to [0, price) so a mis-typed admin value can't produce a
+ *      free or negative booking even if the DB check were somehow bypassed.
+ *
+ *  Returns the package's gross contribution — add-ons and the city fee are
+ *  layered on top by the caller. */
+export function grossForPackage(opts: {
+  price: number;
+  noPrint?: boolean;
+  noPrintEnabled?: boolean;
+  noPrintDiscount?: number;
+}): number {
+  const price = Math.max(0, Number(opts.price) || 0);
+  if (!opts.noPrint || !opts.noPrintEnabled) return price;
+  const raw = Number(opts.noPrintDiscount) || 0;
+  const discount = Math.max(0, Math.min(raw, Math.max(0, price - 1)));
+  return price - discount;
+}
+
+/** Did this booking actually take the no-print option? True only when the
+ *  bride asked for it AND the package offers it — the one predicate the
+ *  contract, the invoice, the workflow ladder and the album link all read, so
+ *  none of them can disagree about whether an album is being printed. */
+export function isNoPrint(opts: {
+  noPrint?: boolean;
+  noPrintEnabled?: boolean;
+}): boolean {
+  return Boolean(opts.noPrint && opts.noPrintEnabled);
+}

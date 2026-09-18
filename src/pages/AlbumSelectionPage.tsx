@@ -65,6 +65,9 @@ export default function AlbumSelectionPage() {
     } else if (res === 'locked') {
       setErr(tx(lang, 'تم الاختيار مسبقاً.', 'A choice was already confirmed.'));
       const s = await getAlbumSelectionByToken(token); if (s) setState(s);
+    } else if (res === 'no_print') {
+      setErr(tx(lang, 'باقتك بدون طباعة — لا يوجد ألبوم لاختياره.', 'Your package has no printed album.'));
+      const s = await getAlbumSelectionByToken(token); if (s) setState(s);
     } else if (res === 'not_ready') {
       setErr(tx(lang, 'الاختيار غير متاح بعد.', 'Selection is not open yet.'));
     } else {
@@ -77,6 +80,22 @@ export default function AlbumSelectionPage() {
 
   if (!token || !state || state.status === 'not_found')
     return <Center><Wordmark /><p style={soft}>{tx(lang, 'هذا الرابط غير صالح.', 'This link is not valid.')}</p></Center>;
+
+  // Booked «بدون طباعة» — she bought the coverage without the printed album,
+  // so there is nothing to choose here. Say it warmly and leave the door open:
+  // printing later is a paid add-on, not a lost chance.
+  if (state.status === 'no_print')
+    return (
+      <Center>
+        <Wordmark />
+        <h1 style={display}>{tx(lang, 'باقتكِ رقميّة بالكامل', 'Yours is fully digital')}</h1>
+        <p style={{ ...soft, maxWidth: 420, lineHeight: 1.9 }}>
+          {tx(lang,
+            'اخترتِ باقتك بصيغة «بدون طباعة» — صوركِ تصلكِ كاملةً عبر رابط المعرض الخاص، دون ألبوم مطبوع. وإن رغبتِ بالطباعة لاحقاً، تواصلي معنا وسنُسعدنا بتجهيزها لكِ.',
+            'You chose your package without printing — your photographs arrive in full through your private gallery link, with no printed album. Should you wish to print later, write to us and we will gladly prepare it.')}
+        </p>
+      </Center>
+    );
 
   if (state.status === 'not_ready')
     return (

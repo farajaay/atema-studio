@@ -34,7 +34,7 @@ import {
   clampText,
   CITY_FEES,
 } from '../_shared/validation.ts';
-import { sumActiveAddons, clampDiscount, computeBookingTotals } from '../_shared/pricing.ts';
+import { sumActiveAddons, clampDiscount, computeBookingTotals, grossForPackage, isNoPrint } from '../_shared/pricing.ts';
 import { sendEmail } from '../_shared/email.ts';
 import { renderBookingConfirmation } from '../_shared/email-confirmation.ts';
 import { generateContractHTML } from '../_shared/contract.ts';
@@ -167,7 +167,13 @@ serve(async (req) => {
   log('→ db.packages.select', { packageId: pkgId });
   const { data: pkg, error: pkgErr } = await supabase
     .from('packages')
-    .select('id, price, active, name_ar, name_en, duration_hours')
+    // `*` rather than a column list: Edge Functions auto-deploy on push while
+    // migrations are a deliberate manual dispatch, so this code can be live
+    // for a while against a database that has no no_print_* columns yet.
+    // Naming them explicitly would turn that window into a total booking
+    // outage (PostgREST 400s the whole select); `*` simply returns undefined
+    // for the absent columns, which grossForPackage reads as "no option".
+    .select('*')
     .eq('id', pkgId)
     .single();
   log('← db.packages.select', {
@@ -196,8 +202,23 @@ serve(async (req) => {
   }
 
   const cityFee = CITY_FEES[String(body.city ?? '')] ?? 0;
-  const grossSubtotal = pkg.price + addonsTotal + cityFee;
-  log('computed grossSubtotal', { pkgPrice: pkg.price, addonsTotal, cityFee, grossSubtotal });
+
+  // «بدون طباعة» — she keeps the coverage and the full digital delivery but
+  // skips the printed album. The client sends only the INTENT; whether the
+  // tier offers it and what it is worth are read from the package row, never
+  // from the request (same posture as the price itself — Patch C-3).
+  const noPrint = isNoPrint({
+    noPrint: body.noPrint === true,
+    noPrintEnabled: (pkg as any).no_print_enabled === true,
+  });
+  const pkgGross = grossForPackage({
+    price: pkg.price,
+    noPrint: body.noPrint === true,
+    noPrintEnabled: (pkg as any).no_print_enabled === true,
+    noPrintDiscount: (pkg as any).no_print_discount,
+  });
+  const grossSubtotal = pkgGross + addonsTotal + cityFee;
+  log('computed grossSubtotal', { pkgPrice: pkg.price, noPrint, pkgGross, addonsTotal, cityFee, grossSubtotal });
 
   // ── Discount redemption ───────────────────────────────────────────────
   let discountCode: string | null = null;
@@ -243,6 +264,7 @@ serve(async (req) => {
     booking_ref: ref,
     package_id:  pkgId,
     addon_ids:   addOnIds,
+    no_print:    noPrint,
     event_date:  eventDate,
     event_time:  eventTime,
     customer_name:    name,
@@ -397,6 +419,7 @@ serve(async (req) => {
         addons:          addonRows.filter(a => a.active).map(a => a.name_ar || a.name_en),
         discount:        discountForDocs,
         grossSubtotal,
+        noPrint,
       });
 
       // Invoice
@@ -420,6 +443,7 @@ serve(async (req) => {
         settings:       invoiceSettings,
         discount:       discountForDocs,
         grossSubtotal,
+        noPrint,
       });
 
       const rendered = renderBookingConfirmation({

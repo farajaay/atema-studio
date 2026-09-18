@@ -329,6 +329,31 @@ src/
   `supabase/functions/_shared/contract.ts` (change-both rule).
   See `docs/MANUAL.md` §13m + `docs/plans/installments-2026-08.md`.
 
+### 4.11 «بدون طباعة» (printless mid tiers)
+- Two columns on the package (`no_print_enabled`, `no_print_discount` — a
+  **fixed riyal amount**, never a percentage) plus one on the booking
+  (`no_print`). Enabled on الكلاسيكية + الملكية only; التوقيع and الكوتور
+  keep their albums by decision, not by oversight.
+- **All the math is `grossForPackage()` / `isNoPrint()` in
+  `supabase/functions/_shared/pricing.ts`** (pure, unit-tested, shared
+  client/Edge — same discipline as `reschedule.ts`). The client sends the
+  INTENT only; eligibility and amount are read from the package row
+  server-side, exactly like the price (Patch C-3). Don't fork this.
+- The flag is not cosmetic — it removes work: the contract's printing
+  articles, the invoice line suffix, the two album rungs of the workflow
+  ladder (`stepsForBooking()`), and the album-cover link (guarded inside the
+  SECURITY DEFINER RPCs, not in the page). Anything new that assumes "every
+  booking gets an album" must consult it.
+- Both mirrors again: `src/services/contract.ts` + `_shared/contract.ts`,
+  `src/services/invoice.ts` + `_shared/invoice.ts`.
+- Package selects that need these columns use `select('*')` on purpose:
+  Edge Functions auto-deploy while migrations are a manual dispatch, so the
+  code must survive a database that doesn't have the columns yet.
+- The seed file deliberately carries **no** no_print columns, so re-seeding
+  can never reset the owner's tuned discount. `scripts/export-catalogue.mjs`
+  treats absent live keys as "leave the repo copy alone".
+- See `docs/MANUAL.md` §13n.
+
 ## 5. The booking flow (one-breath summary)
 
 ```
@@ -426,6 +451,12 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
     §4/§6 deliberately left RLS-off, which is what the advisor was reporting.
     Run it BEFORE the sweep; the sweep only enables RLS, it writes no policies
     for tables outside the public-read set.)
+  - `database/migrations-2026-09-no-print.sql` («بدون طباعة» — adds
+    `packages.no_print_enabled` / `no_print_discount`, `bookings.no_print`,
+    enables the option on الكلاسيكية (−700) + الملكية (−1,200), and guards the
+    two album RPCs so a printless booking is never offered a cover. Until it
+    is applied the option simply doesn't appear — every surface reads the
+    absent columns as "not offered".)
   - `database/migrations-2026-09-rls-sweep.sql` (RLS sweep — enables Row-Level
     Security on every base table in `public` that lacks it, after re-asserting
     anon SELECT on the eight public-read surfaces; silences the

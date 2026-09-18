@@ -72,6 +72,25 @@ export function workflowStepDef(key: WorkflowStepKey): WorkflowStepDef {
   return WORKFLOW_STEPS.find(s => s.key === key)!;
 }
 
+/** The ladder this particular booking actually walks.
+ *
+ *  A «بدون طباعة» booking bought no print run, so the last two rungs —
+ *  اختيار صور الألبوم and تسليم الألبوم المطبوع — do not exist for her. They
+ *  must be dropped at the SOURCE rather than skipped per-surface: the admin
+ *  tab, the bride's timeline, the seeder and the daily reminder cron all read
+ *  this list, and a step that survives in any one of them becomes a task the
+ *  owner is chased about forever (nothing can ever complete it) and a promise
+ *  the contract no longer makes.
+ *
+ *  Nothing anchors on the album steps except each other, so removing them
+ *  leaves every remaining target date untouched. */
+export function stepsForBooking(opts?: { noPrint?: boolean }): readonly WorkflowStepDef[] {
+  if (!opts?.noPrint) return WORKFLOW_STEPS;
+  return WORKFLOW_STEPS.filter(
+    d => d.key !== 'album_selection' && d.key !== 'album_delivery',
+  );
+}
+
 // ── Date helpers (date-only, UTC — same discipline as reschedule.ts) ────────
 const DAY_MS = 86_400_000;
 
@@ -197,11 +216,15 @@ export function duePrompts(opts: {
   /** Already-notified (step|kind) keys for this booking. */
   sent:     Set<string>;
   now?:     string;
+  /** This booking's ladder — pass stepsForBooking({ noPrint }) so a
+   *  no-print booking is never nagged about an album. Defaults to the full
+   *  ladder. */
+  steps?:   readonly WorkflowStepDef[];
 }): OwnerPrompt[] {
   const now = opts.now ?? todayUtc();
   const prompts: OwnerPrompt[] = [];
 
-  for (const def of WORKFLOW_STEPS) {
+  for (const def of (opts.steps ?? WORKFLOW_STEPS)) {
     const status = opts.statuses[def.key] ?? 'pending';
     if (status === 'done' || status === 'skipped') continue;
 

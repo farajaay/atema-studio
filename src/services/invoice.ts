@@ -38,6 +38,10 @@ export interface InvoiceData {
   } | null;
   /** Gross (pre-discount) subtotal in SAR. Only shown when a discount is applied. */
   grossSubtotal?: number;
+  /** «بدون طباعة» — the tier was sold without its printed album. The line
+   *  item has to say so: the ZATCA invoice describes what was actually
+   *  supplied, and the package price here is already the discounted one. */
+  noPrint?: boolean;
 }
 
 // ── TLV encoder (per ZATCA spec) ──────────────────────────────────────────────
@@ -262,7 +266,7 @@ export function generateInvoiceHTML(d: InvoiceData): string {
       </thead>
       <tbody>
         <tr>
-          <td><strong>${esc(d.packageNameAr)}</strong> <span style="color:${STATIONERY.inkFaint}">(${esc(d.packageNameEn)})</span></td>
+          <td><strong>${esc(d.packageNameAr)}</strong>${d.noPrint ? ` <span style="color:${STATIONERY.inkFaint}">— بدون طباعة</span>` : ''} <span style="color:${STATIONERY.inkFaint}">(${esc(d.packageNameEn)}${d.noPrint ? ' — no printing' : ''})</span></td>
           <td>${fmt(d.subtotal - d.addons.reduce((s, a) => s + a.price * (a.qty ?? 1), 0))}</td>
         </tr>
         ${addonRows}

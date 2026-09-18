@@ -16,6 +16,8 @@
 //      never be silently applied and clobber the owner's live edits.
 //   2. Patches ONLY the scalar fields (price, duration_hours,
 //      edited_photos, editorial_photos, video, is_popular, active,
+//      no_print_enabled, no_print_discount (DEMO array only — the seed file
+//      deliberately carries no no_print columns, see below),
 //      sort_order for packages; price, active, sort_order for addons)
 //      in-place inside seed-packages-2026-05.sql and the DEMO array,
 //      preserving every surrounding character (comments, alignment,
@@ -283,8 +285,11 @@ function patchDemoFile(text, packages) {
   const HEAD_RE =
     /^(\s*\{ id: )(\d+)(, name_ar: ')((?:[^'\\]|\\.)*)((?:',)\s*name_en: ')((?:[^'\\]|\\.)*)((?:',)\s*price: )(\d+)((?:,\s*)duration_hours: )(\d+)((?:,\s*)edited_photos: )(\d+)((?:,\s*)editorial_photos: )(\d+)((?:,\s*)album: )(null|'[^']*')(,)$/;
 
+  // The no_print_* pair is OPTIONAL: it exists only on the tiers that offer
+  // «بدون طباعة» (migrations-2026-09-no-print), so a row without it must still
+  // parse — otherwise the self-test fails and catalogue exports stop running.
   const TAIL_RE =
-    /^(\s*badge: )(null|'[^']*')((?:,\s*)is_popular: )(true|false)((?:,\s*)active: )(true|false)((?:,\s*)included_addon_ids: )(\[[^\]]*\])((?:,\s*)is_custom_base: )(true|false)( \},)$/;
+    /^(\s*badge: )(null|'[^']*')((?:,\s*)is_popular: )(true|false)((?:,\s*)active: )(true|false)((?:,\s*)included_addon_ids: )(\[[^\]]*\])((?:,\s*)is_custom_base: )(true|false)(?:((?:,\s*)no_print_enabled: )(true|false)((?:,\s*)no_print_discount: )(\d+))?( \},)$/;
 
   let currentId = null;
   const lines = text.split('\n');
@@ -327,7 +332,10 @@ function patchDemoFile(text, packages) {
 
     const tail = line.match(TAIL_RE);
     if (tail && currentId !== null) {
-      const [, p1, badge, p3, isPopular, p5, active, p7, includedIds, p9, isCustomBase, p11] = tail;
+      const [
+        , p1, badge, p3, isPopular, p5, active, p7, includedIds, p9, isCustomBase,
+        p10, noPrintEnabled, p12, noPrintDiscount, p11,
+      ] = tail;
       const live = pkgById.get(currentId);
       if (live) {
         const liveBadge = live.badge === null ? 'null' : `'${live.badge}'`;
@@ -347,7 +355,34 @@ function patchDemoFile(text, packages) {
         const newActive = live.active ? 'true' : 'false';
         if (newPopular !== isPopular) changes.push(`DEMO[${currentId}].is_popular: ${isPopular} -> ${newPopular}`);
         if (newActive !== active) changes.push(`DEMO[${currentId}].active: ${active} -> ${newActive}`);
-        line = p1 + badge + p3 + newPopular + p5 + newActive + p7 + includedIds + p9 + isCustomBase + p11;
+        // no_print_* are scalars like price — auto-patched, not merely flagged.
+        let noPrintTail = '';
+        if (noPrintEnabled !== undefined && live.no_print_enabled === undefined) {
+          // The live row carries no no_print_* keys at all — either the
+          // migration has not been applied yet, or this is the self-test
+          // round-tripping the seed (which deliberately has no such columns).
+          // "Absent" is not "false": keep the repo's values untouched rather
+          // than silently retiring an offer the site is still making.
+          noPrintTail = p10 + noPrintEnabled + p12 + noPrintDiscount;
+        } else if (noPrintEnabled !== undefined) {
+          const newNoPrint = live.no_print_enabled ? 'true' : 'false';
+          const newNoPrintDiscount = String(live.no_print_discount ?? noPrintDiscount);
+          if (newNoPrint !== noPrintEnabled) {
+            changes.push(`DEMO[${currentId}].no_print_enabled: ${noPrintEnabled} -> ${newNoPrint}`);
+          }
+          if (newNoPrintDiscount !== noPrintDiscount) {
+            changes.push(`DEMO[${currentId}].no_print_discount: ${noPrintDiscount} -> ${newNoPrintDiscount}`);
+          }
+          noPrintTail = p10 + newNoPrint + p12 + newNoPrintDiscount;
+        } else if (live.no_print_enabled) {
+          // The live tier started offering it and this copy has no slot for
+          // it — a hand edit, not a mechanical one (same posture as the copy
+          // fields below).
+          warnings.push(
+            `DEMO[${currentId}] now offers no_print (discount ${live.no_print_discount}) live but the DEMO row has no no_print_enabled field — add it by hand.`,
+          );
+        }
+        line = p1 + badge + p3 + newPopular + p5 + newActive + p7 + includedIds + p9 + isCustomBase + noPrintTail + p11;
       }
       currentId = null;
       out.push(line);

@@ -13,7 +13,7 @@ import {
   LayoutDashboard, LogOut, RefreshCw, Plus, Save, Trash2,
   CheckCircle2, Loader2, X, ChevronRight, Info, Eye, EyeOff,
   Tag, Clock, Camera, Image, Video, Star, FileText, Layers,
-  AlertTriangle, ArrowRight
+  AlertTriangle, ArrowRight, Printer
 } from 'lucide-react';
 
 // ── Tooltip ───────────────────────────────────────────────────────────────────
@@ -113,6 +113,7 @@ const EMPTY: Omit<Package, 'id'> = {
   editorial_photos: 0,
   album: '', video: false, description: '', features: [], badge: '', is_popular: false, active: true,
   included_addon_ids: [],
+  no_print_enabled: false, no_print_discount: 0,
 };
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -410,6 +411,60 @@ export default function PackagesManager() {
         <div>
           <Label icon={<Image size={13} />} text="الألبوم (مواصفات)" tip="اكتب مواصفات الألبوم إذا كان مشمولاً. أمثلة: 'A4 10 pages' أو 'A3 12 pages + mini album'. اتركه فارغاً إذا لا يشمل الألبوم. تكلفة A4: ~٤٥٠ ر.س | A3: ~٧٠٠ ر.س." />
           <input value={draft.album ?? ''} onChange={e => setField('album', e.target.value || null)} style={inp} placeholder="مثال: A4 10 pages" />
+        </div>
+
+        {/* ── «بدون طباعة» — the printless variant of this tier ──────────
+            Sits directly under the album spec because it is that field's
+            mirror image: what the bride pays when she declines it. A fixed
+            riyal amount, not a percentage (owner's decision) — she sees an
+            exact price, and the P&L sees the exact printing cost removed. */}
+        <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1',
+          background: 'var(--a-surface-alt)', borderRadius: '10px',
+          padding: '14px 16px', border: `1px solid ${draft.no_print_enabled ? ATEMA_COLORS.champagne : 'var(--a-border)'}` }}>
+          <Label icon={<Printer size={13} />} text="خيار «بدون طباعة»"
+            tip="يمنح العميلة خيار أخذ نفس الباقة بلا ألبوم مطبوع مقابل خصم ثابت. فعّله في الباقات المتوسطة فقط (الكلاسيكية والملكية) — باقات التوقيع والكوتور ألبومها جزء من هويتها. الخصم يجب أن يغطي تكلفة الطباعة الحقيقية: A4 ~٤٥٠ ر.س | A3 ~٧٠٠ ر.س. عند اختيارها، لا يُطبع ألبوم، ولا تُرسَل روابط اختيار الصور، ويُذكر ذلك صراحةً في العقد والفاتورة." />
+          <Toggle on={draft.no_print_enabled ?? false}
+            onChange={v => setDraft(d => d ? {
+              ...d,
+              no_print_enabled: v,
+              // Turning it on with a zero discount would offer the bride a
+              // "choice" that saves her nothing — seed a sane default she
+              // can then tune. The DB check rejects 0 on an enabled row.
+              no_print_discount: v && !(d.no_print_discount ?? 0) ? 700 : (d.no_print_discount ?? 0),
+            } : d)}
+            label={draft.no_print_enabled ? 'مفعّل — تظهر للعميلة كخيار' : 'غير مفعّل — الباقة بالطباعة فقط'} />
+
+          {draft.no_print_enabled && (
+            <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '14px' }}>
+              <div style={{ flex: '1 1 180px' }}>
+                <Label icon={<Tag size={13} />} text="قيمة الخصم — ر.س"
+                  tip="المبلغ الذي يُخصم من سعر الباقة عند اختيار «بدون طباعة». ثابت بالريال، ويُحسب على السيرفر من هذا الحقل — لا من المتصفح." />
+                <input type="number" min={1} max={Math.max(1, draft.price - 1)}
+                  value={draft.no_print_discount ?? 0}
+                  onChange={e => setField('no_print_discount', Math.max(0, Number(e.target.value)))}
+                  style={inp} />
+              </div>
+              <div style={{ flex: '1 1 180px', paddingBottom: '2px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--a-text-muted)', marginBottom: '6px' }}>
+                  السعر بدون طباعة (قبل الضريبة)
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: ATEMA_COLORS.champagne }}>
+                  {Math.max(0, draft.price - (draft.no_print_discount ?? 0)).toLocaleString('ar-SA')} ر.س
+                </div>
+              </div>
+            </div>
+          )}
+
+          {draft.no_print_enabled && (draft.no_print_discount ?? 0) >= draft.price && (
+            <div style={{ marginTop: '10px', fontSize: '12px', color: '#fca5a5', fontWeight: 600 }}>
+              الخصم يجب أن يكون أقل من سعر الباقة — لن تقبل قاعدة البيانات هذه القيمة.
+            </div>
+          )}
+          {draft.no_print_enabled && !draft.album && (
+            <div style={{ marginTop: '10px', fontSize: '12px', color: '#fbbf24' }}>
+              هذه الباقة لا تشمل ألبوماً أصلاً — الخيار بلا معنى هنا.
+            </div>
+          )}
         </div>
 
         <div>

@@ -40,6 +40,9 @@ export interface RegenBooking {
   /** Active installment plan (3/4/5) — when set, regeneration fetches the
       booking_installments rows so the contract renders the real schedule. */
   installment_plan?: number | null;
+  /** «بدون طباعة» — regenerated documents must keep saying so, or a rebuilt
+   *  contract quietly re-promises the printed album she declined. */
+  no_print?: boolean;
 }
 
 export interface RegenPackage {
@@ -101,6 +104,7 @@ export function buildContractData(
     addons: addons.map(a => a.name_ar),
     discount,
     grossSubtotal: discount ? b.subtotal + discount.amount : undefined,
+    noPrint: b.no_print === true,
   };
 }
 
@@ -141,6 +145,7 @@ export function buildInvoiceData(
     settings:      effectiveSettings,
     discount,
     grossSubtotal: discount ? b.subtotal + discount.amount : undefined,
+    noPrint: b.no_print === true,
   };
 }
 

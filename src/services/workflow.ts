@@ -12,7 +12,7 @@
 
 import { supabase } from './supabase';
 import {
-  WORKFLOW_STEPS, computeTargets,
+  WORKFLOW_STEPS, computeTargets, stepsForBooking,
   type WorkflowStepKey, type WorkflowStatus,
 } from '../../supabase/functions/_shared/workflow';
 
@@ -46,6 +46,9 @@ function sortLadder(rows: WorkflowStepRow[]): WorkflowStepRow[] {
 export async function fetchWorkflowSteps(
   bookingId: string,
   eventDate: string,
+  /** Booked «بدون طباعة»? Then the two album rungs are never seeded — see
+   *  stepsForBooking() in _shared/workflow.ts. */
+  noPrint = false,
 ): Promise<WorkflowStepRow[] | null> {
   if (!supabase) return null;
 
@@ -67,7 +70,7 @@ export async function fetchWorkflowSteps(
   }
   const targets = computeTargets(eventDate, completedOn);
 
-  for (const def of WORKFLOW_STEPS) {
+  for (const def of stepsForBooking({ noPrint })) {
     const want = targets[def.key];
     const row  = byKey.get(def.key);
     if (!row) {

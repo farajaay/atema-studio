@@ -17,7 +17,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { clampText, CITY_FEES, extractCityKey } from '../_shared/validation.ts';
 import { canReschedule, validateNewDate, daysBetween } from '../_shared/reschedule.ts';
-import { sumActiveAddons } from '../_shared/pricing.ts';
+import { sumActiveAddons, grossForPackage, isNoPrint } from '../_shared/pricing.ts';
 import { computePackageChange } from '../_shared/change.ts';
 import { generateOtp, hashOtp, verifyOtp, OTP_TTL_MS } from '../_shared/otp.ts';
 import { renderChangeOtpEmail } from '../_shared/email-otp.ts';
@@ -269,7 +269,9 @@ export async function handleChangePackage(supabase: any, booking: any, body: any
   const pkgId = typeof body.packageId === 'number' ? body.packageId : null;
   if (pkgId === null) return fail('package_required', 422);
   const { data: pkg } = await supabase
-    .from('packages').select('id, price, active, name_ar, name_en').eq('id', pkgId).single();
+    // `*` for the same reason the read above uses it: the no_print_* columns
+    // may not exist yet on a partially-migrated database.
+    .from('packages').select('*').eq('id', pkgId).single();
   if (!pkg || !pkg.active) return fail('package_invalid', 422);
 
   const addOnIds: string[] = Array.isArray(body.addOnIds)
@@ -281,7 +283,23 @@ export async function handleChangePackage(supabase: any, booking: any, body: any
   }
 
   const cityFee = CITY_FEES[extractCityKey(booking.location)] ?? 0;
-  const newGross = pkg.price + addonsTotal + cityFee;
+
+  // «بدون طباعة» travels with her, but only as far as the new tier allows:
+  // if she upgrades to a tier whose album is not optional, the flag is
+  // dropped and she is quoted that tier's full price. Silently keeping it
+  // would either charge a discount the new tier never offered, or (worse)
+  // re-price her back to "with printing" while the booking still says
+  // no_print — and the contract would then promise an album she declined.
+  const keepNoPrint = isNoPrint({
+    noPrint: booking.no_print === true,
+    noPrintEnabled: (pkg as any).no_print_enabled === true,
+  });
+  const newGross = grossForPackage({
+    price: pkg.price,
+    noPrint: booking.no_print === true,
+    noPrintEnabled: (pkg as any).no_print_enabled === true,
+    noPrintDiscount: (pkg as any).no_print_discount,
+  }) + addonsTotal + cityFee;
   // Preserve the originally-redeemed discount (don't re-redeem / re-deplete).
   const discountAmount = Math.max(0, Math.min(Number(booking.discount_amount ?? 0), newGross));
   const vatEnabled = booking.vat_enabled ?? true;
@@ -291,10 +309,18 @@ export async function handleChangePackage(supabase: any, booking: any, body: any
     discountAmount, vatEnabled,
   });
 
-  const { error: updErr } = await supabase.from('bookings').update({
+  let { error: updErr } = await supabase.from('bookings').update({
     package_id: pkgId, addon_ids: addOnIds,
     subtotal: change.subtotal, vat: change.vat, total: change.total,
+    no_print: keepNoPrint,
   }).eq('id', booking.id);
+  if (updErr && /no_print/.test(updErr.message ?? '')) {
+    // Column not migrated yet — the change itself must still go through.
+    ({ error: updErr } = await supabase.from('bookings').update({
+      package_id: pkgId, addon_ids: addOnIds,
+      subtotal: change.subtotal, vat: change.vat, total: change.total,
+    }).eq('id', booking.id));
+  }
   if (updErr) return fail('update_failed', 500, updErr.message);
 
   // Best-effort: persist outstanding top-up amount (silently skips if
