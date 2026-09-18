@@ -34,6 +34,8 @@ export interface Booking {
       3/4/5 = installment rows exist in booking_installments (admin-assigned
       from the «خطة التقسيط» card in the booking modal). */
   installment_plan?: number | null;
+  /** «بدون طباعة» — booked without the printed album (migrations-2026-09-no-print). */
+  no_print?: boolean;
   created_at: string;
   /** Discount fields (added 2026-05-21) — present when a code was applied. */
   discount_code?:   string | null;

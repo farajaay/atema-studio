@@ -33,7 +33,10 @@ export interface AlbumDesign {
 }
 
 export type AlbumSelectionStatus =
-  | 'not_found' | 'not_ready' | 'ready' | 'selected';
+  | 'not_found' | 'not_ready' | 'ready' | 'selected'
+  // Booked «بدون طباعة» — no printed album was sold, so there is no cover to
+  // choose. Returned by get_album_selection_by_token (migrations-2026-09-no-print).
+  | 'no_print';
 
 export interface AlbumSelectionState {
   status:           AlbumSelectionStatus;
@@ -126,7 +129,7 @@ export async function getAlbumSelectionByToken(token: string): Promise<AlbumSele
   return (row as AlbumSelectionState) ?? null;
 }
 
-export type SelectResult = 'ok' | 'not_found' | 'not_ready' | 'locked' | 'invalid_design' | 'error';
+export type SelectResult = 'ok' | 'not_found' | 'not_ready' | 'locked' | 'invalid_design' | 'no_print' | 'error';
 
 export async function selectAlbumDesign(
   token: string, designId: string, note?: string,

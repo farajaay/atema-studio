@@ -9,7 +9,7 @@
 import { useEffect, useRef } from 'react';
 import {
   WORKFLOW_STEPS, currentStepKey, stepView,
-  type WorkflowStepKey, type WorkflowStatus, type StepView,
+  type WorkflowStepKey, type WorkflowStatus, type StepView, type WorkflowStepDef,
 } from '../../supabase/functions/_shared/workflow';
 import type { WorkflowStepRow } from '../services/workflow';
 
@@ -40,7 +40,10 @@ const NODE_LABEL: Record<StepView, string> = {
   in_progress: 'جارية', done: '', skipped: '',
 };
 
-export default function WorkflowTimeline({ rows }: { rows: WorkflowStepRow[] }) {
+export default function WorkflowTimeline(
+  { rows, steps = WORKFLOW_STEPS }:
+  { rows: WorkflowStepRow[]; steps?: readonly WorkflowStepDef[] },
+) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const currentRef   = useRef<HTMLDivElement>(null);
 
@@ -59,7 +62,7 @@ export default function WorkflowTimeline({ rows }: { rows: WorkflowStepRow[] }) 
         display: 'flex', alignItems: 'flex-start', overflowX: 'auto',
         padding: '14px 10px 4px', gap: 0,
       }}>
-        {WORKFLOW_STEPS.map((def, i) => {
+        {steps.map((def, i) => {
           const row  = byKey.get(def.key);
           const view: StepView = row
             ? stepView({ status: row.status, target: row.target_date, deadline: row.deadline_date })
@@ -67,7 +70,7 @@ export default function WorkflowTimeline({ rows }: { rows: WorkflowStepRow[] }) 
           const isCurrent = def.key === current;
           const color = NODE_COLOR[view];
           const prevDone = i > 0 && (() => {
-            const prevKey = WORKFLOW_STEPS[i - 1].key;
+            const prevKey = steps[i - 1].key;
             const s = statuses[prevKey];
             return s === 'done' || s === 'skipped';
           })();

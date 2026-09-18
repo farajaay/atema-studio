@@ -32,7 +32,7 @@ import { db, jsonResponse, corsHeaders } from '../_shared/wa.ts';
 import { sendEmail } from '../_shared/email.ts';
 import { renderWorkflowDigestEmail, type WorkflowDigestItem } from '../_shared/email-workflow.ts';
 import {
-  WORKFLOW_STEPS, computeTargets, duePrompts, promptDedupeKey, todayUtc, addDaysIso,
+  WORKFLOW_STEPS, computeTargets, duePrompts, promptDedupeKey, todayUtc, addDaysIso, stepsForBooking,
   type WorkflowStepKey, type WorkflowStatus,
 } from '../_shared/workflow.ts';
 import {
@@ -79,7 +79,11 @@ serve(async (req) => {
   // window where any step can be actionable (final payment fires at
   // event−1; the album tail can run ~240 days past the event). ────────────
   const { data: bookings, error } = await supa.from('bookings')
-    .select('id, booking_ref, customer_name, event_date, status, payment_status')
+    // `*` rather than a column list: this cron auto-deploys on push while
+    // migrations are a manual dispatch, so it can run for a while against a
+    // database with no `no_print` column. Naming it would fail the whole
+    // query (and silence the daily digest); `*` just leaves it undefined.
+    .select('*')
     .neq('status', 'cancelled')
     .in('payment_status', ['paid', 'awaiting_transfer'])
     .gte('event_date', addDaysIso(today, -300))
@@ -131,8 +135,13 @@ serve(async (req) => {
     }
     const targets = computeTargets(b.event_date, completedOn);
 
+    // A «بدون طباعة» booking walks a shorter ladder — no album selection, no
+    // printed-album delivery. Filtering here keeps the cron from seeding two
+    // steps that can never complete and then chasing the owner about them.
+    const ladder = stepsForBooking({ noPrint: (b as any).no_print === true });
+
     // Seed missing steps / refresh drifted targets (reschedules, completions).
-    for (const def of WORKFLOW_STEPS) {
+    for (const def of ladder) {
       const want = targets[def.key];
       const row  = byKey.get(def.key);
       if (!row) {
@@ -160,6 +169,7 @@ serve(async (req) => {
     const prompts = duePrompts({
       statuses, targets, now: today,
       sent: sentByBooking.get(b.id) ?? new Set<string>(),
+      steps: ladder,
     });
     for (const p of prompts) {
       const def = WORKFLOW_STEPS.find(d => d.key === p.stepKey)!;

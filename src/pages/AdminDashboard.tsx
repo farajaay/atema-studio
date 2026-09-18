@@ -35,7 +35,7 @@ import {
   Clock, XCircle, CircleDollarSign, Users, AlertCircle,
   Loader2, X, Phone, Mail, MapPin, StickyNote, Save, TrendingUp, Layers,
   Image as ImageIcon, BookOpen, Sparkles, BarChart3, Tag, Sliders, Clapperboard,
-  FileText, Receipt, Undo2, ListChecks
+  FileText, Receipt, Undo2, ListChecks, Printer
 } from 'lucide-react';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
@@ -579,6 +579,23 @@ function BookingModal({ booking, onClose, onSave, onPatch, globalVatEnabled, set
             {row(<CalendarDays size={14} />, 'التاريخ',       `${booking.event_date} الساعة ${booking.event_time}`)}
             {row(<Package size={14} />,  'الباقة',            booking.package_name || `باقة رقم ${booking.package_id}`)}
           </div>
+
+          {/* «بدون طباعة» — stated plainly, because the whole production
+              ladder downstream (album selection, printing, delivery) simply
+              does not happen for this booking. Fatima must not learn that
+              from a missing workflow step. */}
+          {booking.no_print && (
+            <div style={{
+              background: 'var(--a-surface-alt)', border: `1px solid ${ATEMA_COLORS.champagne}`,
+              borderRadius: '10px', padding: '12px 16px', marginBottom: '20px',
+              display: 'flex', alignItems: 'center', gap: '10px',
+              fontSize: '13px', color: 'var(--a-text)',
+            }}>
+              <Printer size={15} color="#D4AF7A" />
+              <span><b>بدون طباعة</b> — لا ألبوم مطبوع في هذا الحجز. التسليم رقمي كامل،
+                ولا يُرسَل رابط اختيار صور الألبوم.</span>
+            </div>
+          )}
 
           {/* Discount applied — only when this booking used a code */}
           {booking.discount_code && (booking.discount_amount ?? 0) > 0 && (

@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Booking } from '../hooks/useAdminData';
 import {
-  WORKFLOW_STEPS, currentStepKey, stepView, workflowStepDef,
+  WORKFLOW_STEPS, currentStepKey, stepView, workflowStepDef, stepsForBooking,
   type WorkflowStatus, type WorkflowStepKey, type StepView,
 } from '../../supabase/functions/_shared/workflow';
 import {
@@ -51,7 +51,7 @@ export default function WorkflowTracker({ booking }: { booking: Booking }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await fetchWorkflowSteps(booking.id, booking.event_date);
+    const data = await fetchWorkflowSteps(booking.id, booking.event_date, booking.no_print === true);
     setRows(data);
     setFailed(data === null);
     if (data) {
@@ -112,7 +112,7 @@ export default function WorkflowTracker({ booking }: { booking: Booking }) {
   return (
     <div>
       {/* Timeline graphic — at-a-glance journey overview */}
-      <WorkflowTimeline rows={rows} />
+      <WorkflowTimeline rows={rows} steps={stepsForBooking({ noPrint: booking.no_print === true })} />
 
       {/* Summary strip */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',

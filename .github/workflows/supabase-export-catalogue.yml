@@ -14,8 +14,11 @@ name: Supabase — export & preserve catalogue
 # human to fold in by hand instead of risking mangled bilingual prose.
 #
 # Manual trigger only — same "deliberate click" posture as
-# supabase-migrations.yml. Opens a PR instead of pushing straight to
-# master so the diff gets a look before it can trigger the auto-deploy.
+# supabase-migrations.yml. Pushes the snapshot to its own branch and tries
+# to open a PR, rather than pushing straight to master, so the diff gets a
+# look before it can trigger the auto-deploy. If the repo forbids Actions
+# from opening PRs (it currently does), the run still succeeds and the run
+# summary carries the compare link — see the "Open pull request" step.
 #
 # Required GitHub Actions repository secrets (already used by deploy.yml):
 #   VITE_SUPABASE_URL
@@ -69,7 +72,17 @@ jobs:
           fi
 
       - name: Open pull request
+        id: cpr
         if: steps.diff.outputs.changed == 'true'
+        # NOT fatal. Opening a PR needs "Allow GitHub Actions to create and
+        # approve pull requests" (Settings → Actions → General → Workflow
+        # permissions), which this repo does not grant — both runs to date
+        # (Aug-13 and Sep-18 2026) did all their real work and then failed
+        # here, emailing the owner about a run that had already succeeded.
+        # The branch is pushed by this action BEFORE the PR call, so the
+        # snapshot is safely on the remote either way; the step below turns
+        # the refusal into a link instead of a failure.
+        continue-on-error: true
         uses: peter-evans/create-pull-request@v7
         with:
           commit-message: "Preserve catalogue: sync repo copies with live Supabase data"
@@ -81,3 +94,35 @@ jobs:
             database/backups/*.sql
             database/seed-packages-2026-05.sql
             src/hooks/usePackagesData.ts
+
+      - name: Report where the snapshot landed
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          BRANCH: catalogue-export/${{ github.run_id }}
+          PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
+        run: |
+          {
+            echo "### Catalogue snapshot"
+            echo
+            cat /tmp/export-summary.txt
+            echo
+            if [ -n "${PR_URL:-}" ]; then
+              echo "Pull request: ${PR_URL}"
+            else
+              echo "No pull request was opened — this repository does not allow"
+              echo "GitHub Actions to create them. The snapshot branch is pushed"
+              echo "and waiting; open the PR yourself (one click):"
+              echo
+              echo "https://github.com/${GITHUB_REPOSITORY}/compare/master...${BRANCH}?expand=1"
+              echo
+              echo "To restore automatic PRs: Settings → Actions → General →"
+              echo "Workflow permissions → tick \"Allow GitHub Actions to create"
+              echo "and approve pull requests\"."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Nothing to preserve
+        if: steps.diff.outputs.changed != 'true'
+        run: |
+          echo "### Catalogue snapshot" >> "$GITHUB_STEP_SUMMARY"
+          echo "Live catalogue already matches the repo copies — nothing to commit." >> "$GITHUB_STEP_SUMMARY"

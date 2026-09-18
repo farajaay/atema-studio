@@ -27,6 +27,15 @@ export interface Package {
   is_popular: boolean;
   active: boolean;
   included_addon_ids: string[] | null;
+  /** «بدون طباعة» — does this tier let the bride decline the printed album?
+   *  Enabled on الكلاسيكية + الملكية (Sept 2026); باقة التوقيع and Couture
+   *  keep their albums, which are the identity of those tiers. */
+  no_print_enabled?: boolean;
+  /** Fixed riyals off `price` when she declines printing. Fixed amount, not
+   *  a percentage — the bride sees an exact number and the P&L loses exactly
+   *  the printing cost. Authoritative copy lives in the DB; the booking total
+   *  is recomputed from it server-side (grossForPackage in _shared/pricing). */
+  no_print_discount?: number;
   /** Marks the singleton "Custom Foundation" base used by the
    *  "Design Your Package" tab. The Ready Packages tab filters this row out.
    *  Enforced unique at the DB layer via a partial index. */
@@ -75,12 +84,12 @@ const DEMO: Package[] = [
   { id: 3, name_ar: 'الباقة الكلاسيكية', name_en: 'Classic',            price: 5500,  duration_hours: 4, edited_photos: 300, editorial_photos: 0, album: 'ألبوم A4 ١٥ صفحة',
     video: false, description: 'الباقة المثالية للمناسبات الخاصة — ألبوم فاخر وذكريات تبقى، بفريق نسائي كامل.',
     features: ['٤ ساعات تغطية شاملة للحفل', 'مصوّرة رئيسية + مساعدة (فريق نسائي)', '٣٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)', 'ألبوم A4 بـ ١٥ صفحة — طباعة فاخرة', '٥ صور عائلية معدّلة', 'وحدة تخزين بجميع الصور المعدّلة'],
-    badge: null, is_popular: false, active: true, included_addon_ids: ['second-photog'], is_custom_base: false },
+    badge: null, is_popular: false, active: true, included_addon_ids: ['second-photog'], is_custom_base: false, no_print_enabled: true, no_print_discount: 700 },
 
   { id: 4, name_ar: 'الباقة الملكية',   name_en: 'Royal',              price: 11200, duration_hours: 5, edited_photos: 400, editorial_photos: 4, album: 'ألبوم A4 + ميني ألبوم',
     video: true,  description: 'تجربة تصوير ملكية مع فيديو سينمائي قصير وألبومين فاخرين — الأكثر طلباً.',
     features: ['٥ ساعات تغطية شاملة للحفل', 'مصوّرة رئيسية + مساعدة (فريق نسائي)', '٤٠٠ صورة بتعديل أساسي (إضاءة + تحويل JPG)', '٤ صور بتعديل تحريري احترافي (رتوش متقدم وتدرّج سينمائي)', 'فيديو سينمائي قصير (٣–٥ دقائق)', 'ألبوم A4 بـ ١٥ صفحة — طباعة فاخرة', 'ميني ألبوم عائلي', 'وحدة تخزين باسم العروسين', 'معاينة في نفس اليوم (٥ صور مختارة)'],
-    badge: 'الأكثر طلباً', is_popular: true, active: true, included_addon_ids: ['second-photog', 'video-short'], is_custom_base: false },
+    badge: 'الأكثر طلباً', is_popular: true, active: true, included_addon_ids: ['second-photog', 'video-short'], is_custom_base: false, no_print_enabled: true, no_print_discount: 1200 },
 
   { id: 5, name_ar: 'باقة التوقيع',     name_en: 'Signature',          price: 13000, duration_hours: 6, edited_photos: 500, editorial_photos: 8, album: 'ألبوم فاخر A3 ١٢ صفحة + ميني',
     video: true,  description: 'الباقة الاحترافية الشاملة — فيديو سينمائي كامل، ألبوم A3 فاخر، وجلسة تحضيرات العروس.',

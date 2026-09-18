@@ -20,6 +20,7 @@ import DatePicker from '../components/DatePicker';
 import DiscountInput from '../components/DiscountInput';
 import { useAppSettings } from '../hooks/useAppSettings';
 import { computeVat } from '../services/settings';
+import { grossForPackage } from '../../supabase/functions/_shared/pricing';
 import type { DiscountKind } from '../services/discount';
 import { previewDiscountCode } from '../services/discount';
 import { X, Loader2 } from 'lucide-react';
@@ -493,9 +494,13 @@ export interface AppliedDiscountState {
 
 function SummaryPanel({
   lang, pkg, addonLines, subtotal, vat, total, vatEnabled, onBook,
-  grossSubtotal, applied, onApplyDiscount, onClearDiscount,
+  grossSubtotal, applied, onApplyDiscount, onClearDiscount, noPrint = false,
 }: {
   lang: Lang; pkg: Package | undefined; addonLines: AddonLine[];
+  /** Show the «بدون طباعة» deduction as its own line. Without it the panel
+   *  lists the full package price and then a smaller subtotal, which reads
+   *  like an arithmetic error. */
+  noPrint?: boolean;
   subtotal: number; vat: number; total: number; vatEnabled: boolean;
   onBook: () => void;
   /** Pre-discount subtotal — what the bride types a code against. */
@@ -521,6 +526,18 @@ function SummaryPanel({
               {pkg.price.toLocaleString()}
             </span>
           </div>
+
+          {noPrint && (pkg.no_print_discount ?? 0) > 0 && (
+            <div style={{ display:'flex', justifyContent:'space-between',
+              marginBottom:'10px', fontSize:'0.8rem' }}>
+              <span style={{ color: T.taupe, fontFamily:'Tajawal,sans-serif' }}>
+                − {tx(lang,'بدون طباعة','Without printing')}
+              </span>
+              <span style={{ color: T.taupe, fontFamily:"'Cormorant Garamond',serif" }}>
+                −{(pkg.no_print_discount ?? 0).toLocaleString()}
+              </span>
+            </div>
+          )}
 
           {addonLines.map(a => (
             <div key={a.id} style={{ display:'flex', justifyContent:'space-between',
@@ -680,9 +697,13 @@ const EMAIL_REQUIRED_ABOVE_SAR = 5000;
 // ── Booking Form Modal ────────────────────────────────────────────────────────
 function BookingFormModal({
   lang, pkg, total, activeAddons, addonLines, addTotal, vatEnabled, settings,
-  appliedDiscount, onClose,
+  appliedDiscount, noPrint, onClose,
 }: {
   lang: Lang; pkg: Package | undefined; total: number;
+  /** She declined the printed album — carried into the payload, the contract
+   *  and the invoice. Only ever true for a tier that offers the choice; the
+   *  Edge Function re-checks it against the package row regardless. */
+  noPrint: boolean;
   activeAddons: Set<string>;
   addonLines: AddonLine[];
   addTotal: number;
@@ -803,7 +824,12 @@ function BookingFormModal({
     submittingRef.current = true;
 
     const cityFee  = CITIES.find(c => c.value === form.city)?.fee ?? 0;
-    const grossSub = (pkg?.price ?? 0) + addTotal + cityFee;
+    const grossSub = grossForPackage({
+      price: pkg?.price ?? 0,
+      noPrint,
+      noPrintEnabled: pkg?.no_print_enabled,
+      noPrintDiscount: pkg?.no_print_discount,
+    }) + addTotal + cityFee;
     const discAmt  = appliedDiscount
       ? Math.min(appliedDiscount.amount, grossSub)
       : 0;
@@ -842,6 +868,7 @@ function BookingFormModal({
         specialRequests: cleanNotes,
         subtotal, vat, total: fullTotal,
         discountCode:    appliedDiscount?.code ?? null,
+        noPrint,
         // ── Audit append (2026-05) ───────────────────────────────────
         eventType:       eventTypeClean as CreateBookingRequest['eventType'],
         guestCount:      guestCountClean,
@@ -881,6 +908,7 @@ function BookingFormModal({
           value:  appliedDiscount.value,
         } : null,
         grossSubtotal:   grossSub,
+        noPrint,
       });
       setContractHTML(cHTML);
       saveContract(response.id, response.bookingRef, cHTML);
@@ -911,6 +939,7 @@ function BookingFormModal({
           value:  appliedDiscount.value,
         } : null,
         grossSubtotal:  grossSub,
+        noPrint,
       });
       setInvoiceHTML(iHTML);
       saveInvoice(response.id, response.bookingRef, invNumber, iHTML, fullTotal);
@@ -1330,6 +1359,12 @@ export default function BookingPage() {
   const [showForm,       setShowForm]       = useState(false);
   const [stickyShow,     setStickyShow]     = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscountState | null>(null);
+  // «بدون طباعة» — she keeps the coverage and the full digital delivery but
+  // declines the printed album, for a fixed amount off the package price.
+  // Offered only by the tiers that carry no_print_enabled (الكلاسيكية +
+  // الملكية). Display only: the server recomputes the real total from the
+  // package row, exactly as it does for the price itself.
+  const [noPrint, setNoPrint] = useState(false);
 
   // Ready Packages tab: every active package EXCEPT the Custom Foundation
   // (the singleton that the "Design Your Package" tab uses as its base).
@@ -1347,13 +1382,29 @@ export default function BookingPage() {
     if (choice) setSelectedPkg(choice.id);
   }, [activePackages, selectedPkg]);
 
+  // Switching tiers clears the choice: «بدون طباعة» belongs to the package
+  // she was looking at, and a tier that doesn't offer it must never carry the
+  // flag into the booking (the server would ignore it anyway, and then her
+  // screen and her invoice would disagree).
+  useEffect(() => { setNoPrint(false); }, [selectedPkg]);
+
   // ── Packages tab totals ────────────────────────────────────────────────────
   const pkg      = activePackages.find(p => p.id === selectedPkg);
   const addTotal = addons.reduce((s, a) => {
     if (isHourAddon(a)) return s + a.price * (hourQtys[a.id] ?? 0);
     return activeAddons.has(a.id) ? s + a.price : s;
   }, 0);
-  const grossSubtotal = (pkg?.price ?? 0) + addTotal;
+  // The selected tier's own contribution, after «بدون طباعة» if she took it.
+  // grossForPackage is the same function the create-booking Edge Function
+  // calls, so the number she reads here and the number she is charged come
+  // from one implementation.
+  const pkgGross = grossForPackage({
+    price: pkg?.price ?? 0,
+    noPrint,
+    noPrintEnabled: pkg?.no_print_enabled,
+    noPrintDiscount: pkg?.no_print_discount,
+  });
+  const grossSubtotal = pkgGross + addTotal;
   // Re-validate the applied discount when the basket changes — if the new
   // subtotal drops below min_subtotal, the discount is invalidated.
   const discountAmount = appliedDiscount
@@ -1662,12 +1713,73 @@ export default function BookingPage() {
                 ))}
               </div>
               )}
+
+              {/* ── «بدون طباعة» — offered only by the tiers that carry it ──
+                  Placed under the grid rather than inside every card: the
+                  question only matters once she has chosen a tier, and asking
+                  it six times at once is noise, not choice. */}
+              {pkg?.no_print_enabled && (pkg.no_print_discount ?? 0) > 0 && (
+                <div className="fade-up" style={{
+                  marginTop:'22px', padding: isMobile ? '18px' : '20px 24px',
+                  borderRadius:'14px', background:'var(--a-surface)',
+                  border:`1px solid ${noPrint ? T.sand : 'var(--a-border)'}`,
+                  boxShadow: noPrint ? '0 6px 24px rgba(168,139,95,0.14)' : 'none',
+                  transition:'all 0.3s',
+                }}>
+                  <div style={{ fontFamily:"'Amiri',serif", fontSize:'1rem',
+                    color: T.coffee, marginBottom:'6px' }}>
+                    {tx(lang,'الألبوم المطبوع','The printed album')}
+                  </div>
+                  <p style={{ fontFamily: lang==='ar'?'Tajawal':'Inter',
+                    fontSize:'0.8rem', color: T.taupe, lineHeight:1.85, margin:'0 0 14px' }}>
+                    {tx(lang,
+                      'صوركِ تصلكِ كاملةً عبر رابط المعرض الخاص في الحالتين. الألبوم المطبوع تفصيلٌ إضافي — إن اخترتِ الاستغناء عنه، يُخصم مقابله من قيمة الباقة.',
+                      'Your photographs arrive in full through your private gallery either way. The printed album is an added ritual — decline it and its cost comes off the package.')}
+                  </p>
+                  <div style={{ display:'flex', gap:'10px', flexWrap:'wrap' }}>
+                    {([false, true] as const).map(opt => {
+                      const on = noPrint === opt;
+                      return (
+                        <button key={String(opt)} type="button" onClick={() => setNoPrint(opt)}
+                          style={{
+                            flex:'1 1 200px', textAlign:'start', cursor:'pointer',
+                            padding:'12px 14px', borderRadius:'10px',
+                            border:`1.5px solid ${on ? T.sand : 'var(--a-border)'}`,
+                            background: on ? 'rgba(168,139,95,0.10)' : 'transparent',
+                            fontFamily: lang==='ar'?'Tajawal':'Inter',
+                            transition:'all 0.2s',
+                          }}>
+                          <div style={{ fontSize:'0.84rem', fontWeight:600,
+                            color: on ? T.gold : T.mocha, marginBottom:'3px' }}>
+                            {opt
+                              ? tx(lang,'بدون طباعة','Without printing')
+                              : tx(lang,'مع الألبوم المطبوع','With the printed album')}
+                          </div>
+                          <div style={{ fontSize:'0.75rem', color: T.taupe }}>
+                            {opt
+                              ? `− ${(pkg.no_print_discount ?? 0).toLocaleString()} ${tx(lang,'ر.س','SAR')} · ${(pkg.price - (pkg.no_print_discount ?? 0)).toLocaleString()} ${tx(lang,'ر.س','SAR')}`
+                              : `${pkg.price.toLocaleString()} ${tx(lang,'ر.س','SAR')}`}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {noPrint && (
+                    <p style={{ fontFamily: lang==='ar'?'Tajawal':'Inter', fontSize:'0.72rem',
+                      color: T.taupe, lineHeight:1.7, margin:'12px 0 0' }}>
+                      {tx(lang,
+                        'يُذكر هذا الاختيار صراحةً في العقد والفاتورة، ولن يُرسَل رابط اختيار صور الألبوم. يمكنكِ طلب الطباعة لاحقاً كخدمة مستقلة.',
+                        'This choice is stated in your contract and invoice, and no album-selection link is sent. Printing can be arranged later as a separate service.')}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Desktop sidebar */}
             {!isMobile && (
               <div style={{ width:'300px', flexShrink:0, position:'sticky', top:'20px' }}>
-                <SummaryPanel lang={lang} pkg={pkg} addonLines={addonLines}
+                <SummaryPanel lang={lang} pkg={pkg} addonLines={addonLines} noPrint={noPrint}
                   subtotal={subtotal} vat={vat} total={total} vatEnabled={vatEnabled}
                   grossSubtotal={grossSubtotal}
                   applied={appliedDiscount}
@@ -1951,6 +2063,7 @@ export default function BookingPage() {
           addonLines={addonLines} addTotal={addTotal}
           vatEnabled={vatEnabled} settings={settings}
           appliedDiscount={appliedDiscount}
+          noPrint={activeTab === 'packages' && noPrint}
           onClose={() => setShowForm(false)} />
       )}
     </div>

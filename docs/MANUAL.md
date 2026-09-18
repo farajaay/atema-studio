@@ -1213,6 +1213,72 @@ cron — no new schedule needed.
 
 ---
 
+## 13n. «بدون طباعة» — the printless option (September 2026)
+
+Some brides want the coverage, the editing and the full digital delivery,
+but not the printed album. Instead of quoting that off the record, the two
+mid tiers now carry it as a first-class choice.
+
+### Who offers it
+
+| الباقة | السعر | بدون طباعة | الخصم |
+|---|---|---|---|
+| الباقة الكلاسيكية | 5,500 | 4,800 | 700 |
+| الباقة الملكية | 11,200 | 10,000 | 1,200 |
+
+باقة التوقيع and ATEMA Couture do **not** offer it — the A3 album and the
+wall piece are the identity of those tiers, not an accessory. باقة الخطوبة
+and الأساس المرن include no album to decline.
+
+### Turning it on / changing the amount
+
+Admin → **الباقات** → pick the tier → the **«خيار بدون طباعة»** card, right
+under the album spec. A switch, a riyal amount, and the resulting price
+shown live. The amount is a **fixed sum, never a percentage** — the bride
+reads an exact number, and the P&L loses exactly the printing cost
+(A4 ≈ 450 ر.س · A3 ≈ 700 ر.س — keep the discount at or under your real cost,
+or you are paying her to decline).
+
+The database refuses a discount of zero, or one at/above the package price,
+on an enabled tier. Prices and this discount both live in Supabase, not in
+the repo — the same rule as §Catalogue prices.
+
+### What the bride sees
+
+On `/book`, once she has chosen an eligible tier, a calm two-option block
+appears under the grid: «مع الألبوم المطبوع» or «بدون طباعة», each with its
+price. The order summary then shows the deduction as its own line. Switching
+to another tier clears the choice.
+
+### What changes downstream (this is the point)
+
+When a booking is «بدون طباعة»:
+
+- **The contract** drops the printed-album row from المادة الرابعة and
+  replaces the three printing clauses in المادة الخامسة with an explicit
+  statement that no album is included, that its cost was deducted, and that
+  printing can be arranged later as a separate paid service.
+- **The tax invoice** line item reads «— بدون طباعة».
+- **سير العمل** loses its last two rungs (اختيار صور الألبوم · تسليم الألبوم
+  المطبوع), so the daily digest never chases you about them.
+- **The album-cover link** (`/#/album/<token>`) shows "باقتكِ رقميّة بالكامل"
+  instead of the palette. This is enforced inside the database function, not
+  in the page.
+- **The booking modal** carries a «بدون طباعة» notice at the top, so you see
+  it before you plan a print run.
+
+If she later upgrades to a tier that has no printless option, the flag is
+dropped and she is quoted that tier's full price.
+
+### Requires
+
+`database/migrations-2026-09-no-print.sql` (in the migrations workflow
+manifest). Until it is applied the option simply does not appear — every
+surface treats the absent columns as "not offered", and bookings keep
+working exactly as before.
+
+---
+
 ## 14. Future enhancements (parked)
 
 **Already shipped (do not re-build):**

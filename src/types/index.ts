@@ -90,6 +90,12 @@ export interface CreateBookingRequest {
    *  redeem_discount_code() and re-computes the discount amount
    *  authoritatively. Client value is for display only. */
   discountCode?: string | null;
+
+  /** «بدون طباعة» — she declined the printed album on a tier that offers the
+   *  choice. INTENT ONLY: the Edge Function reads the eligibility and the
+   *  discount from the package row and ignores any amount implied here
+   *  (same discipline as the totals above). */
+  noPrint?: boolean;
 }
 
 // ===== BOOKING RESPONSE (FROM SUPABASE) =====
