@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react';
+import type { ComponentType } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary';
 import { parseMoyasarCallback } from './services/moyasar';
 import { useTheme } from './hooks/useTheme';
 import RouteTracker from './components/RouteTracker';
@@ -29,15 +31,55 @@ import PaymentResultPage from './pages/PaymentResultPage';
 // PortfolioManager / AdminDashboard / AdminCalendar / AppSettingsPanel) out
 // of the initial page payload. They stream in only when an admin navigates
 // to one of these routes.
-const AdminLogin           = lazy(() => import('./pages/AdminLogin'));
-const AdminDashboard       = lazy(() => import('./pages/AdminDashboard'));
-const PackagesManager      = lazy(() => import('./pages/PackagesManager'));
-const PortfolioManager     = lazy(() => import('./pages/PortfolioManager'));
-const JournalManager       = lazy(() => import('./pages/JournalManager'));
-const FilmsManager         = lazy(() => import('./pages/FilmsManager'));
-const DiscountCodesManager = lazy(() => import('./pages/DiscountCodesManager'));
-const AddonsManager        = lazy(() => import('./pages/AddonsManager'));
-const AlbumDesignsManager  = lazy(() => import('./pages/AlbumDesignsManager'));
+//
+// Every deploy re-hashes these chunks and the gh-pages publish deletes the
+// previous ones, so a browser still holding an older index.html asks for a
+// file that is no longer there. The import rejects, and an uncaught rejection
+// in React.lazy unmounts the tree to a black page — which is exactly how the
+// admin panel failed after the 2026-09-18 deploys while the eagerly-bundled
+// public pages kept working. lazyChunk() reloads once so the browser picks up
+// the current index.html; the session flag keeps a genuinely missing chunk
+// from turning into a refresh loop.
+const RELOAD_KEY = 'atema_chunk_reload';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function lazyChunk<T extends ComponentType<any>>(load: () => Promise<{ default: T }>) {
+  return lazy(async () => {
+    try {
+      const mod = await load();
+      try { sessionStorage.removeItem(RELOAD_KEY); } catch { /* private mode */ }
+      return mod;
+    } catch (err) {
+      let tried = true;
+      try { tried = sessionStorage.getItem(RELOAD_KEY) !== null; } catch { /* private mode */ }
+      if (!tried) {
+        try { sessionStorage.setItem(RELOAD_KEY, String(Date.now())); } catch { /* ignore */ }
+        // A plain reload can be answered from the same cached index.html
+        // (GitHub Pages serves it with max-age=600), which would re-request
+        // the very chunk that just 404'd. A one-off query param makes it a
+        // different URL, so the browser must go to the network; the hash
+        // route is preserved, and `v` is inert to parseMoyasarCallback().
+        const fresh = new URL(window.location.href);
+        fresh.searchParams.set('v', String(Date.now()));
+        window.location.replace(fresh.toString());
+        // Hold the subtree in Suspense until the reload lands, so the black
+        // page never appears in the gap.
+        return new Promise<{ default: T }>(() => {});
+      }
+      throw err;
+    }
+  });
+}
+
+const AdminLogin           = lazyChunk(() => import('./pages/AdminLogin'));
+const AdminDashboard       = lazyChunk(() => import('./pages/AdminDashboard'));
+const PackagesManager      = lazyChunk(() => import('./pages/PackagesManager'));
+const PortfolioManager     = lazyChunk(() => import('./pages/PortfolioManager'));
+const JournalManager       = lazyChunk(() => import('./pages/JournalManager'));
+const FilmsManager         = lazyChunk(() => import('./pages/FilmsManager'));
+const DiscountCodesManager = lazyChunk(() => import('./pages/DiscountCodesManager'));
+const AddonsManager        = lazyChunk(() => import('./pages/AddonsManager'));
+const AlbumDesignsManager  = lazyChunk(() => import('./pages/AlbumDesignsManager'));
 
 function AdminFallback() {
   return (
@@ -81,6 +123,7 @@ export default function App() {
         Was: {showPromotion && <PromotionModal />} gated on !/admin && !/films. */}
     <RouteTracker />
     {showTrialBadge && <TrialBadge />}
+    <ErrorBoundary>
     <Routes>
       {/* Public — eager */}
       <Route path="/"                element={<HomePage />} />
@@ -119,6 +162,7 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </ErrorBoundary>
     </>
   );
 }
