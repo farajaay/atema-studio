@@ -22,6 +22,11 @@ const C = {
   mocha:     'var(--a-text)',
   black:     'var(--a-heading)',
 };
+// The amount plaque is a fixed dark surface in BOTH themes (an editorial
+// nod to Couture Noir), so its ink cannot come from the surface tokens —
+// those flip to near-black under noir and the figure disappears. `--a-ivory`
+// is the one warm-cream token that stays light in both palettes.
+const PLAQUE_INK = 'var(--a-ivory)';
 const ICON_GOLD = '#D4AF7A';
 
 interface Props {
@@ -82,7 +87,7 @@ function DocumentTile({ icon, label, viewLabel, downloadLabel, onView, onDownloa
             transition:'all 0.18s',
           }}
           onMouseEnter={(e) => { e.currentTarget.style.background = C.ivory; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}>
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--a-surface)'; }}>
           <Eye size={12} />{viewLabel}
         </button>
         <button onClick={onDownload}
@@ -176,24 +181,25 @@ export default function BankTransferPayment({
         {/* Amount due */}
         <div style={{
           background:'linear-gradient(135deg, #1A1610, #2C2418, #3D2E1F)',
-          borderRadius:'14px', padding:'20px 22px', color:'#EFE3D1',
+          borderRadius:'14px', padding:'20px 22px', color: PLAQUE_INK,
           textAlign:'center', marginBottom:'22px',
           boxShadow:`0 8px 24px rgba(140,107,79,0.25)`,
         }}>
-          <div style={{ fontSize:'0.7rem', letterSpacing:'0.18em', opacity:0.7,
+          <div style={{ fontSize:'0.7rem', letterSpacing:'0.18em',
+            color: PLAQUE_INK, opacity:0.78,
             fontFamily:"'Inter',sans-serif", marginBottom:'6px' }}>
             {tx(lang,'المبلغ المطلوب الآن (٥٠٪)','AMOUNT DUE NOW (50%)')}
           </div>
           <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'2.8rem',
-            color: C.champagne, lineHeight:1 }}>
+            color: PLAQUE_INK, lineHeight:1 }}>
             {depositSAR.toLocaleString()}
             <span style={{ fontSize:'0.95rem', marginRight:'6px',
-              color: C.sand, fontFamily:'Tajawal,sans-serif' }}>
+              color: PLAQUE_INK, opacity:0.75, fontFamily:'Tajawal,sans-serif' }}>
               {tx(lang,'ر.س','SAR')}
             </span>
           </div>
-          <div style={{ fontSize:'0.7rem', color: C.sand, marginTop:'8px',
-            opacity:0.85 }}>
+          <div style={{ fontSize:'0.7rem', color: PLAQUE_INK, marginTop:'8px',
+            opacity:0.75 }}>
             {tx(lang,`الإجمالي: ${totalSAR.toLocaleString()} ر.س — يُسدَّد المتبقي قبل المناسبة بيوم`,
                      `Total: ${totalSAR.toLocaleString()} SAR — Remainder due day before event`)}
           </div>
