@@ -457,6 +457,12 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
     two album RPCs so a printless booking is never offered a cover. Until it
     is applied the option simply doesn't appear — every surface reads the
     absent columns as "not offered".)
+  - `database/migrations-2026-09-addons-cleanup.sql` (add-on catalogue cleanup —
+    strips the dead `second-photog` id from every package bundle, deletes the
+    five superseded add-ons (guarded: never deletes one a booking used), and
+    stops the production-only `is_active` column contradicting `active`. Owner
+    decisions: «مصورة ثانية» is a PAID add-on included in no tier; `kosha` and
+    `save-date` are kept.)
   - `database/migrations-2026-09-rls-sweep.sql` (RLS sweep — enables Row-Level
     Security on every base table in `public` that lacks it, after re-asserting
     anon SELECT on the eight public-read surfaces; silences the
@@ -521,6 +527,18 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   output instead of auto-patched, since that needs a human's bilingual
   judgement. `npm run catalogue:selftest` round-trips the parser against the
   current files with no network — run it after hand-editing either file.
+- **The add-ons offline copy is `FALLBACK` in `src/hooks/useAddonsData.ts`** —
+  and unlike the package DEMO it is **not** covered by
+  `scripts/export-catalogue.mjs`, which only patches
+  `seed-packages-2026-05.sql` + the package DEMO. Re-check it by hand whenever
+  the live add-ons change. Re-synced to production 2026-09-18.
+- **The admin "new add-on" id generator strips Arabic.**
+  `PackagesManager.handleSaveAddon` builds an id with `/[^\w-]/g` removed,
+  which erases an Arabic-only name entirely and leaves `-<timestamp>` — which
+  is how the live ids `--1780506890141` («تغطية جوال») and `-1780431887832`
+  («وصيفة») came to exist. Fix the generator (transliterate, or require a Latin
+  slug) before the next Arabic-named add-on is created; the two existing ids
+  must be kept verbatim, one of them is bundled into ATEMA Couture.
 - **LAUNCH15 has likely expired** — it was valid 20 days from when
   `migrations-2026-05-launch-code.sql` was applied (May 2026). Verify in the
   admin discount panel and retire or replace it before any campaign.

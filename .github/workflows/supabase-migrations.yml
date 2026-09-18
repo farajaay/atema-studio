@@ -144,6 +144,7 @@ jobs:
             # already in place.
             "database/migrations-2026-09-legacy-admin-policies.sql" # admin access for booking_addons / profit_reports / system_logs / notifications
             "database/migrations-2026-09-no-print.sql"              # «بدون طباعة» option on الكلاسيكية + الملكية: packages.no_print_enabled/_discount, bookings.no_print, album RPC guards
+            "database/migrations-2026-09-addons-cleanup.sql"        # retire superseded add-ons + strip the dead second-photog id from every package bundle
             # The sweep stays last of all.
             # Sweeps every table the run just created/touched, so it has
             # to sit at the tail of the manifest. Idempotent; safe to
