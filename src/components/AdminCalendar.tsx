@@ -261,7 +261,7 @@ function CellModal({ date, existing, bookings, onClose, onChanged }: {
   }
 
   const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('ar-SA', {
-    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', calendar: 'gregory',
   });
 
   return (
