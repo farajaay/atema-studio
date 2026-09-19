@@ -763,9 +763,25 @@ function BookingFormModal({
     en: onlineSubtitleParts.en.join(' · '),
   };
 
-  const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+  // The validation banner is a snapshot of one submit attempt, so it must
+  // die the moment the bride starts correcting the field it accused — she
+  // fills her name, the old «الرجاء إدخال الاسم» stays on screen, and the
+  // form looks broken while it is in fact complete.
+  const set = (k: string, v: string) => {
+    setErrMsg('');
+    setForm(p => ({ ...p, [k]: v }));
+  };
 
   const isPaymentStage = state === 'choose' || state === 'card' || state === 'transfer';
+
+  // Point the bride at the field the banner is talking about — on a phone
+  // the form is long enough that «الرجاء إدخال الاسم» can fire while the
+  // name input is three screens away.
+  const failField = (id: string, msg: string) => {
+    setErrMsg(msg);
+    const el = document.getElementById(id);
+    if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); (el as HTMLElement).focus({ preventScroll: true }); }
+  };
 
   async function handleSubmit() {
     // ── In-flight guard (Patch H-1) ────────────────────────────────────
@@ -777,8 +793,8 @@ function BookingFormModal({
 
     // ── Field presence ─────────────────────────────────────────────────
     const name = clampText(form.name, 120);
-    if (!name)              { setErrMsg(tx(lang,'الرجاء إدخال الاسم','Please enter your name')); return; }
-    if (!form.phone.trim()) { setErrMsg(tx(lang,'الرجاء إدخال رقم الجوال','Please enter your phone')); return; }
+    if (!name)              { failField('bf-name', tx(lang,'الرجاء إدخال الاسم','Please enter your name')); return; }
+    if (!form.phone.trim()) { failField('bf-phone', tx(lang,'الرجاء إدخال رقم الجوال','Please enter your phone')); return; }
     if (!form.date)         { setErrMsg(tx(lang,'الرجاء تحديد تاريخ المناسبة','Please select event date')); return; }
     if (!form.city)         { setErrMsg(tx(lang,'الرجاء اختيار المدينة','Please select city')); return; }
     // Audit append (2026-05): event_type is required so the studio can
@@ -1248,7 +1264,7 @@ function BookingFormModal({
                 border:'1px solid rgba(201,179,147,0.18)', borderRadius:'10px',
                 padding:'14px 16px', marginBottom:'18px', display:'flex', flexDirection:'column', gap:'12px' }}>
                 <label className="check-row" style={{ alignItems:'flex-start' }}>
-                  <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
+                  <input type="checkbox" checked={agreed} onChange={e => { setErrMsg(''); setAgreed(e.target.checked); }}
                     style={{ marginTop:'3px', flexShrink:0 }} />
                   <span style={{ fontSize:'0.78rem', color: T.mocha, lineHeight:1.7 }}>
                     {tx(lang,'أوافق على ','I agree to the ')}<button type="button"
@@ -1262,7 +1278,7 @@ function BookingFormModal({
                   </span>
                 </label>
                 <label className="check-row" style={{ alignItems:'flex-start' }}>
-                  <input type="checkbox" checked={pdpl} onChange={e => setPdpl(e.target.checked)}
+                  <input type="checkbox" checked={pdpl} onChange={e => { setErrMsg(''); setPdpl(e.target.checked); }}
                     style={{ marginTop:'3px', flexShrink:0 }} />
                   <span style={{ fontSize:'0.78rem', color: T.mocha, lineHeight:1.7 }}>
                     {tx(lang,'أوافق على ','I consent to ')}<button type="button"
@@ -1325,8 +1341,8 @@ function BookingFormModal({
       </div>
 
       {/* Legal popups */}
-      {popup === 'terms'   && <LegalPopup title="الشروط والأحكام" htmlContent={TC_CONTENT}   onClose={() => { setPopup(null); setAgreed(true); }} />}
-      {popup === 'privacy' && <LegalPopup title="سياسة الخصوصية وحماية البيانات" htmlContent={PDPL_CONTENT} onClose={() => { setPopup(null); setPdpl(true); }} />}
+      {popup === 'terms'   && <LegalPopup title="الشروط والأحكام" htmlContent={TC_CONTENT}   onClose={() => { setPopup(null); setErrMsg(''); setAgreed(true); }} />}
+      {popup === 'privacy' && <LegalPopup title="سياسة الخصوصية وحماية البيانات" htmlContent={PDPL_CONTENT} onClose={() => { setPopup(null); setErrMsg(''); setPdpl(true); }} />}
     </div>
   );
 }
