@@ -99,9 +99,13 @@ export default function DatePicker({ lang, value, onChange, minDate, placeholder
   }
 
   // Trigger button display value
+  // calendar:'gregory' is not optional — plain 'ar-SA' resolves to Umm
+  // al-Qura, so the field answered a Gregorian grid with a Hijri date
+  // («١٩ جمادى الأولى ١٤٤٨ هـ») and the bride could not recognise the day
+  // she had just picked. Same idiom as contract.ts / invoice.ts.
   const display = value
     ? new Date(value + 'T00:00:00').toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-GB',
-        { day: '2-digit', month: 'short', year: 'numeric' })
+        { day: '2-digit', month: 'short', year: 'numeric', calendar: 'gregory' })
     : (placeholder ?? tx(lang, 'اختاري التاريخ', 'Select date'));
 
   return (
