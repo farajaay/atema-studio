@@ -492,6 +492,43 @@ export interface AppliedDiscountState {
   capped?: boolean;
 }
 
+/** Mobile twin of the SummaryPanel discount rows — the sidebar is desktop-only,
+ *  so without this a phone visitor had no way to enter a code at all. */
+function MobileDiscount({ lang, grossSubtotal, subtotal, applied, onApply, onClear }: {
+  lang: Lang; grossSubtotal: number; subtotal: number;
+  applied: AppliedDiscountState | null;
+  onApply: (d: AppliedDiscountState) => void; onClear: () => void;
+}) {
+  return (
+    <div style={{ textAlign: 'start', marginBottom: '16px' }}>
+      <DiscountInput
+        lang={lang}
+        subtotal={grossSubtotal}
+        applied={applied}
+        onApplied={onApply}
+        onCleared={onClear}
+        ink={T.coffee}
+        gold={T.gold}
+        muted={T.taupe}
+        fieldBg="rgba(255,255,255,0.55)"
+      />
+      {applied && (
+        <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.8rem' }}>
+          <span style={{ color: T.taupe, fontFamily:'Tajawal,sans-serif' }}>
+            {tx(lang,'بعد الخصم','After discount')}
+          </span>
+          <span style={{ color: T.mocha, fontWeight: 600 }}>
+            <span style={{ textDecoration:'line-through', opacity:0.55, marginInlineEnd:'8px' }}>
+              {grossSubtotal.toLocaleString()}
+            </span>
+            {subtotal.toLocaleString()}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SummaryPanel({
   lang, pkg, addonLines, subtotal, vat, total, vatEnabled, onBook,
   grossSubtotal, applied, onApplyDiscount, onClearDiscount, noPrint = false,
@@ -1921,6 +1958,9 @@ export default function BookingPage() {
                 {isMobile && (
                   <div style={{ marginTop:'28px', padding:'20px', background: T.cream,
                     borderRadius:'14px', textAlign:'center' }}>
+                    <MobileDiscount lang={lang} grossSubtotal={customGrossSubtotal}
+                      subtotal={customSubtotal} applied={appliedDiscount}
+                      onApply={setAppliedDiscount} onClear={() => setAppliedDiscount(null)} />
                     <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'1.6rem',
                       color: T.gold, marginBottom:'4px' }}>
                       {customTotal.toLocaleString()}
@@ -1988,6 +2028,11 @@ export default function BookingPage() {
           {isMobile && pkg && (
             <div style={{ marginTop:'28px', padding:'20px', background:T.cream,
               borderRadius:'14px', textAlign:'center' }}>
+              {activeTab === 'packages' && (
+                <MobileDiscount lang={lang} grossSubtotal={grossSubtotal}
+                  subtotal={subtotal} applied={appliedDiscount}
+                  onApply={setAppliedDiscount} onClear={() => setAppliedDiscount(null)} />
+              )}
               <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'1.6rem',
                 color: T.gold, marginBottom:'4px' }}>
                 {activeTotal.toLocaleString()}
