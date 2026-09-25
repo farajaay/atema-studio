@@ -9,6 +9,7 @@
 // "saved" from "silently dropped by a lapsed session".
 
 import { supabase } from './supabase';
+import { isDepositReceived } from '../../supabase/functions/_shared/payments';
 import {
   buildInstallmentPlan,
   rebalanceUnpaid,
@@ -32,7 +33,7 @@ export async function fetchInstallments(bookingId: string): Promise<StoredInstal
 /**
  * Create a 3/4/5 plan for a booking. The deposit row (seq 1) is marked paid
  * immediately when the booking's deposit has already been received
- * (payment_status === 'paid') — that money arrived through the normal
+ * (payment_status deposit_paid | paid) — that money arrived through the normal
  * booking flow, the plan just accounts for it.
  *
  * Returns the stored rows, or null on failure (offline / RLS / too-close
@@ -49,7 +50,7 @@ export async function createInstallmentPlan(booking: {
   });
   if (!plan) return null;
 
-  const depositPaid = booking.payment_status === 'paid';
+  const depositPaid = isDepositReceived(booking.payment_status);
   const { data, error } = await supabase.from('booking_installments')
     .insert(plan.map(p => ({
       booking_id: booking.id,

@@ -83,9 +83,9 @@ export function isPLRevenueBooking(b: Booking): boolean {
   if (b.status === 'cancelled') return false;
   if (b.payment_status === 'refunded') return false;
   if (b.status === 'confirmed' || b.status === 'completed') return true;
-  if (b.payment_status === 'paid') return true;
+  if (b.payment_status === 'paid' || b.payment_status === 'deposit_paid') return true;
   // 'awaiting_transfer' may appear as a string in older rows even though
-  // the canonical TS union is unpaid|paid|refunded.
+  // the canonical TS union has always carried it.
   if ((b.payment_status as string) === 'awaiting_transfer') return true;
   return false;
 }
@@ -114,6 +114,8 @@ export interface PeriodAggregate {
   operatingMargin: number;
   trueProfit: number;
   marginPct: number;
+  /** Discount-code money given away (already netted out of revenueExVat). */
+  discounts: number;
   byPackage: Record<number, PackageBucket>;
 }
 
@@ -123,7 +125,7 @@ function blankAggregate(period: string): PeriodAggregate {
     revenueExVat: 0, vat: 0, totalIncVat: 0,
     totalDirectCost: 0, totalOverhead: 0, totalOwnerComp: 0,
     directMargin: 0, operatingMargin: 0, trueProfit: 0, marginPct: 0,
-    byPackage: {},
+    discounts: 0, byPackage: {},
   };
 }
 
@@ -163,6 +165,7 @@ export function aggregateMonthly(
     agg.directMargin    += pl.directMargin;
     agg.operatingMargin += pl.operatingMargin;
     agg.trueProfit      += pl.ownerCompensatedMargin;
+    agg.discounts       += b.discount_amount ?? 0;
 
     const pkg = agg.byPackage[b.package_id] ?? {
       packageId: b.package_id, bookingCount: 0,
@@ -208,6 +211,7 @@ export function rollupBy(
     agg.directMargin    += m.directMargin;
     agg.operatingMargin += m.operatingMargin;
     agg.trueProfit      += m.trueProfit;
+    agg.discounts       += m.discounts;
 
     for (const idStr of Object.keys(m.byPackage)) {
       const id  = Number(idStr);
@@ -242,6 +246,7 @@ export function totalSummary(rows: PeriodAggregate[]): PeriodAggregate {
     total.directMargin    += r.directMargin;
     total.operatingMargin += r.operatingMargin;
     total.trueProfit      += r.trueProfit;
+    total.discounts       += r.discounts;
 
     for (const idStr of Object.keys(r.byPackage)) {
       const id  = Number(idStr);

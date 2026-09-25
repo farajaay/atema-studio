@@ -28,6 +28,8 @@ import {
   installmentLabelAr, todayUtc, daysBetween,
 } from '../../supabase/functions/_shared/installments';
 import { openDocumentInNewTab, downloadDocument } from '../services/invoice';
+import { amountCollected, amountOutstanding, isDepositReceived } from '../../supabase/functions/_shared/payments';
+import { depositOf } from '../../supabase/functions/_shared/installments';
 import type { AppSettings } from '../services/settings';
 import {
   LayoutDashboard, CalendarDays, Package, LogOut, RefreshCw,
@@ -57,7 +59,9 @@ const PAYMENT_CONFIG: Record<string, typeof PAYMENT_DEFAULT> = {
   // Bank-transfer flow: customer chose transfer + receipt not yet verified.
   // Set by BankTransferPayment.tsx; previously absent here, causing crash.
   awaiting_transfer:  { label: 'بانتظار التحويل',    bg: '#fde68a', color: '#b45309' },
-  paid:               { label: 'مدفوع',              bg: '#d1fae5', color: '#059669' },
+  // Deposit in, balance still owed (migrations-2026-09-deposit-paid.sql).
+  deposit_paid:       { label: 'عربون مدفوع',        bg: '#e0f2fe', color: '#0369a1' },
+  paid:               { label: 'مدفوع بالكامل',      bg: '#d1fae5', color: '#059669' },
   refunded:           { label: 'مُسترد',             bg: '#f3e8ff', color: '#7c3aed' },
 };
 
@@ -496,6 +500,7 @@ function BookingModal({ booking, onClose, onSave, onPatch, globalVatEnabled, set
   const effectiveVatOn  = globalVatEnabled && vatOn;
   const recomputedVat   = effectiveVatOn ? Math.round(booking.subtotal * 0.15) : 0;
   const recomputedTotal = booking.subtotal + recomputedVat;
+  const discountSAR     = booking.discount_code ? (booking.discount_amount ?? 0) : 0;
 
   async function handleSave() {
     setSaving(true);
@@ -652,9 +657,23 @@ function BookingModal({ booking, onClose, onSave, onPatch, globalVatEnabled, set
                 </span>
               </label>
             </div>
+            {discountSAR > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', textAlign: 'center',
+                paddingBottom: '12px', marginBottom: '12px', borderBottom: '1px dashed var(--a-border)' }}>
+                {[
+                  ['السعر قبل الخصم', booking.subtotal + discountSAR, 'var(--a-text)'],
+                  [`الخصم (${booking.discount_code})`, -discountSAR, ATEMA_COLORS.deepBronze],
+                ].map(([l, v, c]) => (
+                  <div key={l as string}>
+                    <div style={{ fontSize: '11px', color: 'var(--a-text-muted)', marginBottom: '4px' }}>{l as string}</div>
+                    <div style={{ fontWeight: 700, color: c as string, fontSize: '15px' }}>{(v as number).toLocaleString()} ر.س</div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', textAlign: 'center' }}>
               {[
-                ['الإجمالي', booking.subtotal],
+                [discountSAR > 0 ? 'الإجمالي بعد الخصم' : 'الإجمالي', booking.subtotal],
                 [effectiveVatOn ? 'VAT 15%' : 'VAT (معطّل)', recomputedVat],
                 ['المجموع',  recomputedTotal],
               ].map(([l, v]) => (
@@ -674,6 +693,23 @@ function BookingModal({ booking, onClose, onSave, onPatch, globalVatEnabled, set
               <div style={{ marginTop: 10, padding: '6px 10px', borderRadius: 6,
                 background: '#fef3c7', color: '#92400e', fontSize: 11, textAlign: 'center' }}>
                 ⚠ ضريبة القيمة المضافة معطّلة لهذا الحجز — سيتم حفظ التغيير عند الضغط على حفظ
+              </div>
+            )}
+            {/* What has actually arrived vs what is still owed — follows the
+                payment dropdown below live, before saving. */}
+            {payment !== 'refunded' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', textAlign: 'center',
+                marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--a-border)' }}>
+                {[
+                  ['العربون (٥٠٪)', depositOf(recomputedTotal), 'var(--a-text)'],
+                  ['المحصَّل', amountCollected({ payment_status: payment, total: recomputedTotal }), '#059669'],
+                  ['المتبقي', amountOutstanding({ payment_status: payment, total: recomputedTotal }), '#b45309'],
+                ].map(([l, v, c]) => (
+                  <div key={l as string}>
+                    <div style={{ fontSize: '11px', color: 'var(--a-text-muted)', marginBottom: '4px' }}>{l as string}</div>
+                    <div style={{ fontWeight: 700, color: c as string, fontSize: '15px' }}>{(v as number).toLocaleString()} ر.س</div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -696,7 +732,9 @@ function BookingModal({ booking, onClose, onSave, onPatch, globalVatEnabled, set
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--a-text)', marginBottom: '7px' }}>حالة الدفع</label>
             <select value={payment} onChange={e => setPayment(e.target.value as Booking['payment_status'])} style={sel}>
               <option value="unpaid">غير مدفوع</option>
-              <option value="paid">مدفوع</option>
+              <option value="awaiting_transfer">بانتظار التحويل</option>
+              <option value="deposit_paid">عربون مدفوع — المتبقي مستحق</option>
+              <option value="paid">مدفوع بالكامل</option>
               <option value="refunded">مُسترد</option>
             </select>
           </div>
@@ -760,7 +798,7 @@ function BookingModal({ booking, onClose, onSave, onPatch, globalVatEnabled, set
           {/* Refund deposit — exceptional path (studio-side cancellation).
               The customer-facing policy stays "deposit non-refundable"; this
               button exists for the cases where ATEMA itself cancels. */}
-          {(booking.payment_status === 'paid' || booking.payment_status === 'awaiting_transfer') && (
+          {(isDepositReceived(booking.payment_status) || booking.payment_status === 'awaiting_transfer') && (
             <div style={{ border: '1px solid #fecaca', background: 'rgba(220,38,38,0.06)',
               borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
               <div style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626', marginBottom: '8px' }}>
@@ -969,11 +1007,13 @@ export default function AdminDashboard() {
             label="إجمالي الحجوزات" value={stats.total} color="#D4AF7A" />
           <StatCard icon={<Clock size={20} color="#d97706" />}
             label="قيد الانتظار" value={stats.pending}
-            sub={`${stats.pending_revenue.toLocaleString()} ر.س معلقة`} color="#d97706" />
+            sub={`${stats.pending_revenue.toLocaleString()} ر.س مستحقة`} color="#d97706" />
           <StatCard icon={<CheckCircle2 size={20} color="#059669" />}
             label="مؤكد / مكتمل" value={stats.confirmed + stats.completed} color="#059669" />
           <StatCard icon={<CircleDollarSign size={20} color="#2563eb" />}
-            label="الإيرادات المحصلة" value={`${stats.revenue.toLocaleString()} ر.س`} color="#2563eb" />
+            label="الإيرادات المحصلة" value={`${stats.revenue.toLocaleString()} ر.س`}
+            sub={stats.discounts > 0 ? `خصومات ممنوحة ${stats.discounts.toLocaleString()} ر.س` : undefined}
+            color="#2563eb" />
         </div>
 
         {/* Global app settings — VAT toggle, seller identity, etc. */}
@@ -1043,7 +1083,7 @@ export default function AdminDashboard() {
 
           {/* Payment filter */}
           <div style={{ display: 'flex', gap: '6px' }}>
-            {[['all','كل الدفعات'],['paid','مدفوع'],['unpaid','غير مدفوع']].map(([v,l]) => (
+            {[['all','كل الدفعات'],['paid','مدفوع بالكامل'],['deposit_paid','عربون'],['unpaid','غير مدفوع']].map(([v,l]) => (
               <button key={v} onClick={() => setPaymentF(v)} style={selStyle(paymentF === v)}>{l}</button>
             ))}
           </div>
@@ -1100,7 +1140,17 @@ export default function AdminDashboard() {
                       </td>
                       <td style={{ padding: '12px 14px', color: 'var(--a-text)', whiteSpace: 'nowrap' }}>{b.package_name || `#${b.package_id}`}</td>
                       <td style={{ padding: '12px 14px', color: 'var(--a-text)', whiteSpace: 'nowrap' }}>{b.event_date}</td>
-                      <td style={{ padding: '12px 14px', fontWeight: 700, color: ATEMA_COLORS.champagne, whiteSpace: 'nowrap' }}>{b.total.toLocaleString()} ر.س</td>
+                      <td style={{ padding: '12px 14px', fontWeight: 700, color: ATEMA_COLORS.champagne, whiteSpace: 'nowrap' }}>
+                        {b.total.toLocaleString()} ر.س
+                        {b.discount_code && (b.discount_amount ?? 0) > 0 && (
+                          <div title={`كود الخصم ${b.discount_code}`}
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px',
+                              fontSize: '11px', fontWeight: 600, color: ATEMA_COLORS.deepBronze }}>
+                            <Tag size={10} color="#8C6B4F" />
+                            {b.discount_code} −{Number(b.discount_amount).toLocaleString()}
+                          </div>
+                        )}
+                      </td>
                       <td style={{ padding: '12px 14px' }}><StatusBadge status={b.status} /></td>
                       <td style={{ padding: '12px 14px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>

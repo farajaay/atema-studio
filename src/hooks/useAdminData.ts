@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { interpretWrite } from '../utils/writeResult';
+import { amountCollected, amountOutstanding } from '../../supabase/functions/_shared/payments';
 
 export interface Booking {
   id: string;
@@ -24,7 +25,7 @@ export interface Booking {
   // chose bank transfer and the receipt is pending verification by Fatima.
   // Must stay in this union — its absence previously crashed AdminDashboard
   // when PAYMENT_CONFIG[status] returned undefined for the transfer flow.
-  payment_status: 'unpaid' | 'awaiting_transfer' | 'paid' | 'refunded';
+  payment_status: 'unpaid' | 'awaiting_transfer' | 'deposit_paid' | 'paid' | 'refunded';
   /** Outstanding balance from a self-service package upgrade
       (change-booking sets it; card payments auto-clear it via
       verify-payment; transfer payments are cleared manually from the
@@ -106,8 +107,12 @@ export function useAdminData() {
     confirmed: bookings.filter(b => b.status === 'confirmed').length,
     completed: bookings.filter(b => b.status === 'completed').length,
     cancelled: bookings.filter(b => b.status === 'cancelled').length,
-    revenue:   bookings.filter(b => b.payment_status === 'paid').reduce((s, b) => s + b.total, 0),
-    pending_revenue: bookings.filter(b => b.payment_status === 'unpaid' && b.status !== 'cancelled').reduce((s, b) => s + b.total, 0),
+    // Cash actually in hand: a deposit-only booking contributes its deposit,
+    // not its total (see _shared/payments.ts).
+    revenue:   bookings.reduce((s, b) => s + amountCollected(b), 0),
+    // Everything still owed — unpaid bookings AND balances behind a deposit.
+    pending_revenue: bookings.reduce((s, b) => s + amountOutstanding(b), 0),
+    discounts: bookings.filter(b => b.status !== 'cancelled').reduce((s, b) => s + (b.discount_amount ?? 0), 0),
   };
 
   return { bookings, loading, error, stats, fetchBookings, updateBooking, deleteBooking };

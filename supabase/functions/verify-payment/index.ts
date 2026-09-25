@@ -22,6 +22,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- parsed request/Moyasar payloads are structural */
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { statusAfterPayment } from '../_shared/payments.ts';
 
 const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -120,11 +121,20 @@ serve(async (req) => {
     return json({ verified: true, status: paymentStatus, purpose: 'topup' });
   }
 
-  // Default: initial booking payment — confirm the booking.
-  const { error: dbErr } = await supabase
+  // Default: initial booking payment (the 50% deposit) — confirm the booking.
+  // It lands as 'deposit_paid'; if migrations-2026-09-deposit-paid.sql hasn't
+  // been applied yet the CHECK rejects it (23514) and we fall back to the
+  // legacy 'paid' so a real payment is never left unrecorded.
+  let { error: dbErr } = await supabase
     .from('bookings')
-    .update({ payment_status: 'paid', status: 'confirmed' })
+    .update({ payment_status: statusAfterPayment('unpaid'), status: 'confirmed' })
     .eq('id', bookingId);
+  if (dbErr?.code === '23514') {
+    ({ error: dbErr } = await supabase
+      .from('bookings')
+      .update({ payment_status: 'paid', status: 'confirmed' })
+      .eq('id', bookingId));
+  }
 
   if (dbErr) {
     console.error('[verify-payment] DB update failed:', dbErr.message);

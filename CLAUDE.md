@@ -354,6 +354,16 @@ src/
   treats absent live keys as "leave the repo copy alone".
 - See `docs/MANUAL.md` §13n.
 
+### 4.12 Payment states («عربون مدفوع» vs «مدفوع بالكامل»)
+- `deposit_paid` = 50% deposit in, balance owed; `paid` = paid in full.
+  Anything that means "the deposit has arrived" must use
+  `isDepositReceived()` — never `=== 'paid'`.
+- Collected / outstanding / next-state math lives in
+  `supabase/functions/_shared/payments.ts` (pure, unit-tested, shared
+  client/Edge). Edge Functions that write a payment state fall back to
+  `'paid'` on a CHECK violation (23514) so they survive a database without
+  the migration. See `docs/MANUAL.md` §13o.
+
 ## 5. The booking flow (one-breath summary)
 
 ```
@@ -463,6 +473,11 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
     stops the production-only `is_active` column contradicting `active`. Owner
     decisions: «مصورة ثانية» is a PAID add-on included in no tier; `kosha` and
     `save-date` are kept.)
+  - `database/migrations-2026-09-deposit-paid.sql` («عربون مدفوع» — adds
+    `deposit_paid` to the `payment_status` CHECK so the admin can record a
+    deposit without marking the booking fully paid. Existing `paid` rows are
+    NOT rewritten — the owner re-marks deposit-only ones by hand. See
+    `docs/MANUAL.md` §13o.)
   - `database/migrations-2026-09-rls-sweep.sql` (RLS sweep — enables Row-Level
     Security on every base table in `public` that lacks it, after re-asserting
     anon SELECT on the eight public-read surfaces; silences the

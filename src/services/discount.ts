@@ -195,6 +195,27 @@ export async function listDiscountCodes(): Promise<DiscountCode[]> {
   return (data ?? []) as DiscountCode[];
 }
 
+/** One booking that redeemed a code — the admin's audit trail per code. */
+export interface DiscountRedemption {
+  booking_ref:     string;
+  customer_name:   string;
+  event_date:      string;
+  status:          string;
+  discount_code:   string;
+  discount_amount: number;
+}
+
+/** Every booking that used a code (admin-only — bookings is RLS-guarded). */
+export async function listDiscountRedemptions(): Promise<DiscountRedemption[]> {
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('bookings')
+    .select('booking_ref, customer_name, event_date, status, discount_code, discount_amount')
+    .not('discount_code', 'is', null)
+    .order('created_at', { ascending: false });
+  return (data ?? []) as DiscountRedemption[];
+}
+
 export async function upsertDiscountCode(input: {
   code: string;
   description?: string | null;
