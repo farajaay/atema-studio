@@ -266,7 +266,9 @@ export default function StudioPLDashboard({ bookings, loading }: Props) {
           color={ATEMA_COLORS.champagne} />
         <KPI label="الإيرادات (بدون VAT)"
           value={sar(total.revenueExVat)}
-          sub={`+ ${sar(total.vat)} ضريبة`}
+          sub={total.discounts > 0
+            ? `+ ${sar(total.vat)} ضريبة · بعد خصومات ${sar(total.discounts)}`
+            : `+ ${sar(total.vat)} ضريبة`}
           icon={<Coins size={18} color="#8C6B4F" />}
           color="#8C6B4F" />
         <KPI label="الربح الحقيقي"

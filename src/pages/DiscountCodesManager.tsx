@@ -2,7 +2,7 @@
 // CRUD for promotional / partner discount codes. Lives at /admin/discount-codes.
 // Design: docs/integrations/discount-codes.md.
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LogOut, RefreshCw, Plus, Save, Trash2, Loader2, X, ChevronLeft,
@@ -13,8 +13,8 @@ import { useBreakpoint } from '../hooks/useBreakpoint';
 import { ATEMA_COLORS } from '../config/constants';
 import {
   listDiscountCodes, upsertDiscountCode,
-  setDiscountCodeActive, deleteDiscountCode,
-  type DiscountCode, type DiscountKind,
+  setDiscountCodeActive, deleteDiscountCode, listDiscountRedemptions,
+  type DiscountCode, type DiscountKind, type DiscountRedemption,
 } from '../services/discount';
 
 interface Draft {
@@ -47,6 +47,8 @@ export default function DiscountCodesManager() {
   const [loading, setLoading] = useState(true);
   const [edit, setEdit]       = useState<Draft | null>(null);
   const [saving, setSaving]   = useState(false);
+  const [redemptions, setRedemptions] = useState<DiscountRedemption[]>([]);
+  const [openCode, setOpenCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/admin');
@@ -54,7 +56,9 @@ export default function DiscountCodesManager() {
 
   async function load() {
     setLoading(true);
-    setItems(await listDiscountCodes());
+    const [codes, used] = await Promise.all([listDiscountCodes(), listDiscountRedemptions()]);
+    setItems(codes);
+    setRedemptions(used);
     setLoading(false);
   }
 
@@ -240,15 +244,23 @@ export default function DiscountCodesManager() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: 'var(--a-surface-alt)', borderBottom: '2px solid var(--a-border)' }}>
-                    {['الكود','النوع','القيمة','حد أدنى','الاستخدام','حتى','الحالة','إجراء'].map(h => (
+                    {['الكود','النوع','القيمة','حد أدنى','الاستخدام','إجمالي الخصم','حتى','الحالة','إجراء'].map(h => (
                       <th key={h} style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700,
                         color: 'var(--a-text-soft)', fontSize: 12, whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((it, i) => (
-                    <tr key={it.code} style={{
+                  {items.map((it, i) => {
+                    const used = redemptions.filter(r => r.discount_code === it.code);
+                    // Cancelled bookings still consumed a use, but the money
+                    // was never given away — keep them out of the cost.
+                    const given = used.filter(r => r.status !== 'cancelled')
+                      .reduce((s, r) => s + Number(r.discount_amount ?? 0), 0);
+                    const open = openCode === it.code;
+                    return (
+                    <Fragment key={it.code}>
+                    <tr style={{
                       borderBottom: '1px solid var(--a-border)',
                       background: i % 2 === 0 ? 'var(--a-surface)' : 'var(--a-surface-alt)',
                       opacity: it.active ? 1 : 0.55,
@@ -282,6 +294,18 @@ export default function DiscountCodesManager() {
                         <strong>{it.used_count}</strong>
                         {' / '}
                         {it.max_uses ?? '∞'}
+                        {used.length > 0 && (
+                          <button onClick={() => setOpenCode(open ? null : it.code)}
+                            style={{ display: 'block', marginTop: 4, padding: 0, border: 'none',
+                              background: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                              fontSize: 11, fontWeight: 600, color: ATEMA_COLORS.deepBronze,
+                              textDecoration: 'underline' }}>
+                            {open ? 'إخفاء الحجوزات' : `عرض الحجوزات (${used.length})`}
+                          </button>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: 'var(--a-text)', fontWeight: 700 }}>
+                        {given > 0 ? `${fmt(given)} ر.س` : '—'}
                       </td>
                       <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', color: 'var(--a-text-soft)', fontSize: 12 }}>
                         {asDate(it.valid_to) || '—'}
@@ -328,7 +352,30 @@ export default function DiscountCodesManager() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    {open && (
+                      <tr style={{ background: 'var(--a-surface-alt)', borderBottom: '1px solid var(--a-border)' }}>
+                        <td colSpan={9} style={{ padding: '10px 14px 14px' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                            <tbody>
+                              {used.map(r => (
+                                <tr key={r.booking_ref} style={{ opacity: r.status === 'cancelled' ? 0.5 : 1 }}>
+                                  <td style={{ padding: '4px 8px', fontWeight: 600, color: ATEMA_COLORS.deepBronze }}>{r.booking_ref}</td>
+                                  <td style={{ padding: '4px 8px', color: 'var(--a-text)' }}>{r.customer_name}</td>
+                                  <td style={{ padding: '4px 8px', color: 'var(--a-text-soft)' }}>{r.event_date}</td>
+                                  <td style={{ padding: '4px 8px', color: 'var(--a-text)', fontWeight: 700 }}>
+                                    −{fmt(Number(r.discount_amount ?? 0))} ر.س
+                                    {r.status === 'cancelled' && <span style={{ fontWeight: 400 }}> (ملغي)</span>}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

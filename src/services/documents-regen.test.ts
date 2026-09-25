@@ -75,10 +75,17 @@ describe('buildContractData', () => {
 });
 
 describe('buildInvoiceData', () => {
-  it('marks a paid booking paid with the deposit recorded', () => {
-    const d = buildInvoiceData(booking(), PKG, ADDONS, 'INV-2606-ABCDE', undefined, NOW);
+  it('marks a deposit-only booking paid with the deposit + remaining recorded', () => {
+    const d = buildInvoiceData(
+      booking({ payment_status: 'deposit_paid' }), PKG, ADDONS, 'INV-2606-ABCDE', undefined, NOW);
     expect(d.paymentState).toBe('paid');
     expect(d.depositPaid).toBe(Math.round(14835 * 0.5));
+  });
+
+  it('marks a fully paid booking paid with no remaining balance line', () => {
+    const d = buildInvoiceData(booking(), PKG, ADDONS, 'INV-2606-ABCDE', undefined, NOW);
+    expect(d.paymentState).toBe('paid');
+    expect(d.depositPaid).toBe(0);
   });
 
   it('marks an unpaid booking pending with no deposit', () => {

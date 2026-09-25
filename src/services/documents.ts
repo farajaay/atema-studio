@@ -18,6 +18,7 @@ import {
   type InvoiceData,
 } from './invoice';
 import { DEFAULT_SETTINGS, type AppSettings } from './settings';
+import { isDepositReceived } from '../../supabase/functions/_shared/payments';
 
 /** The booking columns regeneration needs — matches the admin Booking shape. */
 export interface RegenBooking {
@@ -33,7 +34,7 @@ export interface RegenBooking {
   subtotal:        number;
   vat:             number;
   total:           number;
-  payment_status:  'unpaid' | 'awaiting_transfer' | 'paid' | 'refunded';
+  payment_status:  'unpaid' | 'awaiting_transfer' | 'deposit_paid' | 'paid' | 'refunded';
   discount_code?:   string | null;
   discount_amount?: number | null;
   discount_kind?:   'percent' | 'flat' | null;
@@ -138,10 +139,11 @@ export function buildInvoiceData(
     // The method isn't stored on the booking; the explicit paymentState
     // drives the badge instead so a paid booking never reads "pending".
     paymentMethod: 'pending',
-    paymentState:  b.payment_status === 'paid' ? 'paid'
+    paymentState:  isDepositReceived(b.payment_status) ? 'paid'
                  : b.payment_status === 'awaiting_transfer' ? 'awaiting_transfer'
                  : 'pending',
-    depositPaid:   b.payment_status === 'paid' ? deposit : 0,
+    // Fully paid → no «المتبقي» line; deposit only → deposit + remaining.
+    depositPaid:   b.payment_status === 'deposit_paid' ? deposit : 0,
     settings:      effectiveSettings,
     discount,
     grossSubtotal: discount ? b.subtotal + discount.amount : undefined,

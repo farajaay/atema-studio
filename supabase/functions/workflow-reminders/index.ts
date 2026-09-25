@@ -85,7 +85,7 @@ serve(async (req) => {
     // query (and silence the daily digest); `*` just leaves it undefined.
     .select('*')
     .neq('status', 'cancelled')
-    .in('payment_status', ['paid', 'awaiting_transfer'])
+    .in('payment_status', ['paid', 'deposit_paid', 'awaiting_transfer'])
     .gte('event_date', addDaysIso(today, -300))
     .lte('event_date', addDaysIso(today, 7));
 

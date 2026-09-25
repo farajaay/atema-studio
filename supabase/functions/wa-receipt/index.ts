@@ -19,6 +19,7 @@ import {
   db, sendText, fetchMediaUrl, downloadMedia, jsonResponse, corsHeaders,
 } from '../_shared/wa.ts';
 import { sanitizeExtraction, decideReceiptMatch } from '../_shared/receipt.ts';
+import { isDepositReceived, statusAfterPayment } from '../_shared/payments.ts';
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
 const OWNER_PHONE       = Deno.env.get('OWNER_WA_NUMBER');
@@ -102,7 +103,7 @@ serve(async (req) => {
 
   const amount = extracted.amount;
   const conf   = extracted.confidence;
-  const due    = booking.deposit && booking.payment_status === 'unpaid'
+  const due    = booking.deposit && !isDepositReceived(booking.payment_status)
     ? booking.deposit
     : (booking.total - (booking.deposit ?? 0));
 
@@ -117,14 +118,20 @@ serve(async (req) => {
 
   // ── 4. Update booking + notify ──────────────────────────────────────
   if (exact) {
-    await supa.from('bookings').update({
-      payment_status:       'paid',
+    // Deposit receipt → deposit_paid; balance receipt → paid (in full).
+    const patch = {
+      payment_status:       statusAfterPayment(booking.payment_status) as string,
       payment_method:       'transfer',
       payment_ref:          extracted.reference ?? message_id,
       payment_evidence_url: cdnUrl,
       payment_received_at:  new Date().toISOString(),
       status: booking.status === 'pending' ? 'confirmed' : booking.status,
-    }).eq('id', booking.id);
+    };
+    const { error: upErr } = await supa.from('bookings').update(patch).eq('id', booking.id);
+    // Pre-migration database (no 'deposit_paid' in the CHECK) → legacy 'paid'.
+    if (upErr?.code === '23514') {
+      await supa.from('bookings').update({ ...patch, payment_status: 'paid' }).eq('id', booking.id);
+    }
 
     // Customer confirmation
     await sendText(from_phone,

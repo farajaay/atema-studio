@@ -970,7 +970,8 @@ never, flip a booking to `paid` on its own authority. The rule:
 
 > **Money is confirmed against the bank statement, not against a
 > screenshot.** Open Al Rajhi, find the credit, match the booking ref,
-> *then* set حالة الدفع = مدفوع. A doctored receipt image costs a
+> *then* set حالة الدفع = «عربون مدفوع» (deposit) or «مدفوع بالكامل»
+> (balance settled). A doctored receipt image costs a
 > fraudster nothing; the bank statement cannot be photoshopped.
 
 ### Failed-sends banner
@@ -1181,8 +1182,8 @@ offer it is your call.
 you verify the receipt as usual, then press «تم الاستلام — تسجيل» on that
 row: amount received, date, and an optional note (e.g. مرجع الحوالة).
 Uneven amounts are fine — progress counts what actually arrived. A wrong
-entry can be undone («تصحيح»). `payment_status` keeps its usual meaning
-(deposit received); plan completion shows as «✓ الخطة مكتملة السداد».
+entry can be undone («تصحيح»). `payment_status` stays «عربون مدفوع» once the
+deposit is in (or «مدفوع بالكامل» when everything is settled); plan completion shows as «✓ الخطة مكتملة السداد».
 
 **If the total changes** (package change, VAT toggle), the card warns that
 the plan no longer sums to the booking total and offers «إعادة توزيع
@@ -1276,6 +1277,46 @@ dropped and she is quoted that tier's full price.
 manifest). Until it is applied the option simply does not appear — every
 surface treats the absent columns as "not offered", and bookings keep
 working exactly as before.
+
+---
+
+## 13o. Payment states & discount visibility (September 2026)
+
+**Payment states.** «حالة الدفع» in the booking modal now has five values:
+
+| State | Meaning | Counts as collected |
+|---|---|---|
+| غير مدفوع | nothing received | 0 |
+| بانتظار التحويل | bride chose transfer, receipt not yet verified | 0 |
+| **عربون مدفوع** | 50% deposit received, balance still owed | the deposit |
+| **مدفوع بالكامل** | everything settled | the full total |
+| مُسترد | studio-side cancellation refund | 0 |
+
+Before this change «مدفوع» was the only option after the deposit, so the
+dashboard's «الإيرادات المحصلة» counted the full total the moment a deposit
+arrived. Now it counts cash actually in hand, and the «قيد الانتظار» card's
+«مستحقة» figure includes balances behind a deposit. The المالية card shows
+العربون / المحصَّل / المتبقي live as you change the dropdown.
+
+**Existing bookings marked «مدفوع» were not rewritten** — open any that
+only have the deposit and switch them to «عربون مدفوع».
+
+Card payments (when enabled) and a verified WhatsApp deposit receipt land
+as «عربون مدفوع»; a verified balance receipt moves the booking to
+«مدفوع بالكامل». Requires `database/migrations-2026-09-deposit-paid.sql`;
+until it runs, the dropdown's «عربون مدفوع» save is rejected by the
+database and the automated paths fall back to the old «مدفوع».
+
+**Discounts.** A booking that used a code shows:
+- a «code −amount» tag under the total in the bookings table;
+- in the modal's المالية card, «السعر قبل الخصم» and «الخصم» above the
+  after-discount total;
+- the «الإيرادات المحصلة» card sub-line totals discounts given;
+- the P&L revenue KPI notes total discounts in the period.
+
+On the discount codes page, each code shows «إجمالي الخصم» (cancelled
+bookings excluded) and «عرض الحجوزات» lists every booking that used it.
+Policy math: `supabase/functions/_shared/payments.ts` (unit-tested).
 
 ---
 
