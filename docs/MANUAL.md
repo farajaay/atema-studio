@@ -1339,6 +1339,10 @@ Edge Functions → Secrets). The address is deliberately kept out of the repo. U
 are audited in `email_messages` with template `photographer_brief`. It carries
 full client PII — point it only at the photographer's own mailbox.
 
+**Resend / backfill:** admin → «إعدادات النظام» card → «إرسال آخر ٧ أيام»
+re-sends a brief for every non-cancelled booking created in the last 7 days
+(max 40 per run) via the admin-only `photographer-briefs` Edge Function.
+
 Code: `supabase/functions/_shared/email-photographer.ts` (pure, tested in
 `src/services/photographer-brief.test.ts`), wired in `create-booking` and
 `change-booking/handlers.ts`.

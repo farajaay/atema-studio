@@ -24,7 +24,7 @@ import { renderChangeOtpEmail } from '../_shared/email-otp.ts';
 import {
   renderRescheduleEmail, renderPackageChangeEmail, renderOwnerChangeAlertEmail,
 } from '../_shared/email-change.ts';
-import { renderPhotographerBrief, type BriefKind } from '../_shared/email-photographer.ts';
+import { renderPhotographerBrief, briefFromBookingRow, type BriefKind } from '../_shared/email-photographer.ts';
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
@@ -104,31 +104,10 @@ function dispatchPhotographerBrief(
     const { data: addons } = ids.length > 0
       ? await supabase.from('addons').select('id, price, active, name_ar, name_en').in('id', ids)
       : { data: [] };
-    const discountAmount = Number(after.discount_amount ?? 0);
-    const subtotal = Number(after.subtotal ?? 0);
     const today = env.today ? env.today() : new Date().toISOString().slice(0, 10);
-    const mail = renderPhotographerBrief({
-      kind, bookingRef: after.booking_ref,
-      customerName: after.customer_name, customerPhone: after.customer_phone,
-      customerEmail: after.customer_email,
-      eventDate: after.event_date, eventTime: after.event_time,
-      eventType: after.event_type, guestCount: after.guest_count,
-      location: after.location, notes: after.special_requests, shotList: after.shot_list,
-      packageId: Number(after.package_id),
-      packageNameAr: pkg?.name_ar ?? String(after.package_id), packageNameEn: pkg?.name_en,
-      packagePrice: Number(pkg?.price ?? 0), noPrint: after.no_print === true,
-      addons: ((addons ?? []) as any[]).filter(a => a.active)
-        .map(a => ({ nameAr: a.name_ar, nameEn: a.name_en, price: Number(a.price) })),
-      cityFee: CITY_FEES[extractCityKey(after.location)] ?? 0,
-      grossSubtotal: subtotal + discountAmount,
-      discount: after.discount_code && discountAmount > 0
-        ? { code: after.discount_code, amount: discountAmount, kind: after.discount_kind ?? null } : null,
-      subtotal, vat: Number(after.vat ?? 0), total: Number(after.total ?? 0),
-      paymentStatus: after.payment_status, topUpDue: Number(after.topup_amount_due ?? 0),
-      changeLines,
-      manageUrl: after.manage_token ? `${env.siteOrigin}/#/manage/${after.manage_token}` : null,
-      today,
-    });
+    const mail = renderPhotographerBrief(briefFromBookingRow(after, pkg, (addons ?? []) as any[], {
+      kind, changeLines, siteOrigin: env.siteOrigin, today,
+    }));
     const r = await env.sendEmail!({
       to, subject: mail.subject, html: mail.html, text: mail.text,
       bookingId: after.id, template: 'photographer_brief',

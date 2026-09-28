@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  renderPhotographerBrief, briefTimeline, briefPL, type PhotographerBriefData,
+  renderPhotographerBrief, briefTimeline, briefPL, briefFromBookingRow, type PhotographerBriefData,
 } from '../../supabase/functions/_shared/email-photographer';
 
 const base: PhotographerBriefData = {
@@ -53,5 +53,20 @@ describe('photographer brief', () => {
     expect(m.subject).toContain('Booking rescheduled');
     expect(m.html).toContain('ما الذي تغيّر');
     expect(m.text).toContain('2026-11-01 ← 2026-12-01');
+  });
+
+  it('maps a stored booking row (resend path)', () => {
+    const d = briefFromBookingRow({
+      booking_ref: 'AT-X', customer_name: 'س', customer_phone: '+9665', event_date: '2026-12-01',
+      package_id: 3, addon_ids: ['a', 'b'], subtotal: 5600, vat: 840, total: 6440,
+      discount_code: 'LAUNCH15', discount_amount: 800, discount_kind: 'percent',
+      location: 'jubail — قاعة', manage_token: 'tok',
+    }, { name_ar: 'الكلاسيكية', price: 5500 },
+    [{ name_ar: 'أ', price: 900, active: true }, { name_ar: 'ب', price: 1, active: false }],
+    { kind: 'new', siteOrigin: 'https://x', today: '2026-10-01' });
+    expect(d.grossSubtotal).toBe(6400);
+    expect(d.addons).toHaveLength(1);
+    expect(d.discount?.code).toBe('LAUNCH15');
+    expect(d.manageUrl).toBe('https://x/#/manage/tok');
   });
 });
