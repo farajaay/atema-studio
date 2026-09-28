@@ -9,8 +9,11 @@
 // (the studio's single admin — same "authenticated = admin" model as the
 // RLS policies). The anon key is rejected.
 //
-// POST { days?: number }   (1…60, default 7)
-// → { ok, total, sent, failed, skipped, capped }
+// Two short calls, driven one booking at a time by the admin page — a single
+// request sending every brief blew the Edge CPU limit (the worker was killed
+// mid-loop and the browser saw "Failed to send a request"):
+//   POST { days?: number }      (1…60, default 7) → { ok, ids: string[], capped }
+//   POST { bookingId: string }  → { ok, status: 'sent'|'failed'|'skipped', error? }
 
 // deno-lint-ignore-file no-explicit-any
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -23,12 +26,13 @@ const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const SITE_ORIGIN           = Deno.env.get('SITE_ORIGIN') ?? 'https://atemastudio.xyz';
 const PHOTOGRAPHER_EMAIL    = Deno.env.get('PHOTOGRAPHER_EMAIL') ?? '';
-// SMTP sends are sequential; keep one run well inside the Edge wall clock.
+// One admin click never queues more than this many sends.
 const MAX_BOOKINGS = 40;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -48,48 +52,37 @@ serve(async (req) => {
 
   let body: any = {};
   try { body = await req.json(); } catch { /* empty body → defaults */ }
+
+  // ── Send ONE brief ──────────────────────────────────────────────────────
+  if (typeof body.bookingId === 'string' && body.bookingId) {
+    const { data: b, error } = await supabase
+      .from('bookings').select('*').eq('id', body.bookingId).maybeSingle();
+    if (error) return json({ error: 'lookup_failed', detail: error.message }, 500);
+    if (!b)    return json({ error: 'not_found' }, 404);
+    const ids: string[] = Array.isArray(b.addon_ids) ? b.addon_ids : [];
+    const { data: pkg } = await supabase.from('packages').select('*').eq('id', b.package_id).maybeSingle();
+    const { data: addons } = ids.length
+      ? await supabase.from('addons').select('id, price, active, name_ar, name_en').in('id', ids)
+      : { data: [] };
+    const mail = renderPhotographerBrief(briefFromBookingRow(b, pkg, (addons ?? []) as any[], {
+      kind: 'new', siteOrigin: SITE_ORIGIN, today: new Date().toISOString().slice(0, 10),
+    }));
+    const r = await sendEmail({
+      to: PHOTOGRAPHER_EMAIL, subject: mail.subject, html: mail.html, text: mail.text,
+      template: 'photographer_brief', bookingId: b.id,
+    });
+    return json({ ok: true, status: r.status, error: r.error });
+  }
+
+  // ── List the bookings to send ───────────────────────────────────────────
   const days = Math.min(60, Math.max(1, Math.floor(Number(body.days ?? 7)) || 7));
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
-
   const { data: rows, error } = await supabase
-    .from('bookings').select('*')
+    .from('bookings').select('id')
     .gte('created_at', since).neq('status', 'cancelled')
     .order('created_at', { ascending: true })
     .limit(MAX_BOOKINGS + 1);
   if (error) return json({ error: 'lookup_failed', detail: error.message }, 500);
-
-  const bookings = (rows ?? []).slice(0, MAX_BOOKINGS);
-  const pkgIds   = [...new Set(bookings.map((b: any) => b.package_id).filter((x: any) => x != null))];
-  const addonIds = [...new Set(bookings.flatMap((b: any) => Array.isArray(b.addon_ids) ? b.addon_ids : []))];
-  const { data: pkgs }   = pkgIds.length   ? await supabase.from('packages').select('*').in('id', pkgIds) : { data: [] };
-  const { data: addons } = addonIds.length
-    ? await supabase.from('addons').select('id, price, active, name_ar, name_en').in('id', addonIds)
-    : { data: [] };
-  const pkgById   = new Map((pkgs ?? []).map((p: any) => [p.id, p]));
-  const addonById = new Map((addons ?? []).map((a: any) => [a.id, a]));
-
-  const today = new Date().toISOString().slice(0, 10);
-  let sent = 0, failed = 0, skipped = 0;
-  for (const b of bookings as any[]) {
-    try {
-      const rowAddons = (Array.isArray(b.addon_ids) ? b.addon_ids : [])
-        .map((id: string) => addonById.get(id)).filter(Boolean);
-      const mail = renderPhotographerBrief(briefFromBookingRow(b, pkgById.get(b.package_id), rowAddons, {
-        kind: 'new', siteOrigin: SITE_ORIGIN, today,
-      }));
-      const r = await sendEmail({
-        to: PHOTOGRAPHER_EMAIL, subject: mail.subject, html: mail.html, text: mail.text,
-        template: 'photographer_brief', bookingId: b.id,
-      });
-      if (r.status === 'sent') sent++; else if (r.status === 'failed') failed++; else skipped++;
-    } catch (e) {
-      console.error('[briefs] render/send failed:', b.booking_ref, (e as Error).message);
-      failed++;
-    }
-  }
-
-  return json({
-    ok: true, days, total: bookings.length, sent, failed, skipped,
-    capped: (rows ?? []).length > MAX_BOOKINGS,
-  });
+  const ids = (rows ?? []).slice(0, MAX_BOOKINGS).map((r: any) => r.id as string);
+  return json({ ok: true, days, ids, capped: (rows ?? []).length > MAX_BOOKINGS });
 });
