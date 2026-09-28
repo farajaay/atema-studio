@@ -500,6 +500,8 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - Supabase secrets (email path — the live one): `ZOHO_SMTP_*`
   (see `docs/integrations/email.md` §2.4), `SITE_ORIGIN`, `OWNER_WA_NUMBER`,
   optional `OWNER_EMAIL` (change alerts; defaults to the Zoho sender),
+  optional `PHOTOGRAPHER_EMAIL` (personal-inbox brief on every new booking +
+  customer change — details, pricing, P&L, deadlines; `docs/MANUAL.md` §13p),
   `ANTHROPIC_API_KEY` (receipt vision — WA-dependent).
 - Edge Function deploys are **automatic** (`supabase-functions.yml` on any
   `supabase/functions/**` push to master); manual `supabase functions deploy`
@@ -586,6 +588,10 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
 - Tap Payments as a secondary gateway (only when Mada volume justifies)
 
 **Done in recent sessions (do not re-build):**
+- ✅ Photographer brief (Sept 2026) — internal email to `PHOTOGRAPHER_EMAIL`
+  on every new booking and every manage-link change: full details, pricing +
+  discount, package P&L (engine moved to `_shared/pl.ts`, `src/services/pl/*`
+  re-export it) and the deadline timeline. `docs/MANUAL.md` §13p.
 - ✅ First-party visitor analytics (July 2026) — «الزيارات» section-tab in the
   admin dashboard: daily-visits chart, sessions, booking-page reach + conversion,
   top/departure pages, referrers. Privacy-first tracker (`RouteTracker` +
