@@ -1320,6 +1320,28 @@ Policy math: `supabase/functions/_shared/payments.ts` (unit-tested).
 
 ---
 
+## 13p. Photographer brief — personal-inbox notification (September 2026)
+
+A second, internal notification layer. Every time a booking is **created**, or
+a bride **changes** it from her manage link (reschedule or package/add-on
+change), the photographer's personal inbox receives one brief with:
+
+- client + event details (name, phone, email, date/time, venue, notes, shot list)
+- package, «بدون طباعة» flag, every add-on with its price, city fee
+- pricing: gross → discount code + amount → ex-VAT → VAT → total, 50% deposit / balance, any top-up now due
+- the package **P&L estimate** (same engine as the admin P&L tab — `_shared/pl.ts`): direct cost, overhead share, owner hours + pay, three margins, health warnings
+- the **production timeline** — every workflow rung (`_shared/workflow.ts`) with its target date, contract deadline and "in N days / N days ago"
+- for changes: a «ما الذي تغيّر» block at the top
+
+**Setup:** add the Supabase secret `PHOTOGRAPHER_EMAIL` (via the
+"Supabase — secrets" workflow or the dashboard). Unset → nothing is sent. Sends
+are audited in `email_messages` with template `photographer_brief`. It carries
+full client PII — point it only at the photographer's own mailbox.
+
+Code: `supabase/functions/_shared/email-photographer.ts` (pure, tested in
+`src/services/photographer-brief.test.ts`), wired in `create-booking` and
+`change-booking/handlers.ts`.
+
 ## 14. Future enhancements (parked)
 
 **Already shipped (do not re-build):**

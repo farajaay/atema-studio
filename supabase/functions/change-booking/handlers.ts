@@ -24,6 +24,7 @@ import { renderChangeOtpEmail } from '../_shared/email-otp.ts';
 import {
   renderRescheduleEmail, renderPackageChangeEmail, renderOwnerChangeAlertEmail,
 } from '../_shared/email-change.ts';
+import { renderPhotographerBrief, type BriefKind } from '../_shared/email-photographer.ts';
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
@@ -36,6 +37,9 @@ export interface HandlerEnv {
   ownerPhone?: string;
   /** Studio inbox for change alerts — the email twin of ownerPhone. */
   ownerEmail?: string;
+  /** Photographer's personal inbox — gets the full internal brief (details,
+   *  pricing, P&L, deadlines) after every change. Unset → no brief. */
+  photographerEmail?: string;
   siteOrigin: string;
   /** Send a WhatsApp text. Must never throw (wrap the transport). */
   notify: (phone: string | undefined, message: string) => Promise<void>;
@@ -84,6 +88,54 @@ function dispatchEmail(
   }).catch(e => console.warn('[change-email] send threw:', (e as Error).message));
   if (env.keepAlive) env.keepAlive(task);
   return true;
+}
+
+/** Photographer brief after a customer change — background, best-effort.
+ *  `after` is the booking row with the change applied. Re-reads the package
+ *  and add-on rows for names; never blocks or fails the change itself. */
+function dispatchPhotographerBrief(
+  supabase: any, env: HandlerEnv, after: any, kind: BriefKind, changeLines: string[],
+): void {
+  const to = String(env.photographerEmail ?? '').trim();
+  if (!env.sendEmail || !to) return;
+  const task = (async () => {
+    const { data: pkg } = await supabase.from('packages').select('*').eq('id', after.package_id).maybeSingle();
+    const ids: string[] = Array.isArray(after.addon_ids) ? after.addon_ids : [];
+    const { data: addons } = ids.length > 0
+      ? await supabase.from('addons').select('id, price, active, name_ar, name_en').in('id', ids)
+      : { data: [] };
+    const discountAmount = Number(after.discount_amount ?? 0);
+    const subtotal = Number(after.subtotal ?? 0);
+    const today = env.today ? env.today() : new Date().toISOString().slice(0, 10);
+    const mail = renderPhotographerBrief({
+      kind, bookingRef: after.booking_ref,
+      customerName: after.customer_name, customerPhone: after.customer_phone,
+      customerEmail: after.customer_email,
+      eventDate: after.event_date, eventTime: after.event_time,
+      eventType: after.event_type, guestCount: after.guest_count,
+      location: after.location, notes: after.special_requests, shotList: after.shot_list,
+      packageId: Number(after.package_id),
+      packageNameAr: pkg?.name_ar ?? String(after.package_id), packageNameEn: pkg?.name_en,
+      packagePrice: Number(pkg?.price ?? 0), noPrint: after.no_print === true,
+      addons: ((addons ?? []) as any[]).filter(a => a.active)
+        .map(a => ({ nameAr: a.name_ar, nameEn: a.name_en, price: Number(a.price) })),
+      cityFee: CITY_FEES[extractCityKey(after.location)] ?? 0,
+      grossSubtotal: subtotal + discountAmount,
+      discount: after.discount_code && discountAmount > 0
+        ? { code: after.discount_code, amount: discountAmount, kind: after.discount_kind ?? null } : null,
+      subtotal, vat: Number(after.vat ?? 0), total: Number(after.total ?? 0),
+      paymentStatus: after.payment_status, topUpDue: Number(after.topup_amount_due ?? 0),
+      changeLines,
+      manageUrl: after.manage_token ? `${env.siteOrigin}/#/manage/${after.manage_token}` : null,
+      today,
+    });
+    const r = await env.sendEmail!({
+      to, subject: mail.subject, html: mail.html, text: mail.text,
+      bookingId: after.id, template: 'photographer_brief',
+    });
+    if (r.status !== 'sent') console.warn('[brief] non-sent status:', r.status, r.error ?? '');
+  })().catch(e => console.warn('[brief] failed:', (e as Error).message));
+  if (env.keepAlive) env.keepAlive(task);
 }
 
 /** Token lookup + action dispatch — the whole POST body lifecycle after JSON
@@ -161,6 +213,9 @@ export async function handleReschedule(supabase: any, booking: any, body: any, w
       lines: [`الموعد: ${booking.event_date} ← ${newDate} (الساعة ${newTime})`],
     }), booking.id, 'change_owner_alert');
   }
+  dispatchPhotographerBrief(supabase, env,
+    { ...booking, event_date: newDate, event_time: newTime }, 'reschedule',
+    [`الموعد: ${booking.event_date} ${booking.event_time ?? ''} ← ${newDate} ${newTime}`]);
   if (waEnabled) {
     await env.notify(booking.customer_phone,
       `✓ تم تأجيل حجزك\nرقم الحجز: ${booking.booking_ref}\nالموعد الجديد: ${newDate} الساعة ${newTime}\nبانتظارك 🤍`);
@@ -359,6 +414,15 @@ export async function handleChangePackage(supabase: any, booking: any, body: any
       ],
     }), booking.id, 'change_owner_alert');
   }
+  dispatchPhotographerBrief(supabase, env, {
+    ...booking, package_id: pkgId, addon_ids: addOnIds, no_print: keepNoPrint,
+    subtotal: change.subtotal, vat: change.vat, total: change.total,
+    topup_amount_due: change.topUpDue > 0 ? change.topUpDue : booking.topup_amount_due,
+  }, 'package', [
+    `الباقة: ${booking.package_id} ← ${pkgId}`,
+    `الإضافات: ${(booking.addon_ids ?? []).length} ← ${addOnIds.length}`,
+    `الإجمالي: ${booking.total} ← ${change.total} SAR (${change.direction}, فرق ${change.delta})`,
+  ]);
   if (waEnabled) {
     await env.notify(booking.customer_phone,
       `✓ تم تعديل باقتك\nرقم الحجز: ${booking.booking_ref}\nالإجمالي الجديد: ${change.total.toLocaleString('ar-SA')} ر.س${dueLine}`);

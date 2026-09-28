@@ -12,29 +12,19 @@
 //   status in (confirmed | completed) OR payment_status in (paid |
 //   awaiting_transfer). Cancelled and refunded never count.
 //
-// Per-package input defaults come from src/services/pl/config.ts. Couture
-// (package id 6) is not in that table, so we supply sensible defaults
-// inline below — same shape as the spec-defined packages.
+// Per-package input defaults (incl. Couture) come from
+// supabase/functions/_shared/pl.ts → plInputsForPackage().
 
 import type { Booking } from '../hooks/useAdminData';
 import { calculateBookingPL } from './pl/engine';
-import {
-  DEFAULT_COST_CONFIG,
-  DEFAULT_PACKAGE_INPUTS,
-  PACKAGE_DEFAULTS,
-} from './pl/config';
+import { DEFAULT_COST_CONFIG } from './pl/config';
+import { PACKAGE_KEY_BY_ID, plInputsForPackage } from '../../supabase/functions/_shared/pl';
 import type { BookingCostInputs, CostConfig } from './pl/types';
 
 // ── Package id ↔ defaults / display name ─────────────────────────────────
-// Per database/seed-packages-2026-05.sql (ids 1..6).
-export const PACKAGE_KEY_BY_ID: Record<number, string> = {
-  1: 'engagement',
-  2: 'base',
-  3: 'classic',
-  4: 'royal',
-  5: 'signature',
-  6: 'couture',
-};
+// Per database/seed-packages-2026-05.sql (ids 1..6). The id → defaults map
+// (incl. Couture) lives in _shared/pl.ts so the Edge Functions share it.
+export { PACKAGE_KEY_BY_ID };
 
 export const PACKAGE_NAME_AR: Record<number, string> = {
   1: 'الخطوبة',
@@ -54,28 +44,8 @@ export const PACKAGE_NAME_EN: Record<number, string> = {
   6: 'Couture',
 };
 
-// Couture is missing from PACKAGE_DEFAULTS in pl/config.ts — supply here.
-const COUTURE_DEFAULTS = {
-  coverageHours: 8, prepHours: 1,
-  includesVideo: true, includesAssistant: true, includesVideographer: true,
-  albumIncluded: true, albumSize: 'A3' as const, albumPages: 16,
-  miniFamilyAlbum: true,
-};
-
 function inputsForBooking(b: Booking): BookingCostInputs {
-  const key = PACKAGE_KEY_BY_ID[b.package_id] ?? '';
-  const defaults =
-    b.package_id === 6 ? COUTURE_DEFAULTS
-    : (PACKAGE_DEFAULTS[key] ?? DEFAULT_PACKAGE_INPUTS);
-
-  return {
-    packageId: b.package_id,
-    revenueExVat: b.subtotal,
-    travelDistanceKm: 0,
-    travelFeeCharged:  0,
-    extraStorageUnits: 0,
-    ...defaults,
-  };
+  return plInputsForPackage(b.package_id, b.subtotal);
 }
 
 // ── Inclusion rule ───────────────────────────────────────────────────────

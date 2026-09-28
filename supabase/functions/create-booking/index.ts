@@ -37,6 +37,7 @@ import {
 import { sumActiveAddons, clampDiscount, computeBookingTotals, grossForPackage, isNoPrint } from '../_shared/pricing.ts';
 import { sendEmail } from '../_shared/email.ts';
 import { renderBookingConfirmation } from '../_shared/email-confirmation.ts';
+import { renderPhotographerBrief } from '../_shared/email-photographer.ts';
 import { generateContractHTML } from '../_shared/contract.ts';
 import { generateInvoiceHTML, generateInvoiceNumber, DEFAULT_INVOICE_SETTINGS } from '../_shared/invoice.ts';
 
@@ -44,6 +45,9 @@ const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const SUPABASE_ANON_KEY     = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SITE_ORIGIN           = Deno.env.get('SITE_ORIGIN') ?? 'https://atemastudio.xyz';
+// Photographer's PERSONAL inbox for the internal booking brief (full details,
+// pricing, P&L, deadlines). Unset → no brief is sent.
+const PHOTOGRAPHER_EMAIL    = Deno.env.get('PHOTOGRAPHER_EMAIL') ?? '';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
@@ -485,6 +489,43 @@ serve(async (req) => {
   }
   })();
   keepAlive(emailTask);
+
+  // ── Photographer brief (BACKGROUND, internal) ─────────────────────────
+  // Second notification layer: the photographer's personal inbox gets the
+  // full picture — client, services, pricing + discount, P&L estimate and
+  // the deadline timeline. Independent of the bride's email (sent even when
+  // she left no address). See _shared/email-photographer.ts.
+  if (PHOTOGRAPHER_EMAIL) {
+    const briefTask = (async () => {
+      try {
+        const brief = renderPhotographerBrief({
+          kind: 'new', bookingRef,
+          customerName: name, customerPhone: phone, customerEmail: email || null,
+          eventDate, eventTime, eventType, guestCount,
+          location: [String(body.city ?? ''), venue].filter(Boolean).join(' — ') || null,
+          notes: notes || null, shotList: shotList || null,
+          packageId: pkgId, packageNameAr: pkg.name_ar, packageNameEn: pkg.name_en,
+          packagePrice: Number(pkg.price), noPrint,
+          addons: addonRows.filter(a => a.active)
+            .map(a => ({ nameAr: a.name_ar, nameEn: a.name_en, price: Number(a.price) })),
+          cityFee, grossSubtotal,
+          discount: discountCode ? { code: discountCode, amount: discountAmount, kind: discountKind } : null,
+          subtotal, vat, total,
+          paymentStatus: 'unpaid',
+          manageUrl: manageLink,
+          today: new Date().toISOString().slice(0, 10),
+        });
+        const r = await sendEmail({
+          to: PHOTOGRAPHER_EMAIL, subject: brief.subject, html: brief.html, text: brief.text,
+          template: 'photographer_brief', bookingId,
+        });
+        log('[brief] send result:', r.status, r.error ?? '');
+      } catch (e) {
+        err('[brief] unexpected error:', (e as Error).message);
+      }
+    })();
+    keepAlive(briefTask);
+  }
 
   // ── WhatsApp booking confirmation (fire-and-forget) ───────────────────
   if (waEnabled && whatsappOptIn) {

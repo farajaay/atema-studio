@@ -33,6 +33,8 @@ const OWNER_PHONE           = Deno.env.get('OWNER_WA_NUMBER');
 // Studio inbox for change alerts — falls back to the Zoho sender account,
 // which is the studio's own mailbox.
 const OWNER_EMAIL           = Deno.env.get('OWNER_EMAIL') ?? Deno.env.get('ZOHO_SMTP_USER');
+// Photographer's personal inbox — full internal brief after every change.
+const PHOTOGRAPHER_EMAIL    = Deno.env.get('PHOTOGRAPHER_EMAIL');
 const SITE_ORIGIN           = Deno.env.get('SITE_ORIGIN') ?? 'https://atemastudio.xyz';
 
 // Keep the worker alive for background work (OTP email) so we can return the
@@ -59,6 +61,7 @@ serve(async (req) => {
   return await routeChangeRequest(supabase, body, {
     ownerPhone: OWNER_PHONE,
     ownerEmail: OWNER_EMAIL,
+    photographerEmail: PHOTOGRAPHER_EMAIL,
     siteOrigin: SITE_ORIGIN,
     keepAlive,
     notify: async (phone, message) => {
