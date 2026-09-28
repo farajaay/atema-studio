@@ -28,7 +28,7 @@ export default function AppSettingsPanel({ settings, onSave }: {
 
   const resendBriefs = async () => {
     setBriefBusy(true); setBriefMsg(null);
-    const r = await resendPhotographerBriefs(7);
+    const r = await resendPhotographerBriefs(7, (done, total) => setBriefMsg(`جارٍ الإرسال… ${done} من ${total}`));
     setBriefBusy(false);
     if (!r.ok) {
       setBriefMsg(r.error?.includes('photographer_email_unset')
