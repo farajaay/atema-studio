@@ -69,10 +69,17 @@ jobs:
           # create-booking from reaching production. Failures are
           # collected and surfaced together at the end so the job still
           # exits non-zero — just not before everything has been tried.
+          # Functions that authenticate the caller THEMSELVES (admin session
+          # via auth.getUser) — the gateway's legacy JWT check rejects user
+          # session tokens signed with the project's newer signing keys.
+          NO_VERIFY_JWT=" photographer-briefs "
+
           failed=()
           for fn in "${FUNCTIONS[@]}"; do
             echo "::group::deploy $fn"
-            if supabase functions deploy "$fn" --project-ref "${SUPABASE_PROJECT_REF}"; then
+            extra=()
+            if [[ "$NO_VERIFY_JWT" == *" $fn "* ]]; then extra+=(--no-verify-jwt); fi
+            if supabase functions deploy "$fn" --project-ref "${SUPABASE_PROJECT_REF}" "${extra[@]}"; then
               echo "✓ $fn"
             else
               echo "::error::Failed to deploy $fn"

@@ -11,9 +11,19 @@ export async function resendPhotographerBriefs(days = 7): Promise<BriefsResult> 
   if (!supabase) return { ok: false, error: 'supabase_unconfigured' };
   const { data, error } = await supabase.functions.invoke('photographer-briefs', { body: { days } });
   if (error) {
-    // Pull the function's own error code out of a non-2xx response.
+    // Surface the real reason: our own { error } code, or the gateway's
+    // { message } / { msg }, plus the HTTP status.
     let code = error.message;
-    try { code = (await (error as { context?: Response }).context?.json())?.error ?? code; } catch { /* keep */ }
+    const res = (error as { context?: Response }).context;
+    if (res && typeof res.text === 'function') {
+      try {
+        const raw = await res.text();
+        let body: Record<string, unknown> = {};
+        try { body = JSON.parse(raw); } catch { /* not JSON */ }
+        const msg = body.error ?? body.message ?? body.msg ?? raw.slice(0, 120);
+        code = `${res.status}: ${String(msg)}`;
+      } catch { /* keep generic */ }
+    }
     return { ok: false, error: code };
   }
   return data as BriefsResult;
