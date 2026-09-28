@@ -2,7 +2,8 @@
 // Global VAT toggle + seller VAT# / CR# (required when enabling).
 
 import { useState } from 'react';
-import { Settings, Receipt, Building, X, Save, AlertCircle, CheckCircle2, Loader2, Palette, MessageCircle, CreditCard } from 'lucide-react';
+import { Settings, Receipt, Building, X, Save, AlertCircle, CheckCircle2, Loader2, Palette, MessageCircle, CreditCard, Mail } from 'lucide-react';
+import { resendPhotographerBriefs } from '../services/photographerBriefs';
 import type { AppSettings, ThemeName } from '../services/settings';
 
 // Theme-aware tokens — values resolve from document CSS custom properties.
@@ -22,6 +23,23 @@ export default function AppSettingsPanel({ settings, onSave }: {
   onSave: (patch: Partial<AppSettings>) => Promise<boolean>;
 }) {
   const [editing, setEditing] = useState(false);
+  const [briefBusy, setBriefBusy] = useState(false);
+  const [briefMsg, setBriefMsg]   = useState<string | null>(null);
+
+  const resendBriefs = async () => {
+    setBriefBusy(true); setBriefMsg(null);
+    const r = await resendPhotographerBriefs(7);
+    setBriefBusy(false);
+    if (!r.ok) {
+      setBriefMsg(r.error === 'photographer_email_unset'
+        ? 'لم يُضبط PHOTOGRAPHER_EMAIL في أسرار Supabase بعد.'
+        : `تعذّر الإرسال (${r.error ?? 'خطأ'}).`);
+      return;
+    }
+    setBriefMsg(`أُرسل ${r.sent ?? 0} من ${r.total ?? 0} ملخّصاً`
+      + ((r.failed ?? 0) > 0 ? ` · فشل ${r.failed}` : '')
+      + (r.capped ? ' · أول ٤٠ حجزاً فقط' : '') + '.');
+  };
 
   const vatBadge = settings.vat_enabled ? (
     <span style={pill('#059669')}><CheckCircle2 size={11} /> مفعّلة (15%)</span>
@@ -81,6 +99,21 @@ export default function AppSettingsPanel({ settings, onSave }: {
           ضريبة القيمة المضافة معطّلة — جميع الفواتير والعقود تُعرض بدون ضريبة
         </div>
       )}
+
+      <div style={{
+        marginTop: 12, padding: '10px 14px', borderRadius: 8,
+        border: `1px solid ${C.sand}`, fontSize: 12,
+        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+      }}>
+        <Mail size={14} color={ICON_GOLD} />
+        <span style={{ flex: 1, minWidth: 180, color: 'var(--a-text-soft)' }}>
+          ملخّصات المصوّرة — إعادة إرسال ملخّص كل حجز من آخر ٧ أيام إلى بريدها الشخصي
+        </span>
+        <button onClick={resendBriefs} disabled={briefBusy} style={{ ...editBtn, opacity: briefBusy ? 0.6 : 1 }}>
+          {briefBusy ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : 'إرسال آخر ٧ أيام'}
+        </button>
+        {briefMsg && <div style={{ width: '100%', color: C.taupe }}>{briefMsg}</div>}
+      </div>
 
       {editing && (
         <SettingsEditModal initial={settings}

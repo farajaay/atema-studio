@@ -20,6 +20,7 @@
 import { STATIONERY } from './stationery.ts';
 import { calculateBookingPL, plInputsForPackage, DEFAULT_COST_CONFIG, type BookingPL } from './pl.ts';
 import { stepsForBooking, computeTargets, daysBetween } from './workflow.ts';
+import { CITY_FEES, extractCityKey } from './validation.ts';
 
 const HTML_ESCAPES: Record<string, string> = {
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -274,4 +275,40 @@ export function renderPhotographerBrief(d: PhotographerBriefData): RenderedEmail
 </body></html>`;
 
   return { subject, html, text };
+}
+
+/** Map a stored `bookings` row (plus its package + add-on rows) to brief
+ *  data. Used wherever the brief is built from the database rather than from
+ *  a fresh server-side recompute: change-booking and the photographer-briefs
+ *  resend. Ex-VAT subtotal is stored after the discount, so the gross is
+ *  subtotal + discount_amount. */
+// deno-lint-ignore no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function briefFromBookingRow(row: any, pkg: any, addons: any[], opts: {
+  kind: BriefKind; siteOrigin: string; today: string; changeLines?: string[];
+}): PhotographerBriefData {
+  const discountAmount = Number(row.discount_amount ?? 0);
+  const subtotal = Number(row.subtotal ?? 0);
+  return {
+    kind: opts.kind, bookingRef: row.booking_ref,
+    customerName: row.customer_name, customerPhone: row.customer_phone,
+    customerEmail: row.customer_email,
+    eventDate: row.event_date, eventTime: row.event_time,
+    eventType: row.event_type, guestCount: row.guest_count,
+    location: row.location, notes: row.special_requests, shotList: row.shot_list,
+    packageId: Number(row.package_id),
+    packageNameAr: pkg?.name_ar ?? String(row.package_id), packageNameEn: pkg?.name_en,
+    packagePrice: Number(pkg?.price ?? 0), noPrint: row.no_print === true,
+    addons: (addons ?? []).filter(a => a.active)
+      .map(a => ({ nameAr: a.name_ar, nameEn: a.name_en, price: Number(a.price) })),
+    cityFee: CITY_FEES[extractCityKey(row.location)] ?? 0,
+    grossSubtotal: subtotal + discountAmount,
+    discount: row.discount_code && discountAmount > 0
+      ? { code: row.discount_code, amount: discountAmount, kind: row.discount_kind ?? null } : null,
+    subtotal, vat: Number(row.vat ?? 0), total: Number(row.total ?? 0),
+    paymentStatus: row.payment_status, topUpDue: Number(row.topup_amount_due ?? 0),
+    changeLines: opts.changeLines,
+    manageUrl: row.manage_token ? `${opts.siteOrigin}/#/manage/${row.manage_token}` : null,
+    today: opts.today,
+  };
 }
