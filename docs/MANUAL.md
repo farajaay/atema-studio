@@ -1333,8 +1333,9 @@ change), the photographer's personal inbox receives one brief with:
 - the **production timeline** — every workflow rung (`_shared/workflow.ts`) with its target date, contract deadline and "in N days / N days ago"
 - for changes: a «ما الذي تغيّر» block at the top
 
-**Setup:** add the Supabase secret `PHOTOGRAPHER_EMAIL` (via the
-"Supabase — secrets" workflow or the dashboard). Unset → nothing is sent. Sends
+**Setup:** add `PHOTOGRAPHER_EMAIL` as a GitHub repo secret, then run the
+"Supabase — secrets" workflow (or set it directly in the Supabase dashboard →
+Edge Functions → Secrets). The address is deliberately kept out of the repo. Unset → nothing is sent. Sends
 are audited in `email_messages` with template `photographer_brief`. It carries
 full client PII — point it only at the photographer's own mailbox.
 
