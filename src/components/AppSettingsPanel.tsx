@@ -31,7 +31,7 @@ export default function AppSettingsPanel({ settings, onSave }: {
     const r = await resendPhotographerBriefs(7);
     setBriefBusy(false);
     if (!r.ok) {
-      setBriefMsg(r.error === 'photographer_email_unset'
+      setBriefMsg(r.error?.includes('photographer_email_unset')
         ? 'لم يُضبط PHOTOGRAPHER_EMAIL في أسرار Supabase بعد.'
         : `تعذّر الإرسال (${r.error ?? 'خطأ'}).`);
       return;
