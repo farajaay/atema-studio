@@ -2,7 +2,7 @@
 // Global VAT toggle + seller VAT# / CR# (required when enabling).
 
 import { useState } from 'react';
-import { Settings, Receipt, Building, X, Save, AlertCircle, CheckCircle2, Loader2, Palette, MessageCircle, CreditCard, Mail } from 'lucide-react';
+import { Settings, Receipt, Building, X, Save, AlertCircle, CheckCircle2, Loader2, Palette, MessageCircle, CreditCard, Mail, Film } from 'lucide-react';
 import { resendPhotographerBriefs } from '../services/photographerBriefs';
 import type { AppSettings, ThemeName } from '../services/settings';
 
@@ -47,6 +47,12 @@ export default function AppSettingsPanel({ settings, onSave }: {
     <span style={pill('#dc2626')}><X size={11} /> معطّلة</span>
   );
 
+  const filmsBadge = settings.films_enabled ? (
+    <span style={pill('#059669')}><CheckCircle2 size={11} /> ظاهرة للزوار</span>
+  ) : (
+    <span style={pill('#dc2626')}><X size={11} /> مخفية</span>
+  );
+
   const waBadge = settings.wa_enabled ? (
     <span style={pill('#059669')}><CheckCircle2 size={11} /> مفعّلة</span>
   ) : (
@@ -83,6 +89,7 @@ export default function AppSettingsPanel({ settings, onSave }: {
         gap: 12, fontSize: 13 }}>
         <Field icon={<Receipt size={14} />}        label="ضريبة القيمة المضافة" valueNode={vatBadge} />
         <Field icon={<MessageCircle size={14} />}  label="رسائل واتساب التلقائية" valueNode={waBadge} />
+        <Field icon={<Film size={14} />}           label="صفحة الأفلام" valueNode={filmsBadge} />
         <Field icon={<CreditCard size={14} />}     label="طرق الدفع المفعّلة" value={paymentMethodsList} />
         <Field icon={<Building size={14} />}       label="اسم البائع" value={settings.seller_name_ar} />
         <Field icon={<Palette size={14} />}        label="ثيم الموقع"
@@ -136,7 +143,7 @@ function SettingsEditModal({ initial, onClose, onSave }: {
   initial: {
     vat_enabled: boolean; vat_number: string; cr_number: string;
     seller_name_ar: string; seller_name_en: string; theme: ThemeName;
-    wa_enabled: boolean;
+    wa_enabled: boolean; films_enabled: boolean;
     payment_card_enabled: boolean; payment_mada_enabled: boolean;
     payment_applepay_enabled: boolean; payment_transfer_enabled: boolean;
   };
@@ -150,6 +157,7 @@ function SettingsEditModal({ initial, onClose, onSave }: {
   const [nameEn,        setNameEn]        = useState(initial.seller_name_en);
   const [theme,         setTheme]         = useState<ThemeName>(initial.theme);
   const [waOn,          setWaOn]          = useState(initial.wa_enabled);
+  const [filmsOn,       setFilmsOn]       = useState(initial.films_enabled);
   const [cardOn,        setCardOn]        = useState(initial.payment_card_enabled);
   const [madaOn,        setMadaOn]        = useState(initial.payment_mada_enabled);
   const [appleOn,       setAppleOn]       = useState(initial.payment_applepay_enabled);
@@ -179,6 +187,7 @@ function SettingsEditModal({ initial, onClose, onSave }: {
       seller_name_en:            nameEn.trim(),
       theme,
       wa_enabled:                waOn,
+      films_enabled:             filmsOn,
       payment_card_enabled:      cardOn,
       payment_mada_enabled:      madaOn,
       payment_applepay_enabled:  appleOn,
@@ -285,6 +294,27 @@ function SettingsEditModal({ initial, onClose, onSave }: {
                 تأكّدي من إعداد متغيّرات البيئة META_WA_* في Supabase وأن قوالب الرسائل معتمدة من Meta
               </div>
             )}
+          </div>
+
+          {/* Public Films page toggle */}
+          <div style={{
+            border: `1px solid ${C.sand}`,
+            borderRadius: 12, padding: '14px 16px', marginBottom: 18,
+          }}>
+            <label style={{ display: 'flex', justifyContent: 'space-between',
+              alignItems: 'center', cursor: 'pointer', gap: 12 }}>
+              <div>
+                <div style={{ fontWeight: 700, color: C.black, fontSize: 14, marginBottom: 4 }}>
+                  صفحة الأفلام
+                </div>
+                <div style={{ fontSize: 12, color: C.taupe }}>
+                  {filmsOn
+                    ? 'ظاهرة — رابط «الأفلام» في القائمة والتذييل، والصفحة متاحة للزوار'
+                    : 'مخفية — لا رابط في القائمة، ومن يفتح /films يُعاد إلى الرئيسية (إدارة الأفلام تبقى متاحة)'}
+                </div>
+              </div>
+              <Toggle on={filmsOn} onChange={setFilmsOn} />
+            </label>
           </div>
 
           {/* Payment methods toggles */}

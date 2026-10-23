@@ -483,6 +483,8 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
     anon SELECT on the eight public-read surfaces; silences the
     `rls_disabled_in_public` advisor finding. Run it after any hand-made table;
     its first result set names whatever was bare.)
+  - `database/migrations-2026-10-films-flag.sql` (`app_settings.films_enabled`
+    — the admin «صفحة الأفلام» switch; default off)
   - `database/seed-packages-2026-05.sql` (6 packages + 11 add-ons — required
     if `packages` table is empty; the booking flow falls back to the DEMO
     catalogue without it, but the Edge Function still needs real rows to
@@ -564,14 +566,16 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   `src/App.tsx` (import + gate + render) and `src/pages/HomePage.tsx`, and the
   `promo-card.webp` preload is commented out in `index.html`. To re-enable:
   restore those four spots (and refresh the artwork/offer first).
-- **Films section is DISABLED till further notice (2026-07-18 decision)** —
-  `/films` nav/footer links removed and the public route now redirects to
-  `/` (`src/App.tsx`); dropped from `public/sitemap.xml`. `/admin/films`
-  (FilmsManager) stays live so the owner can keep curating. To re-enable:
-  restore the nav entries in `SiteHeader.tsx`/`SiteFooter.tsx`, restore the
-  `<Route path="/films" element={<Suspense …><FilmsPage /></Suspense>} />`
-  route (re-add the `FilmsPage` lazy import in `App.tsx`), and re-add the
-  sitemap entry.
+- **Films page is behind an admin switch (2026-10 change)** — «صفحة الأفلام» in
+  admin «إعدادات النظام» sets `app_settings.films_enabled` (default **off**,
+  which keeps the 2026-07-18 "hidden" decision). On → `/films` is public and
+  the header/footer show «الأفلام»; off → the links disappear and `/films`
+  redirects home. Gate: `useFilmsEnabled()` (`src/hooks/useFilmsEnabled.ts`,
+  one shared settings read via `fetchSettingsOnce()`), used by `FilmsRoute` in
+  `src/App.tsx`, `SiteHeader.tsx`, `SiteFooter.tsx`. `/admin/films` is always
+  live. Requires `database/migrations-2026-10-films-flag.sql`; until applied
+  the switch reads off and saving it reports a failure. `public/sitemap.xml`
+  still omits `/films` — re-add it if the page stays on.
 
 ### Code-side (low-priority bug-tracker items)
 - L-5: `useBreakpoint` SSR-safety guard
