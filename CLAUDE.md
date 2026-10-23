@@ -575,7 +575,8 @@ Full detail: [`PROJECT.md` §4](./PROJECT.md) and
   `src/App.tsx`, `SiteHeader.tsx`, `SiteFooter.tsx`. `/admin/films` is always
   live. Requires `database/migrations-2026-10-films-flag.sql`; until applied
   the switch reads off and saving it reports a failure. `public/sitemap.xml`
-  still omits `/films` — re-add it if the page stays on.
+  lists `/films` (owner decision 2026-10-23) — drop it if the page is
+  switched off for good.
 
 ### Code-side (low-priority bug-tracker items)
 - L-5: `useBreakpoint` SSR-safety guard
