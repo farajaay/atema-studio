@@ -6,6 +6,7 @@ import { parseMoyasarCallback } from './services/moyasar';
 import { useTheme } from './hooks/useTheme';
 import RouteTracker from './components/RouteTracker';
 import TrialBadge from './components/TrialBadge';
+import { useFilmsEnabled } from './hooks/useFilmsEnabled';
 // Promotion modal disabled till further notice (2026-07-18) — the advertised
 // 15% launch offer has lapsed. To re-enable: restore this import, the
 // useLocation-based showPromotion gate in App(), and the render below
@@ -77,9 +78,19 @@ const PackagesManager      = lazyChunk(() => import('./pages/PackagesManager'));
 const PortfolioManager     = lazyChunk(() => import('./pages/PortfolioManager'));
 const JournalManager       = lazyChunk(() => import('./pages/JournalManager'));
 const FilmsManager         = lazyChunk(() => import('./pages/FilmsManager'));
+const FilmsPage            = lazyChunk(() => import('./pages/FilmsPage'));
 const DiscountCodesManager = lazyChunk(() => import('./pages/DiscountCodesManager'));
 const AddonsManager        = lazyChunk(() => import('./pages/AddonsManager'));
 const AlbumDesignsManager  = lazyChunk(() => import('./pages/AlbumDesignsManager'));
+
+/** /films is public only while the admin switch «صفحة الأفلام» is on
+ *  (app_settings.films_enabled); otherwise it redirects home as before. */
+function FilmsRoute() {
+  const on = useFilmsEnabled();
+  if (on === null) return <AdminFallback />;
+  if (!on) return <Navigate to="/" replace />;
+  return <Suspense fallback={<AdminFallback />}><FilmsPage /></Suspense>;
+}
 
 function AdminFallback() {
   return (
@@ -129,9 +140,9 @@ export default function App() {
       <Route path="/"                element={<HomePage />} />
       <Route path="/book"            element={<BookingPage />} />
       <Route path="/portfolio"       element={<PortfolioPage />} />
-      {/* Films public route disabled till further notice — see CLAUDE.md §6.
-          /admin/films (FilmsManager) stays live so curation can continue. */}
-      <Route path="/films"           element={<Navigate to="/" replace />} />
+      {/* Films — gated by the admin switch (app_settings.films_enabled).
+          /admin/films (FilmsManager) is always live for curation. */}
+      <Route path="/films"           element={<FilmsRoute />} />
       <Route path="/journal"         element={<JournalPage />} />
       <Route path="/journal/:slug"   element={<JournalPostPage />} />
       <Route path="/about"           element={<AboutPage />} />

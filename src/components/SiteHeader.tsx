@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { useFilmsEnabled } from '../hooks/useFilmsEnabled';
 
 type Lang = 'ar' | 'en';
 const tx = (l: Lang, ar: string, en: string) => l === 'ar' ? ar : en;
@@ -20,13 +21,17 @@ interface Props {
 const NAV: Array<{ to: string; ar: string; en: string }> = [
   { to: '/',          ar: 'الرئيسية',  en: 'Home'      },
   { to: '/portfolio', ar: 'الأعمال',   en: 'Portfolio' },
-  // Films nav entry disabled till further notice — see CLAUDE.md §6.
   { to: '/journal',   ar: 'اليوميات',  en: 'Journal'   },
   { to: '/book',      ar: 'الباقات',   en: 'Packages'  },
   { to: '/about',     ar: 'الاستوديو', en: 'Atelier'   },
 ];
 
+// Shown only while the admin switch «صفحة الأفلام» is on.
+const FILMS_NAV = { to: '/films', ar: 'الأفلام', en: 'Films' };
+
 export default function SiteHeader({ lang, setLang, solidOnScroll = false }: Props) {
+  const filmsOn = useFilmsEnabled();
+  const nav = filmsOn ? [...NAV.slice(0, 2), FILMS_NAV, ...NAV.slice(2)] : NAV;
   const { isMobile } = useBreakpoint();
   const [scrolled, setScrolled] = useState(false);
   const [open,     setOpen]     = useState(false);
@@ -77,7 +82,7 @@ export default function SiteHeader({ lang, setLang, solidOnScroll = false }: Pro
         {/* Desktop nav */}
         {!isMobile && (
           <nav style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
-            {NAV.map(item => (
+            {nav.map(item => (
               <NavLink key={item.to} to={item.to} end={item.to === '/'}
                 style={({ isActive }) => ({
                   fontFamily: "'Cinzel', serif",
@@ -124,7 +129,7 @@ export default function SiteHeader({ lang, setLang, solidOnScroll = false }: Pro
           background: 'rgba(11,11,11,0.96)',
           display: 'flex', flexDirection: 'column', gap: 4,
         }}>
-          {NAV.map(item => (
+          {nav.map(item => (
             <NavLink key={item.to} to={item.to} end={item.to === '/'}
               style={({ isActive }) => ({
                 display: 'block', padding: '12px 6px',

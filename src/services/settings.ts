@@ -14,6 +14,8 @@ export interface AppSettings {
   theme:                     ThemeName;
   // WhatsApp automated-send gate
   wa_enabled:                boolean;
+  // Public Films page (/#/films + nav links)
+  films_enabled:             boolean;
   // Payment method gates
   payment_card_enabled:      boolean;
   payment_mada_enabled:      boolean;
@@ -30,6 +32,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   seller_name_en:            'ATEMA Studio',
   theme:                     'noir',
   wa_enabled:                false,
+  films_enabled:             false,
   payment_card_enabled:      false,
   payment_mada_enabled:      false,
   payment_applepay_enabled:  false,
@@ -59,6 +62,7 @@ export async function fetchSettings(): Promise<AppSettings> {
     seller_name_en:            data.seller_name_en ?? DEFAULT_SETTINGS.seller_name_en,
     theme:                     (data.theme === 'ivory' ? 'ivory' : 'noir') as ThemeName,
     wa_enabled:                !!data.wa_enabled,
+    films_enabled:             data.films_enabled === true,
     payment_card_enabled:      !!data.payment_card_enabled,
     payment_mada_enabled:      !!data.payment_mada_enabled,
     payment_applepay_enabled:  !!data.payment_applepay_enabled,
@@ -71,11 +75,27 @@ export async function fetchSettings(): Promise<AppSettings> {
 export async function saveSettings(s: Partial<AppSettings>): Promise<boolean> {
   if (!supabase) return false;
   const payload = { id: 1, ...s, updated_at: new Date().toISOString() };
-  const { error } = await supabase
+  let { error } = await supabase
     .from('app_settings')
     .upsert(payload, { onConflict: 'id' });
+  // migrations-2026-10-films-flag.sql not applied yet → save everything else
+  // rather than failing the whole form, and report the flag as not saved.
+  if (error && /films_enabled/.test(error.message) && 'films_enabled' in payload) {
+    const rest: Record<string, unknown> = { ...payload };
+    delete rest.films_enabled;
+    ({ error } = await supabase.from('app_settings').upsert(rest, { onConflict: 'id' }));
+    if (!error) { console.error('saveSettings: films_enabled column missing — run migrations-2026-10-films-flag.sql'); return false; }
+  }
   if (error) { console.error('saveSettings:', error.message); return false; }
   return true;
+}
+
+// One shared read for the public surfaces (header, footer, /films route) so
+// a page load costs a single app_settings request, not one per component.
+let publicSettings: Promise<AppSettings> | null = null;
+export function fetchSettingsOnce(): Promise<AppSettings> {
+  if (!publicSettings) publicSettings = fetchSettings();
+  return publicSettings;
 }
 
 /** Compute VAT given subtotal + global + per-booking flags. */

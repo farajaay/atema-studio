@@ -1,6 +1,7 @@
 // ATEMA STUDIO — shared editorial footer.
 
 import { Link } from 'react-router-dom';
+import { useFilmsEnabled } from '../hooks/useFilmsEnabled';
 
 type Lang = 'ar' | 'en';
 const tx = (l: Lang, ar: string, en: string) => l === 'ar' ? ar : en;
@@ -8,6 +9,7 @@ const tx = (l: Lang, ar: string, en: string) => l === 'ar' ? ar : en;
 interface Props { lang: Lang; }
 
 export default function SiteFooter({ lang }: Props) {
+  const filmsOn = useFilmsEnabled();
   return (
     <footer style={{
       borderTop: '1px solid var(--a-border)',
@@ -25,7 +27,8 @@ export default function SiteFooter({ lang }: Props) {
         {([
           ['/',           'الرئيسية',  'Home'],
           ['/portfolio',  'الأعمال',   'Portfolio'],
-          // Films footer entry disabled till further notice — see CLAUDE.md §6.
+          // Films — only while the admin switch «صفحة الأفلام» is on.
+          ...(filmsOn ? [['/films', 'الأفلام', 'Films']] as const : []),
           ['/journal',    'اليوميات',  'Journal'],
           ['/book',       'الباقات',   'Packages'],
           ['/about',      'الاستوديو', 'Atelier'],
